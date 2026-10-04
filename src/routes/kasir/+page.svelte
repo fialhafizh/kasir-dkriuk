@@ -7,6 +7,7 @@
 	import ModalShift from '#lib/components/kasir/ModalShift.svelte';
 	import PrinterChip from '#lib/components/kasir/PrinterChip.svelte';
 	import Selesai from '#lib/components/kasir/Selesai.svelte';
+	import PitaMinus from '#lib/components/stok/PitaMinus.svelte';
 	import { catatPenjualan, muatMenuOutlet, muatPenjualan } from '#lib/kasir/api.ts';
 	import { dataStrukDari, dataStrukRiwayat } from '#lib/kasir/cetak.ts';
 	import { tambah, tambahNasiBox, totalKeranjang, ubahQty } from '#lib/kasir/keranjang.ts';
@@ -25,6 +26,7 @@
 	let peringatan = $state('');
 	let pesanMenu = $state('');
 	let muatUlang = $state(0);
+	let segarStok = $state(0);
 	// Satu id per keranjang: tekan Bayar dua kali / kirim ulang tidak menggandakan (lihat transaksi.ts).
 	const transaksi = new Transaksi();
 	const api = { catat: catatPenjualan, muat: muatPenjualan };
@@ -84,6 +86,7 @@
 			peringatan = r.peringatan.join(' ');
 			if (r.hargaBerubah) muatUlang++;
 			tahap = 'selesai';
+			segarStok++;
 		} catch (e) {
 			if (SHIFT_BERUBAH.test((e as Error).message)) void pos.muatShift();
 			throw e;
@@ -128,6 +131,7 @@
 		<h1 class="font-display text-2xl">{pos.outlet?.merek} {pos.outlet?.nama}</h1>
 		<PrinterChip />
 	</div>
+	{#if pos.outlet}<PitaMinus outletId={pos.outlet.id} segar={segarStok} />{/if}
 	{#if pesanMenu}
 		<div class="mb-3 flex flex-wrap items-center gap-2" role="alert">
 			<p class="text-danger">{pesanMenu}</p>

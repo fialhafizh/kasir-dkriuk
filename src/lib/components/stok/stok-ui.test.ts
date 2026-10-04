@@ -72,3 +72,12 @@ describe('FormStokAwal', () => {
 		expect(body).toContain('Kirim ke admin');
 	});
 });
+
+import PitaMinus from './PitaMinus.svelte';
+
+describe('PitaMinus', () => {
+	it('render awal (server) tidak menampilkan apa pun sebelum data dimuat', () => {
+		const { body } = render(PitaMinus, { props: { outletId: 'o' } });
+		expect(body).not.toContain('Stok minus');
+	});
+});
