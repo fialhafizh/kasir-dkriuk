@@ -1,0 +1,12 @@
+# Data bisnis & materi referensi owner (jangan masuk repo publik)
+*.xlsx
+*.txt
+/referensi/
+*.jpg
+!static/**/*.jpg
+.env
+.env.*
+!.env.example
+node_modules/
+.svelte-kit/
+build/
