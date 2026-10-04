@@ -48,6 +48,20 @@ describe('trigger profil', () => {
 	it('menolak username dengan huruf besar', async () => {
 		await expect(buatUser(db, { username: 'Kasir.Besar', role: 'admin' })).rejects.toThrow();
 	});
+
+	it('menolak username yang bukan alamat email sah (titik ganda/di tepi)', async () => {
+		await expect(buatUser(db, { username: 'a..b', role: 'admin' })).rejects.toThrow();
+		await expect(buatUser(db, { username: '.abc', role: 'admin' })).rejects.toThrow();
+		await expect(buatUser(db, { username: 'abc.', role: 'admin' })).rejects.toThrow();
+	});
+
+	it('pola username di database sama dengan validasi aplikasi', async () => {
+		const { USERNAME_PATTERN } = await import('../../src/lib/auth/username');
+		const { rows } = await db.query<{ def: string }>(
+			`select pg_get_constraintdef(oid) as def from pg_constraint where conrelid = 'public.profiles'::regclass and conname = 'profiles_username_check'`
+		);
+		expect(rows[0].def).toContain(USERNAME_PATTERN);
+	});
 });
 
 describe('RLS profiles', () => {

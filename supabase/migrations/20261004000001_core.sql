@@ -15,7 +15,7 @@ create table public.outlets (
 
 create table public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
-  username text not null unique check (username ~ '^[a-z0-9._-]{3,32}$'),
+  username text not null unique check (username ~ '^[a-z0-9](?:[a-z0-9_-]|\.(?!\.)){1,30}[a-z0-9]$'),
   nama_tampilan text not null,
   role public.user_role not null,
   outlet_id uuid references public.outlets (id),
