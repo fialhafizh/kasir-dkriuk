@@ -168,6 +168,8 @@ Koreksi masuk ke buku besar sebagai baris "opname".
 
 **Setoran:** uang cash per outlet disetor ke owner. Kasir mencatat setoran, lalu admin mengonfirmasi terima. Admin bisa melihat saldo cash yang belum disetor per outlet.
 
+**Kas harian (penegasan owner, 6 Okt 2026 — dikerjakan Tahap 5):** laci hanya berisi uang fisik; QRIS/GoFood/GrabFood/ShopeeFood tercatat di pendapatan harian tetapi tidak di laci. Pengeluaran yang diinput kasir (gas, dll., nominal manual) **langsung mengurangi uang laci**; jumlah yang disetor **langsung dikurangi dari laci**. Tutup toko menjadi: cash seharusnya = modal + penjualan cash − void cash − pengeluaran laci − setoran. Barang masuk dibayar dari uang setoran di bank, **bukan** dari laci. Owner butuh catatan harian per outlet dari semua sumber (per kanal) beserta pengeluarannya.
+
 ---
 
 ## 6. Keuangan
