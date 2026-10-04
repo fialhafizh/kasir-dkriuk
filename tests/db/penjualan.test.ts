@@ -226,3 +226,72 @@ describe('hak fungsi', () => {
 		await expect(rpc(kasirBL, 'public._cek_akses_outlet($1)', [await idOutlet(db, 'BL')])).rejects.toThrow(/permission denied/);
 	});
 });
+
+describe('review Tugas 3 Tahap 2', () => {
+	it('kiriman ulang dengan id penjualan outlet lain tidak membocorkan nomor', async () => {
+		await buka(kasirBL, await idOutlet(db, 'BL'));
+		await buka(kasirTK, await idOutlet(db, 'TK'));
+		const p = await pesanan('TK', [['nasi', 1]]);
+		await jual(kasirTK, p);
+		await expect(jual(kasirBL, { ...p, outlet_id: await idOutlet(db, 'BL') })).rejects.toThrow(/Penjualan tidak ditemukan/);
+	});
+
+	it('kiriman ulang penjualan yang sudah dibatalkan memberi tanda batal', async () => {
+		await buka(kasirBL, await idOutlet(db, 'BL'));
+		const p = await pesanan('BL', [['nasi', 1]]);
+		await jual(kasirBL, p);
+		await rpc(kasirBL, 'public.void_penjualan($1, $2)', [p.id, 'Salah input']);
+		const r = await jual(kasirBL, p);
+		expect((r as unknown as { batal: boolean }).batal).toBe(true);
+	});
+
+	it('qty kosong di antara item sah ditolak dengan pesan jumlah', async () => {
+		await buka(kasirBL, await idOutlet(db, 'BL'));
+		const p = await pesanan('BL', [['nasi', 1]]);
+		p.item.push({ menu_id: await idMenu(db, 'box'), qty: null as unknown as number });
+		await expect(jual(kasirBL, p)).rejects.toThrow(/Jumlah item tidak sah/);
+	});
+
+	it('admin bisa berjualan untuk outlet mana pun', async () => {
+		const tk = await idOutlet(db, 'TK');
+		await buka(adminId, tk);
+		const r = await jual(adminId, await pesanan('TK', [['nasi', 1]]));
+		expect(r.nomor).toMatch(/^TK-/);
+	});
+
+	it('kasir nonaktif ditolak', async () => {
+		await buka(kasirBL, await idOutlet(db, 'BL'));
+		await db.query('update public.profiles set aktif = false where id = $1', [kasirBL]);
+		await expect(jual(kasirBL, await pesanan('BL', [['nasi', 1]]))).rejects.toThrow(/tidak berhak/);
+	});
+
+	it('alasan batal disimpan tanpa spasi tepi; ringkasan memuat kelima metode', async () => {
+		const s = await buka(kasirBL, await idOutlet(db, 'BL'));
+		const p = await pesanan('BL', [['nasi', 1]]);
+		await jual(kasirBL, p);
+		await rpc(kasirBL, 'public.void_penjualan($1, $2)', [p.id, '  Salah input  ']);
+		const { rows } = await db.query<{ a: string }>('select void_alasan as a from public.penjualan where id = $1', [p.id]);
+		expect(rows[0].a).toBe('Salah input');
+		const r = await rpc<{ per_metode: Record<string, unknown> }>(kasirBL, 'public.ringkasan_shift($1)', [s]);
+		expect(Object.keys(r.per_metode).sort()).toEqual(['cash', 'gofood', 'grabfood', 'qris', 'shopeefood']);
+	});
+
+	it('pengunjung tanpa login tidak bisa memanggil fungsi kasir', async () => {
+		const { sebagaiAnon } = await import('./harness');
+		await expect(sebagaiAnon(db, () => db.query(`select public.catat_penjualan('{}'::jsonb)`))).rejects.toThrow(/permission denied/);
+	});
+
+	it('kasir outlet lain: pesan spesifik (bukan sekadar salah satu)', async () => {
+		const s = await buka(kasirTK, await idOutlet(db, 'TK'));
+		await expect(rpc(kasirBL, 'public.tutup_shift($1, $2, $3)', [s, 0, null])).rejects.toThrow(/Shift tidak ditemukan/);
+	});
+
+	it('penguncian: catat & void mengunci baris shift (for share / for update)', async () => {
+		const { rows } = await db.query<{ src: string }>(
+			`select string_agg(prosrc, ' ') as src from pg_proc where proname in ('catat_penjualan', 'void_penjualan')`
+		);
+		expect(rows[0].src).toMatch(/ditutup_at is null for share/);
+		expect(rows[0].src).toMatch(/pg_advisory_xact_lock/);
+		expect(rows[0].src).toMatch(/where id = p_id for update/);
+	});
+});

@@ -50,12 +50,17 @@ begin
     raise exception 'Data penjualan tidak lengkap' using errcode = '22023';
   end if;
   perform public._cek_akses_outlet(v_outlet);
+  -- Kiriman ulang bersamaan dengan id sama menunggu yang pertama selesai.
+  perform pg_advisory_xact_lock(hashtextextended(v_id::text, 0));
 
   -- Idempoten: ID dibuat di perangkat; kiriman ulang mengembalikan hasil pertama.
   select * into v_ada from public.penjualan where id = v_id;
   if found then
+    if v_ada.outlet_id <> v_outlet then
+      raise exception 'Penjualan tidak ditemukan' using errcode = '22023';
+    end if;
     return jsonb_build_object('id', v_ada.id, 'nomor', v_ada.nomor, 'total', v_ada.total,
-      'kembalian', v_ada.kembalian, 'waktu', v_ada.waktu, 'ulang', true);
+      'kembalian', v_ada.kembalian, 'waktu', v_ada.waktu, 'ulang', true, 'batal', v_ada.void_at is not null);
   end if;
 
   -- Waktu dari perangkat dipakai bila wajar (persiapan offline), selain itu waktu server.
@@ -63,7 +68,8 @@ begin
     v_waktu := now();
   end if;
 
-  select id into v_shift from public.shift where outlet_id = v_outlet and ditutup_at is null;
+  -- Kunci baris shift agar tidak bisa ditutup bersamaan dengan penjualan ini.
+  select id into v_shift from public.shift where outlet_id = v_outlet and ditutup_at is null for share;
   if v_shift is null then
     raise exception 'Shift belum dibuka' using errcode = '22023';
   end if;
@@ -73,7 +79,7 @@ begin
   end if;
 
   with i as (
-    select menu_id, sum(qty)::integer as qty, bool_and(qty between 1 and 999) as sah
+    select menu_id, sum(qty)::integer as qty, bool_and(coalesce(qty between 1 and 999, false)) as sah
     from jsonb_to_recordset(p -> 'item') as x (menu_id uuid, qty integer)
     group by menu_id
   )
@@ -118,7 +124,7 @@ begin
   group by m.id, m.nama, h.harga;
 
   return jsonb_build_object('id', v_id, 'nomor', v_nomor, 'total', v_total,
-    'kembalian', v_kembalian, 'waktu', v_waktu, 'ulang', false);
+    'kembalian', v_kembalian, 'waktu', v_waktu, 'ulang', false, 'batal', false);
 end
 $$;
 
@@ -128,7 +134,7 @@ declare
   v public.penjualan;
   v_tutup timestamptz;
 begin
-  select * into v from public.penjualan where id = p_id;
+  select * into v from public.penjualan where id = p_id for update;
   if not found or not (public.is_admin() or public.my_outlet_id() = v.outlet_id) then
     raise exception 'Penjualan tidak ditemukan' using errcode = '22023';
   end if;
@@ -138,7 +144,7 @@ begin
   if p_alasan is null or length(trim(p_alasan)) < 3 or length(p_alasan) > 200 then
     raise exception 'Alasan pembatalan wajib diisi (3–200 karakter)' using errcode = '22023';
   end if;
-  select ditutup_at into v_tutup from public.shift where id = v.shift_id;
+  select ditutup_at into v_tutup from public.shift where id = v.shift_id for share;
   if v_tutup is not null and not public.is_admin() then
     raise exception 'Penjualan dari shift yang sudah ditutup hanya bisa dibatalkan admin' using errcode = '42501';
   end if;
