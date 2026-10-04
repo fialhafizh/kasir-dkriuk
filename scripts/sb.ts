@@ -6,9 +6,12 @@ import { spawnSync } from 'node:child_process';
 const rahasia = ['SUPABASE_ACCESS_TOKEN', 'SUPABASE_DB_PASSWORD', 'SUPABASE_SERVICE_ROLE_KEY']
 	.map((k) => process.env[k])
 	.filter((v): v is string => !!v);
-const args = process.argv.slice(2).map((a) => a.replace('{REF}', process.env.SUPABASE_PROJECT_REF ?? ''));
-const r = spawnSync('npx', ['supabase', ...args], { shell: true, encoding: 'utf8', env: process.env });
+const args = process.argv
+	.slice(2)
+	.map((a) => a.replaceAll('{REF}', process.env.SUPABASE_PROJECT_REF ?? ''))
+	.map((a) => (/[\s"]/.test(a) ? `"${a.replaceAll('"', '\\"')}"` : a));
+const r = spawnSync(['npx', 'supabase', ...args].join(' '), { shell: true, encoding: 'utf8', env: process.env });
 let out = `${r.stdout ?? ''}${r.stderr ?? ''}`;
-for (const s of rahasia) out = out.split(s).join('***');
+for (const s of rahasia) out = out.split(s).join('***').split(encodeURIComponent(s)).join('***');
 process.stdout.write(out);
 process.exit(r.status ?? 1);

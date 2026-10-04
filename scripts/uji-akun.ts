@@ -38,12 +38,18 @@ try {
 	});
 	if (a.error) throw new Error(a.error.message);
 	hapus.push(a.data.user.id);
-	const { c: admin } = await masuk(uAdmin, pwAdmin);
+	const { c: admin, error: eAdmin } = await masuk(uAdmin, pwAdmin);
+	if (eAdmin) throw new Error(`admin sementara gagal login: ${eAdmin}`);
+
+	const tanpaSesi = createClient(url, anonKey, { auth: { persistSession: false } });
+	const anonim = await panggil(tanpaSesi, { aksi: 'reset_password', id: a.data.user.id });
+	cek('tanpa login → 401', anonim.status === 401, String(anonim.status));
 
 	const uKasir = `uji.kasir.${tag}`;
 	const buat = await panggil(admin, { aksi: 'buat', username: uKasir, nama_tampilan: 'Uji Kasir', role: 'kasir', outlet_kode: 'KP' });
 	cek('admin membuat kasir', buat.status === 200 && typeof buat.data?.password === 'string', String(buat.status));
 	if (buat.data?.id) hapus.push(buat.data.id);
+	if (buat.status !== 200) throw new Error('langkah buat gagal; pemeriksaan berikutnya dilewati');
 
 	const dobel = await panggil(admin, { aksi: 'buat', username: uKasir, nama_tampilan: 'X', role: 'kasir', outlet_kode: 'KP' });
 	cek('username ganda ditolak 409', dobel.status === 409, String(dobel.status));
@@ -89,8 +95,16 @@ try {
 	const rusak = await panggil(admin, { aksi: 'hapus_semua' });
 	cek('aksi asing ditolak 400', rusak.status === 400, String(rusak.status));
 } finally {
-	for (const id of hapus.reverse()) await svc.auth.admin.deleteUser(id);
-	console.log(`\nAkun sementara dihapus: ${hapus.length}`);
+	let sisa = 0;
+	for (const id of hapus.reverse()) {
+		const { error } = await svc.auth.admin.deleteUser(id);
+		if (error) {
+			sisa++;
+			gagal++;
+			console.error(`GAGAL menghapus akun sementara ${id}: ${error.message} — hapus manual di Supabase Studio!`);
+		}
+	}
+	console.log(`\nAkun sementara dihapus: ${hapus.length - sisa} dari ${hapus.length}`);
 }
 console.log(gagal ? `\n${gagal} pemeriksaan GAGAL` : '\nSemua pemeriksaan lulus');
 process.exit(gagal ? 1 : 0);

@@ -83,3 +83,53 @@ export function passwordDariAcak(bytes: Uint8Array): string {
 	for (const x of bytes) biner += String.fromCharCode(x);
 	return btoa(biner).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
+
+/**
+ * Kunci servis untuk Edge Function. Project dengan kunci lama menyediakan SUPABASE_SERVICE_ROLE_KEY;
+ * sistem kunci baru menyediakan SUPABASE_SECRET_KEYS (JSON, mis. {"default": "sb_secret_..."}).
+ */
+export function kunciServis(env: Record<string, string | undefined>): string | null {
+	if (env.SUPABASE_SERVICE_ROLE_KEY) return env.SUPABASE_SERVICE_ROLE_KEY;
+	try {
+		const k = JSON.parse(env.SUPABASE_SECRET_KEYS ?? '') as Record<string, string>;
+		return k.default ?? Object.values(k)[0] ?? null;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Urutan aman mengubah status akun:
+ * - nonaktif: profil dulu (semua aturan akses langsung terputus), lalu blokir login; bila blokir gagal, profil dikembalikan.
+ * - aktif: buka blokir dulu, lalu profil (bila profil gagal, akun bisa login tapi tanpa akses — aman).
+ */
+export async function jalankanSetAktif(
+	aktif: boolean,
+	ops: { ubahProfil: (aktif: boolean) => Promise<void>; ubahBan: (aktif: boolean) => Promise<void> }
+): Promise<string | null> {
+	if (!aktif) {
+		try {
+			await ops.ubahProfil(false);
+		} catch {
+			return 'Status akun gagal disimpan. Coba lagi.';
+		}
+		try {
+			await ops.ubahBan(false);
+		} catch {
+			await ops.ubahProfil(true).catch(() => {});
+			return 'Status login gagal diubah. Coba lagi.';
+		}
+		return null;
+	}
+	try {
+		await ops.ubahBan(true);
+	} catch {
+		return 'Status login gagal diubah. Coba lagi.';
+	}
+	try {
+		await ops.ubahProfil(true);
+	} catch {
+		return 'Status akun gagal disimpan. Coba lagi.';
+	}
+	return null;
+}

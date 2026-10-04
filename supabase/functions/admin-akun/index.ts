@@ -1,6 +1,14 @@
 // Edge Function: kelola akun (hanya admin aktif). Kunci service role hanya ada di server.
-import { createClient } from 'npm:@supabase/supabase-js@2';
-import { BAN_SELAMANYA, bacaPerintah, cekBolehNonaktif, emailDariUsername, passwordDariAcak } from '../_shared/akun.ts';
+import { createClient } from 'npm:@supabase/supabase-js@2.117.2';
+import {
+	BAN_SELAMANYA,
+	bacaPerintah,
+	cekBolehNonaktif,
+	emailDariUsername,
+	jalankanSetAktif,
+	kunciServis,
+	passwordDariAcak
+} from '../_shared/akun.ts';
 
 const CORS = {
 	'Access-Control-Allow-Origin': '*',
@@ -16,9 +24,13 @@ Deno.serve(async (req) => {
 	if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
 	if (req.method !== 'POST') return json(405, { error: 'Metode tidak didukung.' });
 
-	const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
-		auth: { persistSession: false, autoRefreshToken: false }
-	});
+	// verify_jwt dimatikan (sistem kunci baru); keaslian sesi diperiksa di bawah lewat getUser.
+	const kunci = kunciServis(Deno.env.toObject());
+	if (!kunci) {
+		console.error('admin-akun: kunci servis tidak tersedia');
+		return json(500, { error: 'Fungsi server belum dikonfigurasi.' });
+	}
+	const db = createClient(Deno.env.get('SUPABASE_URL')!, kunci, { auth: { persistSession: false, autoRefreshToken: false } });
 
 	const token = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
 	const { data: u, error: ue } = await db.auth.getUser(token);
@@ -50,7 +62,10 @@ Deno.serve(async (req) => {
 				app_metadata: { username: p.username, nama_tampilan: p.nama_tampilan, role: p.role, outlet_kode: p.outlet_kode }
 			});
 			if (error) {
-				if (/already|exists|registered/i.test(error.message)) return json(409, { error: 'Username sudah dipakai.' });
+				if (error.code === 'email_exists' || /already|exists|registered/i.test(error.message)) {
+					return json(409, { error: 'Username sudah dipakai.' });
+				}
+				console.error('admin-akun buat:', error.code ?? error.status);
 				return json(500, { error: 'Akun gagal dibuat. Coba lagi.' });
 			}
 			return json(200, { ok: true, id: data.user.id, username: p.username, password });
@@ -91,12 +106,20 @@ Deno.serve(async (req) => {
 			});
 			if (tolak) return json(400, { error: tolak });
 		}
-		const { error: be } = await db.auth.admin.updateUserById(p.id, { ban_duration: p.aktif ? 'none' : BAN_SELAMANYA });
-		if (be) return json(500, { error: 'Status login gagal diubah.' });
-		const { error: pe } = await db.from('profiles').update({ aktif: p.aktif }).eq('id', p.id);
-		if (pe) return json(500, { error: 'Status akun gagal disimpan.' });
+		const gagal = await jalankanSetAktif(p.aktif, {
+			ubahProfil: async (aktif) => {
+				const { error } = await db.from('profiles').update({ aktif }).eq('id', p.id);
+				if (error) throw error;
+			},
+			ubahBan: async (aktif) => {
+				const { error } = await db.auth.admin.updateUserById(p.id, { ban_duration: aktif ? 'none' : BAN_SELAMANYA });
+				if (error) throw error;
+			}
+		});
+		if (gagal) return json(500, { error: gagal });
 		return json(200, { ok: true });
-	} catch {
+	} catch (e) {
+		console.error('admin-akun:', (e as { code?: string }).code ?? 'tidak diketahui');
 		return json(500, { error: 'Gagal memproses akun. Coba lagi.' });
 	}
 });

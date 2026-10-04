@@ -91,3 +91,70 @@ describe('password & blokir', () => {
 		expect(BAN_SELAMANYA).toBe('876000h');
 	});
 });
+
+import { jalankanSetAktif, kunciServis } from '../../supabase/functions/_shared/akun';
+
+describe('review Tugas 4: kunci servis', () => {
+	it('memakai SUPABASE_SERVICE_ROLE_KEY bila ada', () => {
+		expect(kunciServis({ SUPABASE_SERVICE_ROLE_KEY: 'lama', SUPABASE_SECRET_KEYS: '{"default":"baru"}' })).toBe('lama');
+	});
+	it('jatuh ke SUPABASE_SECRET_KEYS (sistem kunci baru)', () => {
+		expect(kunciServis({ SUPABASE_SECRET_KEYS: '{"default":"sb_secret_x"}' })).toBe('sb_secret_x');
+	});
+	it('tidak ada kunci → null (handler membalas 500 yang jelas)', () => {
+		expect(kunciServis({})).toBeNull();
+		expect(kunciServis({ SUPABASE_SECRET_KEYS: 'rusak' })).toBeNull();
+	});
+});
+
+describe('review Tugas 4: urutan aktif/nonaktif', () => {
+	function rekam(gagal: Partial<Record<'profil' | 'ban', boolean>> = {}) {
+		const log: string[] = [];
+		return {
+			log,
+			ops: {
+				ubahProfil: async (aktif: boolean) => {
+					log.push(`profil:${aktif}`);
+					if (gagal.profil && log.filter((l) => l.startsWith('profil')).length === 1) throw new Error('x');
+				},
+				ubahBan: async (aktif: boolean) => {
+					log.push(`ban:${aktif}`);
+					if (gagal.ban) throw new Error('x');
+				}
+			}
+		};
+	}
+
+	it('nonaktif: profil dulu (akses langsung terputus), lalu blokir login', async () => {
+		const r = rekam();
+		expect(await jalankanSetAktif(false, r.ops)).toBeNull();
+		expect(r.log).toEqual(['profil:false', 'ban:false']);
+	});
+	it('nonaktif: blokir gagal → profil dikembalikan aktif, pesan coba lagi', async () => {
+		const r = rekam({ ban: true });
+		expect(await jalankanSetAktif(false, r.ops)).toBe('Status login gagal diubah. Coba lagi.');
+		expect(r.log).toEqual(['profil:false', 'ban:false', 'profil:true']);
+	});
+	it('aktif: buka blokir dulu, lalu profil', async () => {
+		const r = rekam();
+		expect(await jalankanSetAktif(true, r.ops)).toBeNull();
+		expect(r.log).toEqual(['ban:true', 'profil:true']);
+	});
+	it('profil gagal diubah → pesan, tanpa memblokir', async () => {
+		const r = rekam({ profil: true });
+		expect(await jalankanSetAktif(false, r.ops)).toBe('Status akun gagal disimpan. Coba lagi.');
+		expect(r.log).toEqual(['profil:false']);
+	});
+});
+
+describe('review Tugas 4: kasus perintah tambahan', () => {
+	it('ubah dengan kode outlet atau nama tidak sah ditolak', () => {
+		expect(bacaPerintah({ aksi: 'ubah', id, outlet_kode: 'bl' })).toEqual({ ok: false, error: 'Kode outlet tidak sah.' });
+		expect(bacaPerintah({ aksi: 'ubah', id, nama_tampilan: '  ' })).toEqual({ ok: false, error: 'Nama tampilan wajib diisi.' });
+		expect(bacaPerintah({ aksi: 'ubah', id, nama_tampilan: 'x'.repeat(61) })).toEqual({ ok: false, error: 'Nama tampilan wajib diisi.' });
+	});
+	it('admin baru selalu tanpa outlet walau dikirim', () => {
+		const r = bacaPerintah({ aksi: 'buat', username: 'owner3', nama_tampilan: 'O', role: 'admin', outlet_kode: 'BL' });
+		expect(r.ok && r.perintah.aksi === 'buat' && r.perintah.outlet_kode).toBe(null);
+	});
+});
