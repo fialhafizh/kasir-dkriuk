@@ -199,6 +199,16 @@ describe('simpan_isi_satuan_beli (atomik)', () => {
 		expect(rows.map((r) => Number(r.qty))).toEqual([18]);
 	});
 
+	it('isi dengan 4 desimal tersimpan persis (sama dengan presisi aplikasi)', async () => {
+		const pack = await idDari('satuan_beli', 'pack_kulit');
+		const kulit = await idDari('bahan', 'kulit');
+		await sebagai(db, adminId, () =>
+			db.query('select public.simpan_isi_satuan_beli($1, $2::jsonb)', [pack, JSON.stringify([{ bahan_id: kulit, qty: 0.0833 }])])
+		);
+		const { rows } = await db.query<{ qty: string }>('select qty from public.satuan_beli_isi where satuan_beli_id = $1', [pack]);
+		expect(Number(rows[0].qty)).toBe(0.0833);
+	});
+
 	it('jumlah nol ditolak dan isi lama tetap utuh', async () => {
 		const pack = await idDari('satuan_beli', 'pack_kulit');
 		const kulit = await idDari('bahan', 'kulit');

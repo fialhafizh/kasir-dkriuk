@@ -29,7 +29,7 @@ create table public.satuan_beli (
 create table public.satuan_beli_isi (
   satuan_beli_id uuid not null references public.satuan_beli (id) on delete cascade,
   bahan_id uuid not null references public.bahan (id) on delete restrict,
-  qty numeric(12, 3) not null check (qty > 0),
+  qty numeric(12, 4) not null check (qty > 0),
   primary key (satuan_beli_id, bahan_id)
 );
 

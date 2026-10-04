@@ -49,3 +49,25 @@ describe('jumlah (qty)', () => {
 		expect(parseQty('')).toBeNull();
 	});
 });
+
+describe('review Tugas 3: angka yang bisa salah diam-diam', () => {
+	it('"1.000" pada jumlah ambigu (titik = ribuan di Indonesia) → ditolak', () => {
+		expect(parseQty('1.000')).toBeNull();
+		expect(parseQty('12.500')).toBeNull();
+		expect(parseQty('1,000')).toBe(1);
+	});
+	it('jumlah desimal dibatasi sesuai kolom database', () => {
+		expect(parseQty('0,0833', 3)).toBeNull();
+		expect(parseQty('0,083', 3)).toBe(0.083);
+		expect(parseQty('2,555', 2)).toBeNull();
+		expect(parseQty('2,5', 2)).toBe(2.5);
+	});
+	it('awalan "Rp." juga diterima', () => {
+		expect(parseRupiah('Rp. 11.000')).toBe(11000);
+		expect(parseRupiah('Rp.11.000')).toBe(11000);
+	});
+	it('batas maksimal bisa diatur (harga jual ≤ 10 juta)', () => {
+		expect(parseRupiah('10.000.001', 10_000_000)).toBeNull();
+		expect(parseRupiah('10.000.000', 10_000_000)).toBe(10_000_000);
+	});
+});

@@ -24,7 +24,25 @@ describe('pesanErrorData', () => {
 			'Tidak bisa terhubung ke server. Periksa koneksi internet, lalu coba lagi.'
 		);
 	});
-	it('lainnya → pesan umum', () => {
-		expect(pesanErrorData({ code: 'XX000', message: 'boom' })).toBe('Gagal menyimpan. Coba lagi beberapa saat lagi.');
+});
+
+describe('review Tugas 3: pesan yang tidak menyesatkan', () => {
+	it('baris tidak ditemukan / ditolak aturan akses (PGRST116) → coba lagi tidak akan membantu', () => {
+		expect(pesanErrorData({ code: 'PGRST116', message: 'JSON object requested, multiple (or no) rows returned' })).toBe(
+			'Data tidak ditemukan atau Anda tidak punya izin mengubahnya. Muat ulang halaman.'
+		);
+	});
+	it('sesi kedaluwarsa', () => {
+		expect(pesanErrorData({ code: 'PGRST301', message: 'JWT expired' })).toBe('Sesi berakhir. Silakan keluar lalu masuk lagi.');
+		expect(pesanErrorData({ code: 'PGRST303', message: 'JWT expired' })).toBe('Sesi berakhir. Silakan keluar lalu masuk lagi.');
+	});
+	it('data rujukan sudah tidak ada (23503)', () => {
+		expect(pesanErrorData({ code: '23503', message: 'violates foreign key' })).toBe('Bahan, menu, atau outlet terkait sudah tidak ada. Muat ulang halaman.');
+	});
+	it('22023 berbahasa Inggris dari Postgres tidak diteruskan mentah', () => {
+		expect(pesanErrorData({ code: '22023', message: 'cannot extract elements from an object' })).toBe('Isian tidak sah.');
+	});
+	it('pesan cadangan netral (dipakai untuk memuat maupun menyimpan)', () => {
+		expect(pesanErrorData({ code: 'XX000', message: 'boom' })).toBe('Terjadi kesalahan di server. Coba lagi beberapa saat lagi.');
 	});
 });
