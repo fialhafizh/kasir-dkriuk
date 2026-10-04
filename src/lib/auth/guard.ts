@@ -6,7 +6,7 @@ export type AksesKeputusan = { ok: true } | { ok: false; redirect: string };
  * Rute aktif untuk hash router: diambil dari bagian # (seperti get_url_path di SvelteKit),
  * karena page.url.pathname selalu alamat situs ('/' atau '/kasir-dkriuk/').
  */
-export function routePath(url: URL): string {
+export function routePath(url: { readonly hash: string }): string {
 	let hash = url.hash;
 	try {
 		hash = decodeURIComponent(hash);
