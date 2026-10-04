@@ -40,3 +40,21 @@ describe('teksIsi', () => {
 		expect(teksIsi([], bahan)).toBe('—');
 	});
 });
+
+import { menuPemakai } from './susun';
+
+describe('menuPemakai', () => {
+	it('nama menu yang resepnya memakai bahan itu, urut sesuai menu', () => {
+		const menu = [
+			{ id: 'm1', nama: 'Nasi', urutan: 40 },
+			{ id: 'm2', nama: 'Kulit Krispy', urutan: 30 }
+		];
+		const resep = [
+			{ menu_id: 'm1', bahan_id: 'kertas', qty: 1 },
+			{ menu_id: 'm2', bahan_id: 'kertas', qty: 1 },
+			{ menu_id: 'm1', bahan_id: 'beras', qty: 0.1 }
+		];
+		expect(menuPemakai('kertas', resep, menu)).toEqual(['Kulit Krispy', 'Nasi']);
+		expect(menuPemakai('tepung', resep, menu)).toEqual([]);
+	});
+});

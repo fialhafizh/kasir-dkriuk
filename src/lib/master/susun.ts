@@ -19,3 +19,16 @@ export function teksIsi(isi: { bahan_id: string; qty: number }[], bahan: Pick<Ba
 		})
 		.join(' · ');
 }
+
+/** Nama menu yang resepnya memakai bahan tertentu (untuk peringatan sebelum bahan dinonaktifkan). */
+export function menuPemakai(
+	bahanId: string,
+	resep: { menu_id: string; bahan_id: string }[],
+	menu: { id: string; nama: string; urutan: number }[]
+): string[] {
+	const ids = new Set(resep.filter((r) => r.bahan_id === bahanId).map((r) => r.menu_id));
+	return menu
+		.filter((m) => ids.has(m.id))
+		.sort((a, b) => a.urutan - b.urutan)
+		.map((m) => m.nama);
+}
