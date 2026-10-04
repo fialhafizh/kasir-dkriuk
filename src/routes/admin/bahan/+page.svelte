@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { rantai } from '#lib/master/antrian.ts';
 	import QtyInput from '#lib/components/ui/QtyInput.svelte';
 	import { muatBahan, muatIsiSatuanBeli, muatSatuanBeli, simpanAktifBahan, simpanAmbang, simpanIsiSatuanBeli } from '#lib/master/api.ts';
 	import type { Bahan, IsiSatuanBeli, ModeStok, SatuanBeli } from '#lib/master/types.ts';
@@ -31,10 +32,19 @@
 	const namaBahan = (id: string) => bahan.find((b) => b.id === id);
 	const isiDari = (s: SatuanBeli) => isi.filter((i) => i.satuan_beli_id === s.id);
 
+	// Simpan isi satu satuan beli berurutan dan selalu kirim daftar terbaru,
+	// supaya mengubah dua bahan dengan cepat tidak saling menimpa di server.
+	const antrianIsi = new Map<string, ReturnType<typeof rantai>>();
 	async function ubahIsi(s: SatuanBeli, bahanId: string, qty: number) {
-		const baru = isiDari(s).map((i) => ({ bahan_id: i.bahan_id, qty: i.bahan_id === bahanId ? qty : i.qty }));
-		await simpanIsiSatuanBeli(s.id, baru);
 		isi = isi.map((i) => (i.satuan_beli_id === s.id && i.bahan_id === bahanId ? { ...i, qty } : i));
+		if (!antrianIsi.has(s.id)) antrianIsi.set(s.id, rantai());
+		try {
+			await antrianIsi.get(s.id)!(() => simpanIsiSatuanBeli(s.id, isiDari(s).map((i) => ({ bahan_id: i.bahan_id, qty: i.qty }))));
+		} catch (e) {
+			// Samakan lagi dengan server tanpa layar memuat, supaya pesan galat di kolom tetap terlihat.
+			isi = await muatIsiSatuanBeli().catch(() => isi);
+			throw e;
+		}
 	}
 
 	async function ubahAmbang(s: SatuanBeli, nilai: number) {

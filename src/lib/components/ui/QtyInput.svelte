@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { antrianTerakhir } from '#lib/master/antrian.ts';
 	import { formatQty, parseQty } from '#lib/master/rupiah.ts';
 
 	let {
@@ -25,6 +26,8 @@
 	let teks = $state(untrack(() => tampil(nilai)));
 	let error = $state('');
 	let status = $state<'diam' | 'menyimpan' | 'tersimpan'>('diam');
+	// Simpan berurutan; bila diubah lagi saat masih menyimpan, hanya nilai terakhir yang dikirim.
+	const kirim = antrianTerakhir((n: number) => onsimpan(n));
 
 	// Nilai dari induk berubah (mis. dimuat ulang) → tampilkan nilai baru.
 	$effect.pre(() => {
@@ -32,10 +35,14 @@
 	});
 
 	async function selesai() {
-		if (teks.trim() === '' && nilai == null) return;
+		if (teks.trim() === '' && nilai == null) {
+			error = '';
+			return;
+		}
 		const n = parseQty(teks, desimal);
 		if (n === null) {
 			error = `Isi angka lebih dari 0 dengan koma untuk desimal (maks. ${desimal} angka), mis. 1,3`;
+			status = 'diam';
 			return;
 		}
 		error = '';
@@ -43,7 +50,7 @@
 		if (n === nilai) return;
 		status = 'menyimpan';
 		try {
-			await onsimpan(n);
+			await kirim(n);
 			status = 'tersimpan';
 		} catch (e) {
 			error = (e as Error).message;
@@ -62,6 +69,7 @@
 			inputmode="decimal"
 			autocomplete="off"
 			{disabled}
+			oninput={() => (status = 'diam')}
 			onblur={selesai}
 			onkeydown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
 			aria-invalid={error ? 'true' : undefined}
@@ -69,8 +77,13 @@
 			class="tabular min-h-12 w-24 rounded-xl border border-line-strong bg-surface px-3 text-right text-fg focus:border-brand focus:ring-3 focus:ring-brand/25 focus:outline-none disabled:opacity-60"
 		/>
 		<span class="text-sm text-muted">{satuan}</span>
-		{#if status === 'menyimpan'}<span class="text-xs text-muted">menyimpan…</span>{/if}
-		{#if status === 'tersimpan'}<span class="text-ok" aria-label="Tersimpan">✓</span>{/if}
+		<span aria-hidden="true">
+			{#if status === 'menyimpan'}<span class="text-xs text-muted">menyimpan…</span>{/if}
+			{#if status === 'tersimpan'}<span class="text-ok">✓</span>{/if}
+		</span>
 	</div>
+	<span class="sr-only" role="status" aria-live="polite">
+		{status === 'menyimpan' ? 'Menyimpan…' : status === 'tersimpan' ? 'Tersimpan' : ''}
+	</span>
 	{#if error}<p id="{id}-err" class="text-xs text-danger" role="alert">{error}</p>{/if}
 </div>

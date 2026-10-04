@@ -35,3 +35,14 @@ describe('batas dari review Tugas 3', () => {
 		expect(body).toContain('data-desimal="2"');
 	});
 });
+
+describe('review Tugas 5: status simpan terbaca pembaca layar', () => {
+	it('HargaInput punya wilayah status (role=status) untuk "Menyimpan…/Tersimpan"', () => {
+		const { body } = render(HargaInput, { props: { id: 'h', label: 'Harga', nilai: 1000, onsimpan: async () => {} } });
+		expect(body).toMatch(/role="status"[^>]*aria-live="polite"|aria-live="polite"[^>]*role="status"/);
+	});
+	it('QtyInput juga', () => {
+		const { body } = render(QtyInput, { props: { id: 'q', label: 'Isi', nilai: 1, satuan: 'pcs', onsimpan: async () => {} } });
+		expect(body).toMatch(/role="status"/);
+	});
+});
