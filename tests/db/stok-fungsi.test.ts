@@ -38,7 +38,7 @@ describe('barang masuk', () => {
 	it('memecah isi pack ke bahan dan menyimpan total & nama barang', async () => {
 		const p = await kiriman([
 			['pack_ayam_ori', 2, 40000],
-			['beras_kg', 1.5, 15000]
+			['beras_kg', 1.5, 12340]
 		]);
 		await masuk(adminId, p);
 		expect(await stok('ori_dada')).toBe(6);
@@ -47,7 +47,7 @@ describe('barang masuk', () => {
 		expect(await stok('ori_sayap')).toBe(4);
 		expect(await stok('beras')).toBeCloseTo(1.5, 4);
 		const bm = (await db.query<{ total: string; n: number }>('select total, (select count(*)::int from public.barang_masuk_item where barang_masuk_id = $1) as n from public.barang_masuk where id = $1', [p.id])).rows[0];
-		expect(Number(bm.total)).toBe(2 * 40000 + 22500);
+		expect(Number(bm.total)).toBe(2 * 40000 + 18510);
 		expect(bm.n).toBe(2);
 	});
 

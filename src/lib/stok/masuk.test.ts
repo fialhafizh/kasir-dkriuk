@@ -6,7 +6,7 @@ const s = (id: string, harga_tetap = true): SatuanBeli => ({ id, kode: id, nama:
 const satuan = [s('ayam'), s('beras', false)];
 const harga: HargaBeli[] = [
 	{ outlet_id: 'bl', satuan_beli_id: 'ayam', harga: 40000, diubah_at: '' },
-	{ outlet_id: 'bl', satuan_beli_id: 'beras', harga: 15000, diubah_at: '' }
+	{ outlet_id: 'bl', satuan_beli_id: 'beras', harga: 12340, diubah_at: '' }
 ];
 
 describe('periksaBarangMasuk', () => {
@@ -14,16 +14,16 @@ describe('periksaBarangMasuk', () => {
 		const r = periksaBarangMasuk(
 			[
 				{ satuan_beli_id: 'ayam', qty: '2', harga: '40.000' },
-				{ satuan_beli_id: 'beras', qty: '1,5', harga: '15001' }
+				{ satuan_beli_id: 'beras', qty: '1,5', harga: '12341' }
 			],
 			satuan
 		);
 		expect(r.galat).toEqual(['', '']);
 		expect(r.item).toEqual([
 			{ satuan_beli_id: 'ayam', qty: 2, harga: 40000 },
-			{ satuan_beli_id: 'beras', qty: 1.5, harga: 15001 }
+			{ satuan_beli_id: 'beras', qty: 1.5, harga: 12341 }
 		]);
-		expect(r.total).toBe(80000 + 22502);
+		expect(r.total).toBe(80000 + 18512);
 	});
 	it('galat per baris: jumlah salah, harga berubah-ubah 0/kosong, harga bukan angka', () => {
 		expect(periksaBarangMasuk([{ satuan_beli_id: 'ayam', qty: '0', harga: '1' }], satuan).galat[0]).toMatch(/Jumlah/);
@@ -49,7 +49,7 @@ describe('harga awal', () => {
 		expect(hargaAwal(satuan[0], harga, 'bl')).toBe('40.000');
 		expect(hargaAwal(satuan[1], harga, 'bl')).toBe('');
 		expect(hargaAwal(satuan[0], harga, 'kp')).toBe('');
-		expect(hargaOutlet('beras', harga, 'bl')).toBe(15000);
+		expect(hargaOutlet('beras', harga, 'bl')).toBe(12340);
 		expect(hargaOutlet('beras', harga, 'kp')).toBeNull();
 	});
 });
