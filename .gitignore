@@ -4,9 +4,11 @@
 /referensi/
 *.jpg
 !static/**/*.jpg
+!src/lib/assets/**/*.jpg
 .env
 .env.*
 !.env.example
 node_modules/
 .svelte-kit/
 build/
+supabase/.temp/

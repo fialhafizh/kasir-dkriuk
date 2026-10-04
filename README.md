@@ -1,0 +1,36 @@
+# Kasir D'Kriuk
+
+Aplikasi kasir, stok bahan baku, dan keuangan untuk outlet D'Kriuk Bukit Lama, D'Kriuk Talang Kerangga, dan D'Krizzpy Kertapati.
+
+## Teknologi
+SvelteKit 3 (Svelte 5) + Tailwind CSS 4, di-hosting statis (GitHub Pages, hash router). Data, login, dan aturan akses di Supabase (Postgres + Row Level Security).
+
+## Menjalankan di komputer
+1. `npm install`
+2. Salin `.env.example` ke `.env.local`, isi dengan kunci project Supabase.
+3. `npm run dev`
+
+## Perintah
+| Perintah | Fungsi |
+|---|---|
+| `npm run dev` | server pengembangan |
+| `npm test` | semua test (logika, komponen, kontras warna, database via PGlite) |
+| `npm run check` | pemeriksaan tipe Svelte/TypeScript |
+| `npm run build` | build statis ke `build/` (`BASE_PATH=/kasir-dkriuk` untuk GitHub Pages) |
+| `npx supabase db push` | pasang migrasi ke project Supabase |
+| `node --env-file=.env.local scripts/bootstrap-users.ts` | buat 4 akun awal (sekali saja; password ditulis ke `akun-awal.txt`) |
+
+## Akun
+- Login memakai **username + password**. Di belakang layar username menjadi email `username@kasir-dkriuk.invalid` (domain yang tidak bisa didaftarkan siapa pun).
+- Peran (`admin`/`kasir`) dan outlet disimpan di `app_metadata`, yang hanya bisa diisi server.
+- Jangan membuat akun lewat tombol **Add user** di Supabase Studio: akun itu tidak punya `app_metadata` peran, sehingga tidak mendapat profil dan saat login muncul "Profil akun tidak ditemukan. Hubungi admin." Pakai script di atas, atau menu kelola akun (Tahap 1).
+- Untuk menghapus akun, hapus user Auth-nya (profil ikut terhapus), jangan hanya baris di tabel `profiles`.
+
+## Keamanan
+- Jangan commit `.env.local`, `akun-awal.txt`, file harga/HPP, atau data bisnis lain (sudah diatur di `.gitignore`).
+- Kunci publishable (anon) aman berada di aplikasi karena semua tabel dilindungi RLS. Build menolak kunci rahasia di variabel `PUBLIC_*`.
+- Pendaftaran akun publik dimatikan di Supabase; akun hanya dibuat oleh admin.
+
+## Dokumen
+- Rancangan: `docs/superpowers/specs/2026-10-04-kasir-dkriuk-design.md`
+- Rencana per tahap: `docs/superpowers/plans/`
