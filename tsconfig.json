@@ -5,8 +5,19 @@
 		"checkJs": true,
 		"strict": true,
 		"skipLibCheck": true,
-		"sourceMap": true
+		"sourceMap": true,
+		"types": [
+			"$app/types",
+			"node"
+		]
 	},
-	"include": ["src", "tests", "scripts", "*"],
-	"exclude": ["src/service-worker"]
+	"include": [
+		"src",
+		"tests",
+		"scripts",
+		"*"
+	],
+	"exclude": [
+		"src/service-worker"
+	]
 }

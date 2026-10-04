@@ -8,6 +8,8 @@ export default defineConfig({
 		tailwindcss(),
 		sveltekit({
 			adapter: adapter({ pages: 'build', assets: 'build' }),
+			// GitHub Pages menyajikan dari subfolder (/kasir-dkriuk); kosong saat dev lokal.
+			paths: { base: (process.env.BASE_PATH ?? '') as '' | `/${string}` },
 			// Hash router: GitHub Pages cukup menyajikan index.html, tanpa trik 404.
 			router: { type: 'hash' }
 		})
