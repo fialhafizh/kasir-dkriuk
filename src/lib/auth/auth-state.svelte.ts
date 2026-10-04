@@ -1,5 +1,6 @@
 import type { Session, SupabaseClient } from '@supabase/supabase-js';
 import type { Outlet, Profile } from '#lib/types/db.ts';
+import { bacaCache, galatJaringan, hapusCache, simpanCache, type Penyimpan } from './cache-profil.ts';
 import { pesanErrorLogin } from './login-error.ts';
 import { usernameToEmail } from './username.ts';
 
@@ -18,9 +19,14 @@ export class AuthState {
 	#started = false;
 	#gen = 0;
 	#client: SupabaseClient;
+	/** true bila data dipakai dari perangkat karena server tidak terjangkau. */
+	offline = $state(false);
+	#penyimpan: Penyimpan | null;
+	#sesiTerakhir: Session | null = null;
 
-	constructor(client: SupabaseClient) {
+	constructor(client: SupabaseClient, penyimpan: Penyimpan | null = null) {
 		this.#client = client;
+		this.#penyimpan = penyimpan;
 	}
 
 	start() {
@@ -34,6 +40,9 @@ export class AuthState {
 	}
 
 	#keluarLokal(notice: string | null) {
+		this.#sesiTerakhir = null;
+		if (this.#penyimpan) hapusCache(this.#penyimpan);
+		this.offline = false;
 		this.profile = null;
 		this.outlet = null;
 		this.notice = notice;
@@ -42,7 +51,10 @@ export class AuthState {
 
 	async #apply(session: Session | null, gen: number) {
 		if (gen !== this.#gen) return;
+		this.#sesiTerakhir = session;
 		if (!session) {
+			if (this.#penyimpan) hapusCache(this.#penyimpan);
+			this.offline = false;
 			this.profile = null;
 			this.outlet = null;
 			this.status = 'guest';
@@ -55,7 +67,7 @@ export class AuthState {
 			.eq('id', session.user.id)
 			.maybeSingle<Profile>();
 		if (gen !== this.#gen) return;
-		if (res.error) return this.#keluarLokal(pesanErrorLogin(res.error));
+		if (res.error) return this.#gagalMuat({ ...res.error, status: res.status }, session.user.id);
 
 		const profile = res.data;
 		if (!profile || !profile.aktif) {
@@ -72,14 +84,35 @@ export class AuthState {
 				.eq('id', profile.outlet_id)
 				.maybeSingle<Outlet>();
 			if (gen !== this.#gen) return;
-			if (o.error || !o.data) return this.#keluarLokal(pesanErrorLogin(o.error) ?? 'Outlet akun tidak ditemukan. Hubungi admin.');
+			if (o.error) return this.#gagalMuat({ ...o.error, status: o.status }, session.user.id);
+			if (!o.data) return this.#keluarLokal('Outlet akun tidak ditemukan. Hubungi admin.');
 			outlet = o.data;
 		}
 
+		if (this.#penyimpan) simpanCache(this.#penyimpan, session.user.id, profile, outlet);
+		this.offline = false;
 		this.profile = profile;
 		this.outlet = outlet;
 		this.notice = null;
 		this.status = 'ready';
+	}
+
+	#gagalMuat(err: { message?: string; status?: number; name?: string }, userId: string) {
+		const cache = this.#penyimpan && galatJaringan(err) ? bacaCache(this.#penyimpan, userId) : null;
+		if (!cache) return this.#keluarLokal(pesanErrorLogin(err));
+		this.profile = cache.profile;
+		this.outlet = cache.outlet;
+		this.offline = true;
+		this.status = 'ready';
+	}
+
+	/** Dipanggil saat koneksi kembali: muat ulang profil dari server. */
+	cobaLagi() {
+		// Hanya memulihkan saat sedang offline; tidak pernah menghidupkan lagi sesi yang sudah Keluar.
+		if (!this.offline || !this.#sesiTerakhir) return;
+		const gen = ++this.#gen;
+		const sesi = this.#sesiTerakhir;
+		setTimeout(() => void this.#apply(sesi, gen), 0);
 	}
 
 	async signIn(username: string, password: string): Promise<string | null> {
@@ -91,6 +124,15 @@ export class AuthState {
 	async signOut() {
 		this.#gen++;
 		this.#keluarLokal(null);
-		await this.#client.auth.signOut();
+		const { error } = await this.#client.auth.signOut();
+		// Offline dengan token kedaluwarsa, auth-js tidak menghapus sesi tersimpan: hapus sendiri.
+		if (error && this.#penyimpan) {
+			try {
+				this.#penyimpan.removeItem('dk-auth');
+			} catch {
+				// abaikan
+			}
+		}
 	}
+
 }

@@ -1,5 +1,12 @@
 import { supabase } from '#lib/supabase/client.ts';
 import { AuthState } from './auth-state.svelte.ts';
+import { pasangPemulih } from './pemulih.ts';
+
+const penyimpan = typeof localStorage === 'undefined' ? null : localStorage;
 
 /** Satu-satunya status sesi aplikasi, terhubung ke project Supabase sungguhan. */
-export const auth = new AuthState(supabase);
+export const auth = new AuthState(supabase, penyimpan);
+
+if (typeof window !== 'undefined') {
+	pasangPemulih(auth, window, document);
+}
