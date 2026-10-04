@@ -15,6 +15,9 @@
 	let status = $state<'memuat' | 'siap' | 'gagal'>('memuat');
 	let pesan = $state('');
 	let diedit = $state<string | null>(null);
+	let kotor = $state(false);
+	let sibuk = $state(false);
+	let peringatan = $state('');
 
 	const KELOMPOK: { judul: string; cocok: (m: Menu) => boolean }[] = [
 		{ judul: 'Ayam Ori', cocok: (m) => m.varian === 'ori' },
@@ -46,7 +49,31 @@
 	async function ubahResep(m: Menu, isi: BarisIsi[]) {
 		await simpanResep(m.id, isi);
 		resep = [...resep.filter((r) => r.menu_id !== m.id), ...isi.map((i) => ({ ...i, menu_id: m.id }))];
+		// Hanya tutup editor menu ini; editor lain yang mungkin sudah dibuka tidak diganggu.
+		if (diedit === m.id) tutup();
+	}
+
+	function tutup() {
 		diedit = null;
+		kotor = false;
+		peringatan = '';
+	}
+
+	// Perubahan resep yang belum disimpan tidak boleh hilang diam-diam saat pindah ke menu lain.
+	function bukaTutup(m: Menu) {
+		if (diedit === m.id) {
+			if (kotor) peringatan = `Simpan atau batalkan dulu perubahan resep ${m.nama}.`;
+			else tutup();
+			return;
+		}
+		if (diedit && kotor) {
+			const nama = menu.find((x) => x.id === diedit)?.nama ?? '';
+			peringatan = `Simpan atau batalkan dulu perubahan resep ${nama}.`;
+			return;
+		}
+		peringatan = '';
+		kotor = false;
+		diedit = m.id;
 	}
 </script>
 
@@ -67,20 +94,26 @@
 			{#each menu.filter(k.cocok) as m (m.id)}
 				<li class="rounded-2xl border border-line bg-surface p-4">
 					<div class="flex flex-wrap items-center justify-between gap-2">
-						<p class="font-semibold">{m.nama}</p>
+						<p class="font-semibold">
+							{m.nama}
+							{#if !m.aktif}<span class="ml-1 rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted">Nonaktif</span>{/if}
+						</p>
 						<button
 							type="button"
-							class="min-h-12 rounded-xl px-3 text-left text-sm text-muted hover:bg-surface-2"
-							onclick={() => (diedit = diedit === m.id ? null : m.id)}
+							class="min-h-12 rounded-xl px-3 text-left text-sm text-muted hover:bg-surface-2 focus-visible:outline-3 focus-visible:outline-focus disabled:opacity-60"
+							onclick={() => bukaTutup(m)}
+							disabled={sibuk}
 							aria-expanded={diedit === m.id}
+							aria-controls="resep-editor-{m.id}"
 						>
-							Resep: {teksIsi(resepDari(m), bahan)} · <span class="font-semibold text-brand">Ubah</span>
+							Resep: {teksIsi(resepDari(m), bahan)} ·
+							<span class="font-semibold text-brand">{diedit === m.id ? 'Tutup' : 'Ubah'}</span>
 						</button>
 					</div>
-					<div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+					<div class="mt-3 grid grid-cols-1 gap-3 min-[420px]:grid-cols-3">
 						{#each outlets as o (o.id)}
-							<div>
-								<p class="mb-1 text-xs font-semibold text-muted">{o.nama}</p>
+							<div class="min-w-0">
+								<p class="mb-1 text-xs font-semibold text-muted">{o.kode} · {o.nama}</p>
 								<HargaInput
 									id="harga-{o.id}-{m.id}"
 									label="Harga {m.nama} di {o.nama}"
@@ -92,7 +125,16 @@
 						{/each}
 					</div>
 					{#if diedit === m.id}
-						<ResepEditor menu={m} {bahan} isi={resepDari(m)} onsimpan={(isi) => ubahResep(m, isi)} onbatal={() => (diedit = null)} />
+						{#if peringatan}<p class="mt-3 text-sm font-semibold text-warn" role="alert">{peringatan}</p>{/if}
+						<ResepEditor
+							menu={m}
+							{bahan}
+							isi={resepDari(m)}
+							onsimpan={(isi) => ubahResep(m, isi)}
+							onbatal={tutup}
+							onkotor={(k) => (kotor = k)}
+							onsibuk={(b) => (sibuk = b)}
+						/>
 					{/if}
 				</li>
 			{/each}

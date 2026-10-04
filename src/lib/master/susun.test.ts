@@ -58,3 +58,13 @@ describe('menuPemakai', () => {
 		expect(menuPemakai('tepung', resep, menu)).toEqual([]);
 	});
 });
+
+describe('review Tugas 7: ringkasan resep menandai bahan yang harus diganti', () => {
+	it('bahan nonaktif atau tidak otomatis diberi tanda (ganti)', () => {
+		const b = [
+			{ id: 'a', nama: 'Beras', satuan: 'kg', aktif: false, mode: 'otomatis' as const },
+			{ id: 't', nama: 'Tepung A', satuan: 'kg', aktif: true, mode: 'analisis' as const }
+		];
+		expect(teksIsi([{ bahan_id: 'a', qty: 0.1 }, { bahan_id: 't', qty: 1 }], b)).toBe('0,1 kg Beras (ganti) · 1 kg Tepung A (ganti)');
+	});
+});

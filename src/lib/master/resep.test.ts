@@ -29,3 +29,21 @@ describe('validasiResep', () => {
 		).toEqual({ ok: false, error: 'Bahan yang sama dipilih dua kali.' });
 	});
 });
+
+describe('review Tugas 7: bahan yang tidak lagi boleh dipakai', () => {
+	it('baris dengan bahan di luar pilihan sah ditolak dengan pesan yang menunjuk barisnya', () => {
+		const sah = new Set(['beras']);
+		expect(
+			validasiResep(
+				[
+					{ bahan_id: 'beras', teks: '0,1' },
+					{ bahan_id: 'tepung', teks: '1' }
+				],
+				sah
+			)
+		).toEqual({ ok: false, error: 'Baris 2: ganti bahan yang ditandai (nonaktif atau tidak dipotong otomatis).' });
+	});
+	it('tanpa daftar pilihan, semua bahan dianggap sah (pemeriksaan tetap di database)', () => {
+		expect(validasiResep([{ bahan_id: 'tepung', teks: '1' }]).ok).toBe(true);
+	});
+});

@@ -73,7 +73,7 @@
 			onkeydown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
 			aria-invalid={error ? 'true' : undefined}
 			aria-describedby={error ? `${id}-err` : undefined}
-			class="tabular min-h-12 w-full min-w-28 rounded-xl border border-line-strong bg-surface pr-8 pl-9 text-right text-fg focus:border-brand focus:ring-3 focus:ring-brand/25 focus:outline-none disabled:opacity-60"
+			class="tabular min-h-12 w-full min-w-24 rounded-xl border border-line-strong bg-surface pr-8 pl-9 text-right text-fg focus:border-brand focus:ring-3 focus:ring-brand/25 focus:outline-none disabled:opacity-60"
 		/>
 		<span class="absolute inset-y-0 right-2 grid place-items-center" aria-hidden="true">
 			{#if status === 'menyimpan'}
