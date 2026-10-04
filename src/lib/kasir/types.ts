@@ -62,4 +62,6 @@ export interface HasilJual {
 	kembalian: number | null;
 	waktu: string;
 	ulang: boolean;
+	/** Kiriman ulang dari penjualan yang sudah dibatalkan. */
+	batal?: boolean;
 }

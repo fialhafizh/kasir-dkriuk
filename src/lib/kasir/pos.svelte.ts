@@ -54,7 +54,8 @@ class PosState {
 		} catch (e) {
 			if (gen !== this.#gen) return;
 			this.pesan = (e as Error).message;
-			this.status = 'gagal';
+			// Shift outlet ini sudah diketahui: gangguan sesaat tidak boleh menutup layar jualan.
+			this.status = this.shift?.outlet_id === o.id ? 'siap' : 'gagal';
 		}
 	}
 }

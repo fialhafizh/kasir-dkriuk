@@ -8,11 +8,12 @@
 	import PrinterChip from '#lib/components/kasir/PrinterChip.svelte';
 	import Selesai from '#lib/components/kasir/Selesai.svelte';
 	import { catatPenjualan, muatMenuOutlet, muatPenjualan } from '#lib/kasir/api.ts';
-	import { dataStrukDari, dataStrukRiwayat, sidikTransaksi } from '#lib/kasir/cetak.ts';
+	import { dataStrukDari, dataStrukRiwayat } from '#lib/kasir/cetak.ts';
 	import { tambah, tambahNasiBox, totalKeranjang, ubahQty } from '#lib/kasir/keranjang.ts';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
 	import type { DataStruk } from '#lib/kasir/struk.ts';
 	import type { BarisKeranjang, MenuJual, Metode } from '#lib/kasir/types.ts';
+	import { Transaksi } from '#lib/kasir/transaksi.ts';
 	import { shiftKedaluwarsa } from '#lib/kasir/waktu.ts';
 	import { formatAngka } from '#lib/master/rupiah.ts';
 	import { href } from '#lib/nav.ts';
@@ -24,10 +25,11 @@
 	let peringatan = $state('');
 	let pesanMenu = $state('');
 	let muatUlang = $state(0);
-	// ID transaksi dibuat sekali per keranjang: tekan Bayar dua kali / kirim ulang tidak menggandakan.
-	let idTransaksi = $state(crypto.randomUUID());
-	// Sidik isi transaksi saat pembayaran terakhir gagal (mungkin sebenarnya sudah tercatat di server).
-	let sidikGagal = $state<string | null>(null);
+	// Satu id per keranjang: tekan Bayar dua kali / kirim ulang tidak menggandakan (lihat transaksi.ts).
+	const transaksi = new Transaksi();
+	const api = { catat: catatPenjualan, muat: muatPenjualan };
+	// Pesan server yang berarti shift di perangkat ini sudah tidak berlaku (ditutup di tablet lain).
+	const SHIFT_BERUBAH = /Shift belum dibuka|Shift sudah ditutup/;
 	let outletTerakhir: string | undefined;
 
 	// Ganti outlet → keranjang dikosongkan (harga & menu berbeda per outlet).
@@ -39,8 +41,7 @@
 				keranjang = [];
 				menu = [];
 				tahap = 'pilih';
-				sidikGagal = null;
-				idTransaksi = crypto.randomUUID();
+				transaksi.reset();
 			}
 		});
 	});
@@ -73,57 +74,32 @@
 		const o = pos.outlet!;
 		const kasir = auth.profile?.nama_tampilan ?? '';
 		const kirim = $state.snapshot(keranjang);
-		const sidik = sidikTransaksi(kirim, metode, diterima);
 		peringatan = '';
-
-		// Isi berubah setelah pembayaran gagal: percobaan sebelumnya mungkin sebenarnya sudah tercatat.
-		if (sidikGagal !== null && sidikGagal !== sidik) {
-			const lama = await muatPenjualan(idTransaksi);
-			if (lama) {
-				struk = dataStrukRiwayat(o, kasir, lama);
-				peringatan = `Pembayaran sebelumnya ternyata sudah tercatat (${lama.nomor}). Bila salah, batalkan di Riwayat lalu input ulang.`;
-				sidikGagal = null;
-				tahap = 'selesai';
-				return;
-			}
-			idTransaksi = crypto.randomUUID();
-		}
-
 		try {
-			const hasil = await catatPenjualan({
-				id: idTransaksi,
-				outlet_id: o.id,
-				metode,
-				...(diterima !== null ? { diterima } : {}),
-				// waktu tidak dikirim: server memakai jamnya sendiri (jam tablet bisa salah).
-				item: kirim.map((b) => ({ menu_id: b.menu_id, qty: b.qty }))
-			});
-			sidikGagal = null;
-			const hargaBerubah = hasil.total !== totalKeranjang(kirim);
-			if (hasil.ulang || hargaBerubah) {
-				// Struk harus sama persis dengan yang tersimpan di server.
-				const p = await muatPenjualan(hasil.id);
-				struk = p ? dataStrukRiwayat(o, kasir, p) : dataStrukDari({ outlet: o, kasir, hasil, keranjang: kirim, metode, diterima });
-				if (hargaBerubah) {
-					peringatan = 'Harga menu baru saja diubah admin; struk memakai harga terbaru.';
-					muatUlang++;
-				}
-			} else {
-				struk = dataStrukDari({ outlet: o, kasir, hasil, keranjang: kirim, metode, diterima });
-			}
+			const r = await transaksi.bayar({ outletId: o.id, kirim, metode, diterima }, api);
+			// Struk harus sama persis dengan yang tersimpan di server.
+			struk = r.tersimpan
+				? dataStrukRiwayat(o, kasir, r.tersimpan)
+				: dataStrukDari({ outlet: o, kasir, hasil: r.hasil, keranjang: kirim, metode, diterima });
+			peringatan = r.peringatan.join(' ');
+			if (r.hargaBerubah) muatUlang++;
 			tahap = 'selesai';
 		} catch (e) {
-			sidikGagal = sidik;
+			if (SHIFT_BERUBAH.test((e as Error).message)) void pos.muatShift();
 			throw e;
 		}
+	}
+
+	function kosongkan() {
+		keranjang = [];
+		transaksi.reset();
 	}
 
 	function baru() {
 		keranjang = [];
 		struk = null;
 		peringatan = '';
-		sidikGagal = null;
-		idTransaksi = crypto.randomUUID();
+		transaksi.reset();
 		tahap = 'pilih';
 	}
 </script>
@@ -171,7 +147,7 @@
 			{#if tahap === 'bayar'}
 				<BayarPanel {total} offline={auth.offline} onbayar={bayar} onbatal={() => (tahap = 'pilih')} />
 			{:else}
-				<Keranjang isi={keranjang} onubah={(id, q) => (keranjang = ubahQty(keranjang, id, q))} onkosongkan={() => (keranjang = [])} />
+				<Keranjang isi={keranjang} onubah={(id, q) => (keranjang = ubahQty(keranjang, id, q))} onkosongkan={kosongkan} />
 				<button
 					type="button"
 					disabled={keranjang.length === 0}
@@ -185,7 +161,7 @@
 	</div>
 	{#if tahap === 'pilih' && keranjang.length > 0}
 		<!-- HP: total & Bayar selalu terlihat di atas navigasi bawah. -->
-		<div class="fixed inset-x-0 bottom-14 z-10 flex items-center gap-3 border-t border-line bg-surface px-4 py-2 md:hidden">
+		<div style="bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px))" class="fixed inset-x-0 z-10 flex items-center gap-3 border-t border-line bg-surface px-4 py-2 md:hidden">
 			<!-- Bukan tautan #: hash router akan membacanya sebagai halaman. -->
 			<button
 				type="button"

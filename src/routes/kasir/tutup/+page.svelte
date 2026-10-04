@@ -35,6 +35,8 @@
 			await pos.muatShift();
 		} catch (e) {
 			pesan = (e as Error).message;
+			// Sudah ditutup di tablet lain: muat ulang supaya halaman tidak menunggu yang mustahil.
+			if (/Shift belum dibuka|Shift sudah ditutup/.test(pesan)) void pos.muatShift();
 		}
 	}
 </script>

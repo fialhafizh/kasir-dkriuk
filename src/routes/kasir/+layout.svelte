@@ -18,9 +18,14 @@
 <AppShell title="Kasir">
 	{#snippet nav()}<KasirNav aktif={routePath(page.url)} />{/snippet}
 	{#if auth.offline}
-		<p class="mb-4 rounded-xl bg-surface-2 px-4 py-2 text-sm font-semibold text-warn" role="status">
-			Internet terputus. Data terakhir dipakai; penjualan butuh koneksi sampai Tahap 4 (mode offline) selesai.
-		</p>
+		<div class="mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-surface-2 px-4 py-2" role="status">
+			<p class="min-w-0 flex-1 text-sm font-semibold text-warn">
+				Internet terputus. Data terakhir dipakai; penjualan butuh koneksi sampai Tahap 4 (mode offline) selesai.
+			</p>
+			<button type="button" class="min-h-12 rounded-xl bg-surface px-4 text-sm font-semibold" onclick={() => auth.cobaLagi()}
+				>Coba sambung lagi</button
+			>
+		</div>
 	{/if}
 	{#if auth.profile?.role === 'admin'}<div class="mb-4"><PilihOutlet /></div>{/if}
 	{#if !pos.outlet}
