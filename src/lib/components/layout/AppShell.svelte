@@ -4,7 +4,7 @@
 	import Logo from '#lib/components/brand/Logo.svelte';
 	import ThemeToggle from '#lib/components/theme/ThemeToggle.svelte';
 
-	let { title, children }: { title: string; children: Snippet } = $props();
+	let { title, nav, children }: { title: string; nav?: Snippet; children: Snippet } = $props();
 
 	const lingkup = $derived(
 		auth.profile?.role === 'admin' ? 'Admin · Semua outlet' : auth.outlet ? `${auth.outlet.merek} ${auth.outlet.nama}` : ''
@@ -13,7 +13,7 @@
 
 <div class="min-h-dvh bg-bg">
 	<header
-		class="sticky top-0 z-10 flex items-center gap-3 border-b border-line bg-surface/95 px-4 pt-[env(safe-area-inset-top)] backdrop-blur"
+		class="sticky top-0 z-20 flex items-center gap-3 border-b border-line bg-surface/95 px-4 pt-[env(safe-area-inset-top)] backdrop-blur"
 	>
 		<div class="flex min-h-16 min-w-0 flex-1 items-center gap-3">
 			<Logo size="sm" alt="" />
@@ -31,7 +31,10 @@
 			Keluar
 		</button>
 	</header>
-	<main class="mx-auto w-full max-w-6xl px-4 py-6">
-		{@render children()}
-	</main>
+	<div class="mx-auto flex w-full max-w-7xl lg:gap-6 lg:px-4">
+		{#if nav}{@render nav()}{/if}
+		<main class="min-w-0 flex-1 px-4 py-6 lg:px-0 {nav ? 'pb-28 lg:pb-6' : ''}">
+			{@render children()}
+		</main>
+	</div>
 </div>

@@ -225,7 +225,7 @@ describe('RLS master', () => {
 	it('kasir tidak melihat harga beli sama sekali', async () => {
 		const bl = await idDari('outlets', 'BL');
 		const s = await idDari('satuan_beli', 'pack_ayam_ori');
-		await db.query('insert into public.harga_beli (outlet_id, satuan_beli_id, harga) values ($1, $2, 49000)', [bl, s]);
+		await db.query('insert into public.harga_beli (outlet_id, satuan_beli_id, harga) values ($1, $2, 44444)', [bl, s]);
 		const n = await sebagai(db, kasirKP, async () => (await db.query('select 1 from public.harga_beli')).rows.length);
 		expect(n).toBe(0);
 	});
@@ -716,7 +716,7 @@ import { formatAngka, formatQty, formatRupiah, parseQty, parseRupiah } from './r
 describe('Rupiah', () => {
 	it('format dengan titik ribuan', () => {
 		expect(formatAngka(11000)).toBe('11.000');
-		expect(formatAngka(117200)).toBe('117.200');
+		expect(formatAngka(33333)).toBe('33.333');
 		expect(formatAngka(0)).toBe('0');
 		expect(formatRupiah(9000)).toBe('Rp9.000');
 	});
@@ -2433,7 +2433,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 
 **Interfaces:**
 - Consumes: `muatOutlets`, `muatSatuanBeli`, `muatHargaBeli`, `simpanHargaBeli` (Task 6); `petaHarga`, `kunciHarga` (Task 3); `HargaInput` (Task 5).
-- Produces: `rencanaHargaBeli(data: Record<string, Record<string, number>>, outlets: {id; kode}[], satuan: {id; kode}[]): { baris: { outlet_id: string; satuan_beli_id: string; harga: number }[]; error: string[] }` — data berbentuk `{ "BL": { "pack_ayam_ori": 49000, ... }, "TK": {...} }`.
+- Produces: `rencanaHargaBeli(data: Record<string, Record<string, number>>, outlets: {id; kode}[], satuan: {id; kode}[]): { baris: { outlet_id: string; satuan_beli_id: string; harga: number }[]; error: string[] }` — data berbentuk `{ "BL": { "pack_ayam_ori": 44444, ... }, "TK": {...} }`.
 
 - [ ] **Step 1: Tulis test yang gagal**
 
@@ -2453,11 +2453,11 @@ const satuan = [
 
 describe('rencanaHargaBeli', () => {
 	it('mengubah kode menjadi baris id', () => {
-		const r = rencanaHargaBeli({ BL: { pack_ayam_ori: 49000 }, TK: { pack_cup_kulit: 33300 } }, outlets, satuan);
+		const r = rencanaHargaBeli({ BL: { pack_ayam_ori: 44444 }, TK: { pack_cup_kulit: 66666 } }, outlets, satuan);
 		expect(r.error).toEqual([]);
 		expect(r.baris).toEqual([
-			{ outlet_id: 'o-bl', satuan_beli_id: 's-ori', harga: 49000 },
-			{ outlet_id: 'o-tk', satuan_beli_id: 's-cup', harga: 33300 }
+			{ outlet_id: 'o-bl', satuan_beli_id: 's-ori', harga: 44444 },
+			{ outlet_id: 'o-tk', satuan_beli_id: 's-cup', harga: 66666 }
 		]);
 	});
 	it('kode tak dikenal dan harga tidak sah dilaporkan, tidak disimpan', () => {
@@ -2548,20 +2548,20 @@ Buat `data/harga-beli.local.json` dari `daftar_harga_bahan_stokis.txt` (struk 30
 ```json
 {
 	"BL": {
-		"pack_ayam_ori": 49000, "pack_ayam_hot": 49000, "pack_kulit": 45000, "pack_cup_kulit": 33300,
-		"beras_kg": 15000, "pack_kertas_nasi": 17100, "pack_box": 117200,
-		"pack_kemasan_besar": 28500, "pack_kemasan_kecil": 20900,
-		"pack_plastik_besar": 15200, "pack_plastik_kecil": 15200, "pack_plastik_merah": 19600,
-		"pack_saus_sambal": 31125, "pack_saus_tomat": 28800,
-		"pack_tepung_dkriuk": 23400, "karung_tepung_dkriuk": 351000, "karung_tepung_a": 257000
+		"pack_ayam_ori": 44444, "pack_ayam_hot": 44444, "pack_kulit": 55555, "pack_cup_kulit": 66666,
+		"beras_kg": 166665, "pack_kertas_nasi": 144443, "pack_box": 33333,
+		"pack_kemasan_besar": 99999, "pack_kemasan_kecil": 122221,
+		"pack_plastik_besar": 155554, "pack_plastik_kecil": 155554, "pack_plastik_merah": 133332,
+		"pack_saus_sambal": 77777, "pack_saus_tomat": 88888,
+		"pack_tepung_dkriuk": 111110, "karung_tepung_dkriuk": 11111, "karung_tepung_a": 22222
 	},
 	"TK": {
-		"pack_ayam_ori": 49000, "pack_ayam_hot": 49000, "pack_kulit": 45000, "pack_cup_kulit": 33300,
-		"beras_kg": 15000, "pack_kertas_nasi": 17100, "pack_box": 117200,
-		"pack_kemasan_besar": 28500, "pack_kemasan_kecil": 20900,
-		"pack_plastik_besar": 15200, "pack_plastik_kecil": 15200, "pack_plastik_merah": 19600,
-		"pack_saus_sambal": 31125, "pack_saus_tomat": 28800,
-		"pack_tepung_dkriuk": 23400, "karung_tepung_dkriuk": 351000, "karung_tepung_a": 257000
+		"pack_ayam_ori": 44444, "pack_ayam_hot": 44444, "pack_kulit": 55555, "pack_cup_kulit": 66666,
+		"beras_kg": 166665, "pack_kertas_nasi": 144443, "pack_box": 33333,
+		"pack_kemasan_besar": 99999, "pack_kemasan_kecil": 122221,
+		"pack_plastik_besar": 155554, "pack_plastik_kecil": 155554, "pack_plastik_merah": 133332,
+		"pack_saus_sambal": 77777, "pack_saus_tomat": 88888,
+		"pack_tepung_dkriuk": 111110, "karung_tepung_dkriuk": 11111, "karung_tepung_a": 22222
 	}
 }
 ```
@@ -2951,6 +2951,6 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 3. Ketik `11rb` → muncul pesan "Isi angka Rupiah…", nilai lama tidak berubah.
 4. **Resep Nasi** → Ubah → tekan "12 porsi/kg" → Simpan → ringkasan resep menjadi `0,0833 kg Beras · 1 lembar Kertas Nasi`. Kembalikan ke 10 porsi/kg.
 5. **Bahan**: Pack Ayam Ori isi 3/2/2/2; ambang 10. Pack Kulit isi 17.
-6. **Harga Beli**: BL & TK terisi (Pack Ayam Ori 49.000); Kertapati kosong — isi sesuai belanja di tempat.
+6. **Harga Beli**: BL & TK terisi (sesuai daftar stokis); Kertapati kosong — isi sesuai belanja di tempat.
 7. **Akun**: buat kasir uji (mis. `kasir.uji`, outlet Kertapati) → password tampil sekali → login di jendela penyamaran dengan akun itu → masuk halaman Kasir Kertapati. Nonaktifkan dari admin → login lagi ditolak "Akun ini tidak bisa dipakai masuk". Akun uji boleh dibiarkan nonaktif.
 8. Login sebagai kasir → buka `#/admin/menu` → kembali ke halaman kasir.

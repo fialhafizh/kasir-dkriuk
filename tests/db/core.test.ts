@@ -76,19 +76,19 @@ describe('RLS profiles', () => {
 	});
 
 	it('kasir tidak bisa menaikkan perannya menjadi admin', async () => {
-		await sebagai(db, kasirBL, async () => {
-			await db.query(`update public.profiles set role = 'admin' where id = $1`, [kasirBL]);
-		});
+		await expect(
+			sebagai(db, kasirBL, () => db.query(`update public.profiles set role = 'admin' where id = $1`, [kasirBL]))
+		).rejects.toThrow(/permission denied/);
 		const { rows } = await db.query<{ role: string }>('select role from public.profiles where id = $1', [kasirBL]);
 		expect(rows[0].role).toBe('kasir');
 	});
 
-	it('admin bisa menonaktifkan kasir', async () => {
-		await sebagai(db, adminId, async () => {
-			await db.query('update public.profiles set aktif = false where id = $1', [kasirTK]);
-		});
+	it('admin pun tidak bisa mengubah profil lewat API (hanya lewat fungsi server)', async () => {
+		await expect(
+			sebagai(db, adminId, () => db.query('update public.profiles set aktif = false where id = $1', [kasirTK]))
+		).rejects.toThrow(/permission denied/);
 		const { rows } = await db.query<{ aktif: boolean }>('select aktif from public.profiles where id = $1', [kasirTK]);
-		expect(rows[0].aktif).toBe(false);
+		expect(rows[0].aktif).toBe(true);
 	});
 });
 

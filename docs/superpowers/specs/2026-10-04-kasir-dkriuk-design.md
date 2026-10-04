@@ -79,37 +79,37 @@ Di layar kasir, setiap item (termasuk Nasi dan Box) adalah tombol tersendiri. Ad
 
 Stok dihitung **per outlet** dari **buku besar pergerakan stok**. Setiap kejadian adalah satu baris: barang masuk, terjual, void, rusak, transfer keluar/masuk, dan koreksi opname. Stok saat ini adalah jumlah dari semua baris itu. Dengan cara ini setiap angka bisa ditelusuri asalnya.
 
-Harga beli awal di bawah berasal dari daftar stokis Palembang (struk 30-09-2026, termasuk PPN) dan menjadi nilai awal untuk Bukit Lama dan Talang Kerangga. Kertapati mengisi harga kemasan dan plastiknya sendiri saat barang masuk.
+Harga beli awal berasal dari daftar stokis Palembang dan menjadi nilai awal untuk Bukit Lama dan Talang Kerangga; angkanya hanya disimpan di aplikasi (data bisnis, tidak masuk repo). Kertapati mengisi harga kemasan dan plastiknya sendiri saat barang masuk.
 
 | Bahan | Satuan beli | Harga beli | Isi | Dipotong otomatis oleh |
 |---|---|---|---|---|
-| Ayam Ori (Karkas 1) | pack = 1 kg | 49.000 | 9 potong: 2 sayap · 2 paha bawah · 3 dada · 2 paha atas | ayam Ori per potongan |
-| Ayam Hot (Karkas 2) | pack = 1 kg | 49.000 | sama, pack terpisah dari Ori | ayam Hot per potongan |
-| Kulit mentah | pack | 45.000 | 17 porsi | kulit krispy |
-| Cup kulit | pack | 33.300 | 50 cup | kulit krispy |
-| Beras | kg (karung 20 kg) | ±15.000/kg, berubah-ubah | porsi per kg diatur admin (default 10) | nasi |
-| Kertas nasi | pack | 17.100 | 100 lembar | nasi (1 lembar per porsi) |
-| Box D'Kriuk | pack | 117.200 | 100 box | item Box |
-| Kemasan kecil | pack | 20.900 | 100 | pelengkap |
-| Kemasan besar (Kemasan Chicken) | pack | 28.500 | 100 | pelengkap |
-| Plastik besar 36/25 | pack | 15.200 | 50 | pelengkap |
-| Plastik kecil 25/15 | pack | 15.200 | 100 | pelengkap |
-| Plastik merah | pack | 19.600 | 50 | tidak dipotong (khusus pesanan nasi box banyak); hanya dicatat saat beli |
-| Saus sambal (Hot Branding) | pack | 31.125 | 100 sachet | pelengkap |
-| Saus tomat (Tomat Branding) | pack | 28.800 | 100 sachet | pelengkap |
-| Tepung D'Kriuk (Tepung Ori) | pack 1,3 kg / karung 19,5 kg | 23.400/pack · 351.000/karung (Rp18.000/kg) | tanpa campuran: 1 pack ≈ 3 pack ayam | **tidak** dipotong otomatis; dianalisis (§6) |
-| Tepung A | karung 25 kg | 257.000 (Rp10.280/kg) | dicampur 50:50 dengan Tepung D'Kriuk | **tidak** dipotong otomatis; dianalisis (§6) |
-| Minyak | per pembelian | berubah-ubah | — | **tidak** dipotong otomatis; dianalisis (§6) |
+| Ayam Ori (Karkas 1) | pack = 1 kg | (lihat aplikasi) | 9 potong: 2 sayap · 2 paha bawah · 3 dada · 2 paha atas | ayam Ori per potongan |
+| Ayam Hot (Karkas 2) | pack = 1 kg | (lihat aplikasi) | sama, pack terpisah dari Ori | ayam Hot per potongan |
+| Kulit mentah | pack | (lihat aplikasi) | 17 porsi | kulit krispy |
+| Cup kulit | pack | (lihat aplikasi) | 50 cup | kulit krispy |
+| Beras | kg (karung 20 kg) | (lihat aplikasi) | porsi per kg diatur admin (default 10) | nasi |
+| Kertas nasi | pack | (lihat aplikasi) | 100 lembar | nasi (1 lembar per porsi) |
+| Box D'Kriuk | pack | (lihat aplikasi) | 100 box | item Box |
+| Kemasan kecil | pack | (lihat aplikasi) | 100 | pelengkap |
+| Kemasan besar (Kemasan Chicken) | pack | (lihat aplikasi) | 100 | pelengkap |
+| Plastik besar 36/25 | pack | (lihat aplikasi) | 50 | pelengkap |
+| Plastik kecil 25/15 | pack | (lihat aplikasi) | 100 | pelengkap |
+| Plastik merah | pack | (lihat aplikasi) | 50 | tidak dipotong (khusus pesanan nasi box banyak); hanya dicatat saat beli |
+| Saus sambal (Hot Branding) | pack | (lihat aplikasi) | 100 sachet | pelengkap |
+| Saus tomat (Tomat Branding) | pack | (lihat aplikasi) | 100 sachet | pelengkap |
+| Tepung D'Kriuk (Tepung Ori) | pack 1,3 kg / karung 19,5 kg | (lihat aplikasi) | tanpa campuran: 1 pack ≈ 3 pack ayam | **tidak** dipotong otomatis; dianalisis (§6) |
+| Tepung A | karung 25 kg | (lihat aplikasi) | dicampur 50:50 dengan Tepung D'Kriuk | **tidak** dipotong otomatis; dianalisis (§6) |
+| Minyak | per pembelian | (lihat aplikasi) | — | **tidak** dipotong otomatis; dianalisis (§6) |
 
-**Nasi.** Stok beras dicatat dalam kg. Setiap porsi nasi memotong `1 ÷ porsi_per_kg` kg. Nilai `porsi_per_kg` diatur admin, dengan default **10** (sama dengan hitungan HPP franchise: Rp1.500/porsi). Setiap opname, aplikasi menghitung **porsi per kg aktual** dari beras yang benar-benar terpakai dibagi porsi nasi terjual, lalu menampilkannya sebagai saran kalibrasi. Kalau angkanya terus di bawah perkiraan, itu tanda porsi nasi di toko lebih besar dari 150 g.
+**Nasi.** Stok beras dicatat dalam kg. Setiap porsi nasi memotong `1 ÷ porsi_per_kg` kg. Nilai `porsi_per_kg` diatur admin, dengan default **10** (sama dengan hitungan HPP franchise). Setiap opname, aplikasi menghitung **porsi per kg aktual** dari beras yang benar-benar terpakai dibagi porsi nasi terjual, lalu menampilkannya sebagai saran kalibrasi. Kalau angkanya terus di bawah perkiraan, itu tanda porsi nasi di toko lebih besar dari 150 g.
 
-**Modal tepung (acuan awal analisis).** Tepung D'Kriuk Rp18.000/kg, Tepung A Rp10.280/kg.
-
-| Cara pakai | Tepung per pack ayam | Modal per pack ayam | Modal per potong |
-|---|---|---|---|
-| Tanpa campuran: 1 pack D'Kriuk untuk 3 pack ayam | 433 g | Rp7.800 | Rp867 |
-| Campur 50:50: 1,3 kg D'Kriuk + 1,3 kg Tepung A (Rp36.764) untuk 5 pack ayam | 520 g | Rp7.353 | Rp817 |
-| Campur 50:50, untuk 6 pack ayam | 433 g | Rp6.127 | Rp681 |
+**Modal tepung (rumus wajib, dicatat dari owner 4 Okt 2026).** Tepung D'Kriuk dan Tepung A dicampur **50:50 menurut berat**, padahal harga per kg dan ukuran karungnya berbeda (D'Kriuk ±20 kg, Tepung A 25 kg), sehingga keduanya tidak habis bersamaan. Karena itu modal **tidak boleh** dihitung per karung:
+1. Harga per kg tiap tepung = harga karung (atau pack) ÷ isi kg-nya, dari harga beli sebenarnya saat barang masuk.
+2. Harga per kg campuran (acuan) = (harga/kg D'Kriuk + harga/kg Tepung A) ÷ 2.
+3. Pemakaian per periode dihitung **dalam kg per jenis tepung**: stok awal + kg dibeli − stok akhir (opname).
+4. Modal tepung periode = Σ (kg terpakai × harga/kg) untuk masing-masing tepung.
+5. Modal tepung per potong = modal tepung periode ÷ (potong ayam + porsi kulit yang digoreng pada periode itu).
+6. Rasio pemakaian D'Kriuk : Tepung A dibandingkan dengan 50:50; bila menyimpang jauh, laporan memberi peringatan (kemungkinan salah takar).
 
 Analisis tepung di aplikasi menghitung angka sebenarnya per outlet: total kg tepung (D'Kriuk + A) yang dibeli di antara dua pembelian, dibagi potong ayam dan cup kulit terjual pada periode itu.
 

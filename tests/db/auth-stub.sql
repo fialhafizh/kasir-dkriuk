@@ -25,3 +25,4 @@ grant usage on schema public to anon, authenticated;
 grant usage on schema auth to anon, authenticated;
 alter default privileges in schema public grant select, insert, update, delete on tables to anon, authenticated;
 alter default privileges in schema public grant execute on functions to anon, authenticated;
+do $$ begin create role service_role nologin; exception when duplicate_object then null; end $$;
