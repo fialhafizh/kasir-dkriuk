@@ -23,7 +23,8 @@ SvelteKit 3 (Svelte 5) + Tailwind CSS 4, di-hosting statis (GitHub Pages, hash r
 ## Akun
 - Login memakai **username + password**. Di belakang layar username menjadi email `username@kasir-dkriuk.invalid` (domain yang tidak bisa didaftarkan siapa pun).
 - Peran (`admin`/`kasir`) dan outlet disimpan di `app_metadata`, yang hanya bisa diisi server.
-- Jangan membuat akun lewat tombol **Add user** di Supabase Studio: tanpa `app_metadata` pembuatan akun gagal dengan pesan "Database error". Pakai script di atas, atau menu kelola akun (Tahap 1).
+- Jangan membuat akun lewat tombol **Add user** di Supabase Studio: akun itu tidak punya `app_metadata` peran, sehingga tidak mendapat profil dan saat login muncul "Profil akun tidak ditemukan. Hubungi admin." Pakai script di atas, atau menu kelola akun (Tahap 1).
+- Untuk menghapus akun, hapus user Auth-nya (profil ikut terhapus), jangan hanya baris di tabel `profiles`.
 
 ## Keamanan
 - Jangan commit `.env.local`, `akun-awal.txt`, file harga/HPP, atau data bisnis lain (sudah diatur di `.gitignore`).

@@ -81,6 +81,9 @@
 						bind:value={password}
 						error={errPassword}
 						autocomplete="current-password"
+						autocapitalize="none"
+						autocorrect="off"
+						spellcheck={false}
 					/>
 					<label class="flex min-h-12 items-center gap-3 text-sm text-muted">
 						<input id="lihat-password" type="checkbox" bind:checked={lihatPassword} class="size-5 accent-brand" />

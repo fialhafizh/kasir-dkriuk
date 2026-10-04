@@ -3,7 +3,7 @@ import { cekKunciPublik, cekSupabaseUrl } from './env-schema';
 
 describe('cekSupabaseUrl', () => {
 	it('menerima URL project Supabase', () => {
-		expect(cekSupabaseUrl('https://uijaqfdgdxfarhmivtmg.supabase.co')).toBe('https://uijaqfdgdxfarhmivtmg.supabase.co');
+		expect(cekSupabaseUrl('https://abcdefghijklmnopqrst.supabase.co')).toBe('https://abcdefghijklmnopqrst.supabase.co');
 	});
 	it('membuang garis miring di akhir', () => {
 		expect(cekSupabaseUrl('https://abc.supabase.co/')).toBe('https://abc.supabase.co');
