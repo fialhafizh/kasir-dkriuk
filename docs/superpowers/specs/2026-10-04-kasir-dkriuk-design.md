@@ -103,7 +103,13 @@ Harga beli awal berasal dari daftar stokis Palembang dan menjadi nilai awal untu
 
 **Nasi.** Stok beras dicatat dalam kg. Setiap porsi nasi memotong `1 ÷ porsi_per_kg` kg. Nilai `porsi_per_kg` diatur admin, dengan default **10** (sama dengan hitungan HPP franchise). Setiap opname, aplikasi menghitung **porsi per kg aktual** dari beras yang benar-benar terpakai dibagi porsi nasi terjual, lalu menampilkannya sebagai saran kalibrasi. Kalau angkanya terus di bawah perkiraan, itu tanda porsi nasi di toko lebih besar dari 150 g.
 
-**Modal tepung.** Dihitung aplikasi dari harga beli yang tersimpan; campuran 50:50 Tepung D'Kriuk + Tepung A lebih hemat per potong dibanding tanpa campuran.
+**Modal tepung (rumus wajib, dicatat dari owner 4 Okt 2026).** Tepung D'Kriuk dan Tepung A dicampur **50:50 menurut berat**, padahal harga per kg dan ukuran karungnya berbeda (D'Kriuk ±20 kg, Tepung A 25 kg), sehingga keduanya tidak habis bersamaan. Karena itu modal **tidak boleh** dihitung per karung:
+1. Harga per kg tiap tepung = harga karung (atau pack) ÷ isi kg-nya, dari harga beli sebenarnya saat barang masuk.
+2. Harga per kg campuran (acuan) = (harga/kg D'Kriuk + harga/kg Tepung A) ÷ 2.
+3. Pemakaian per periode dihitung **dalam kg per jenis tepung**: stok awal + kg dibeli − stok akhir (opname).
+4. Modal tepung periode = Σ (kg terpakai × harga/kg) untuk masing-masing tepung.
+5. Modal tepung per potong = modal tepung periode ÷ (potong ayam + porsi kulit yang digoreng pada periode itu).
+6. Rasio pemakaian D'Kriuk : Tepung A dibandingkan dengan 50:50; bila menyimpang jauh, laporan memberi peringatan (kemungkinan salah takar).
 
 Analisis tepung di aplikasi menghitung angka sebenarnya per outlet: total kg tepung (D'Kriuk + A) yang dibeli di antara dua pembelian, dibagi potong ayam dan cup kulit terjual pada periode itu.
 
