@@ -5,6 +5,7 @@
 
 	const ITEM = [
 		{ path: '/admin', label: 'Beranda' },
+		{ path: '/admin/stok', label: 'Stok' },
 		{ path: '/admin/bahan', label: 'Bahan' },
 		{ path: '/admin/menu', label: 'Menu' },
 		{ path: '/admin/harga-beli', label: 'Harga Beli' },
