@@ -55,13 +55,10 @@ describe('pembuatan akun', () => {
 });
 
 describe('pengunjung tanpa login (anon)', () => {
-	it('tidak melihat outlet maupun profil', async () => {
-		const [o, p] = await sebagaiAnon(db, async () => [
-			(await db.query('select 1 from public.outlets')).rows.length,
-			(await db.query('select 1 from public.profiles')).rows.length
-		]);
+	it('tidak melihat outlet, dan tidak punya izin sama sekali atas tabel profil', async () => {
+		const o = await sebagaiAnon(db, async () => (await db.query('select 1 from public.outlets')).rows.length);
 		expect(o).toBe(0);
-		expect(p).toBe(0);
+		await expect(sebagaiAnon(db, () => db.query('select 1 from public.profiles'))).rejects.toThrow(/permission denied/);
 	});
 
 	it('tidak bisa menambah outlet', async () => {
