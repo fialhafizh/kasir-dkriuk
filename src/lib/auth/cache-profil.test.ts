@@ -52,3 +52,16 @@ describe('galatJaringan', () => {
 		expect(galatJaringan(null)).toBe(false);
 	});
 });
+
+describe('review Tugas 1 Tahap 2: galat sementara', () => {
+	it('server gangguan (5xx) dianggap sementara', () => {
+		expect(galatJaringan({ message: 'Service Unavailable', status: 503 })).toBe(true);
+		expect(galatJaringan({ message: 'x', status: 520 })).toBe(true);
+	});
+	it('pesan biasa yang kebetulan memuat kata "network" bukan galat jaringan', () => {
+		expect(galatJaringan({ message: 'Invalid network_id value', status: 400 })).toBe(false);
+	});
+	it('NetworkError Firefox tetap dikenali', () => {
+		expect(galatJaringan({ message: 'NetworkError when attempting to fetch resource.' })).toBe(true);
+	});
+});

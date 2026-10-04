@@ -185,3 +185,83 @@ describe('Tahap 2: tetap bekerja saat internet putus', () => {
 		expect(s.getItem('dk-profil')).toBeNull();
 	});
 });
+
+describe('review Tugas 1 Tahap 2', () => {
+	function memori() {
+		const isi = new Map<string, string>();
+		return { getItem: (k: string) => isi.get(k) ?? null, setItem: (k: string, v: string) => void isi.set(k, v), removeItem: (k: string) => void isi.delete(k) };
+	}
+	// Bentuk galat jaringan PostgREST yang sebenarnya (tanpa status, code kosong).
+	const putusAsli = { message: 'TypeError: Failed to fetch', code: '', details: '', hint: '' };
+
+	async function siapLaluOffline() {
+		const f = clientPalsu();
+		const s = memori();
+		const a = new AuthState(f.client, s);
+		a.start();
+		f.emit(sesi('u1'));
+		await f.jawab('profiles', { data: kasir, error: null });
+		await f.jawab('outlets', { data: outlet, error: null });
+		await vi.waitFor(() => expect(a.status).toBe('ready'));
+		f.emit(sesi('u1'));
+		await f.jawab('profiles', { data: null, error: putusAsli });
+		await vi.waitFor(() => expect(a.offline).toBe(true));
+		return { f, s, a };
+	}
+
+	it('galat jaringan PostgREST asli memakai cache', async () => {
+		const { a } = await siapLaluOffline();
+		expect(a.status).toBe('ready');
+	});
+
+	it('setelah Keluar, koneksi kembali TIDAK memulihkan sesi lama', async () => {
+		const { f, a } = await siapLaluOffline();
+		await a.signOut();
+		a.cobaLagi();
+		await new Promise((r) => setTimeout(r, 20));
+		expect(f.menunggu()).toBe(0);
+		expect(a.status).toBe('guest');
+	});
+
+	it('cobaLagi saat online (tidak offline) tidak melakukan apa-apa', async () => {
+		const f = clientPalsu();
+		const a = new AuthState(f.client, memori());
+		a.start();
+		f.emit(sesi('u1'));
+		await f.jawab('profiles', { data: kasir, error: null });
+		await f.jawab('outlets', { data: outlet, error: null });
+		await vi.waitFor(() => expect(a.status).toBe('ready'));
+		a.cobaLagi();
+		await new Promise((r) => setTimeout(r, 20));
+		expect(f.menunggu()).toBe(0);
+	});
+
+	it('cobaLagi saat offline memuat ulang dan mematikan tanda offline', async () => {
+		const { f, a } = await siapLaluOffline();
+		a.cobaLagi();
+		await f.jawab('profiles', { data: kasir, error: null });
+		await f.jawab('outlets', { data: outlet, error: null });
+		await vi.waitFor(() => expect(a.offline).toBe(false));
+		expect(a.status).toBe('ready');
+	});
+
+	it('SIGNED_OUT dari luar mematikan tanda offline dan menghapus cache', async () => {
+		const { f, s, a } = await siapLaluOffline();
+		f.emit(null);
+		await vi.waitFor(() => expect(a.status).toBe('guest'));
+		expect(a.offline).toBe(false);
+		expect(s.getItem('dk-profil')).toBeNull();
+	});
+});
+
+describe('review Tugas 1 Tahap 2: Keluar saat offline', () => {
+	it('bila auth-js gagal menghapus sesi (offline), sesi tersimpan dihapus sendiri', async () => {
+		const f = clientPalsu();
+		f.signOut.mockResolvedValueOnce({ error: { message: 'Failed to fetch' } });
+		const isi = new Map<string, string>([['dk-auth', 'token-lama']]);
+		const s = { getItem: (k: string) => isi.get(k) ?? null, setItem: (k: string, v: string) => void isi.set(k, v), removeItem: (k: string) => void isi.delete(k) };
+		const a = new AuthState(f.client, s);
+		await a.signOut();
+		expect(isi.has('dk-auth')).toBe(false);
+	});
+});

@@ -36,5 +36,8 @@ export function hapusCache(s: Penyimpan): void {
 
 export function galatJaringan(e: { message?: string; status?: number; name?: string } | null): boolean {
 	if (!e) return false;
-	return e.name === 'AuthRetryableFetchError' || e.status === 0 || /failed to fetch|network|load failed/i.test(e.message ?? '');
+	// Putus koneksi (Chrome/Safari/Firefox) atau server sedang gangguan (5xx): sementara, boleh pakai cache.
+	if (e.name === 'AuthRetryableFetchError' || e.status === 0) return true;
+	if (e.status !== undefined && e.status >= 500) return true;
+	return /failed to fetch|networkerror|load failed/i.test(e.message ?? '');
 }

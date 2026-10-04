@@ -40,6 +40,7 @@ export class AuthState {
 	}
 
 	#keluarLokal(notice: string | null) {
+		this.#sesiTerakhir = null;
 		if (this.#penyimpan) hapusCache(this.#penyimpan);
 		this.offline = false;
 		this.profile = null;
@@ -52,6 +53,8 @@ export class AuthState {
 		if (gen !== this.#gen) return;
 		this.#sesiTerakhir = session;
 		if (!session) {
+			if (this.#penyimpan) hapusCache(this.#penyimpan);
+			this.offline = false;
 			this.profile = null;
 			this.outlet = null;
 			this.status = 'guest';
@@ -64,7 +67,7 @@ export class AuthState {
 			.eq('id', session.user.id)
 			.maybeSingle<Profile>();
 		if (gen !== this.#gen) return;
-		if (res.error) return this.#gagalMuat(res.error, session.user.id);
+		if (res.error) return this.#gagalMuat({ ...res.error, status: res.status }, session.user.id);
 
 		const profile = res.data;
 		if (!profile || !profile.aktif) {
@@ -81,7 +84,7 @@ export class AuthState {
 				.eq('id', profile.outlet_id)
 				.maybeSingle<Outlet>();
 			if (gen !== this.#gen) return;
-			if (o.error) return this.#gagalMuat(o.error, session.user.id);
+			if (o.error) return this.#gagalMuat({ ...o.error, status: o.status }, session.user.id);
 			if (!o.data) return this.#keluarLokal('Outlet akun tidak ditemukan. Hubungi admin.');
 			outlet = o.data;
 		}
@@ -105,7 +108,8 @@ export class AuthState {
 
 	/** Dipanggil saat koneksi kembali: muat ulang profil dari server. */
 	cobaLagi() {
-		if (!this.#sesiTerakhir) return;
+		// Hanya memulihkan saat sedang offline; tidak pernah menghidupkan lagi sesi yang sudah Keluar.
+		if (!this.offline || !this.#sesiTerakhir) return;
 		const gen = ++this.#gen;
 		const sesi = this.#sesiTerakhir;
 		setTimeout(() => void this.#apply(sesi, gen), 0);
@@ -120,6 +124,15 @@ export class AuthState {
 	async signOut() {
 		this.#gen++;
 		this.#keluarLokal(null);
-		await this.#client.auth.signOut();
+		const { error } = await this.#client.auth.signOut();
+		// Offline dengan token kedaluwarsa, auth-js tidak menghapus sesi tersimpan: hapus sendiri.
+		if (error && this.#penyimpan) {
+			try {
+				this.#penyimpan.removeItem('dk-auth');
+			} catch {
+				// abaikan
+			}
+		}
 	}
+
 }
