@@ -65,3 +65,22 @@ describe('keAscii', () => {
 		expect(keAscii('D’Kriuk — Café · 1×')).toBe("D'Kriuk - Cafe - 1x");
 	});
 });
+
+describe('review Tugas 5: tidak ada baris lebih dari 32 karakter', () => {
+	it('kode outlet 4 huruf: nomor & waktu dipecah dua baris', () => {
+		const b = barisStruk({ ...data, nomor: 'ABCD-261005-012' });
+		for (const x of b) expect(x.length).toBeLessThanOrEqual(32);
+		expect(b).toContain('ABCD-261005-012');
+		expect(b).toContain('05/10/26 12:31:07'.padStart(32));
+	});
+	it('kata lebih dari 32 karakter dipotong per 32, tidak hilang', () => {
+		const panjang = 'A'.repeat(40);
+		const b = barisStruk({ ...data, item: [{ nama: panjang, harga: 1000, qty: 1 }] });
+		expect(b).toContain('A'.repeat(32));
+		expect(b).toContain('A'.repeat(8));
+	});
+	it('nomor WA panjang dibungkus', () => {
+		const b = barisStruk({ ...data, outlet: { ...data.outlet, telepon: '+62 821-8388-6369 / +62 812-3456-7890' } });
+		for (const x of b) expect(x.length).toBeLessThanOrEqual(32);
+	});
+});

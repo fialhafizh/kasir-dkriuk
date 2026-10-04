@@ -36,3 +36,16 @@ describe('keranjang', () => {
 		expect(jumlahItem(k)).toBe(4);
 	});
 });
+
+describe('review Tugas 4: jumlah selalu bilangan bulat 1..999', () => {
+	it('ubahQty pecahan/NaN', () => {
+		const k = tambah([], dada);
+		expect(ubahQty(k, 'dada', 0.5)).toEqual([]);
+		expect(ubahQty(k, 'dada', Number.NaN)).toEqual([]);
+		expect(ubahQty(k, 'dada', 2.7)[0].qty).toBe(2);
+	});
+	it('tambah dengan n tidak sah tidak menambah baris', () => {
+		expect(tambah([], dada, 0)).toEqual([]);
+		expect(tambah([], dada, -3)).toEqual([]);
+	});
+});

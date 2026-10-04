@@ -3,14 +3,17 @@ import type { BarisKeranjang, MenuJual } from './types.ts';
 const MAKS = 999;
 
 export function tambah(k: BarisKeranjang[], m: MenuJual, n = 1): BarisKeranjang[] {
+	const q = Math.floor(n);
+	if (!(q >= 1)) return k;
 	const ada = k.find((b) => b.menu_id === m.id);
-	if (!ada) return [...k, { menu_id: m.id, nama: m.nama, harga: m.harga, qty: Math.min(n, MAKS) }];
-	return k.map((b) => (b.menu_id === m.id ? { ...b, qty: Math.min(b.qty + n, MAKS) } : b));
+	if (!ada) return [...k, { menu_id: m.id, nama: m.nama, harga: m.harga, qty: Math.min(q, MAKS) }];
+	return k.map((b) => (b.menu_id === m.id ? { ...b, qty: Math.min(b.qty + q, MAKS) } : b));
 }
 
 export function ubahQty(k: BarisKeranjang[], menuId: string, qty: number): BarisKeranjang[] {
-	if (qty <= 0) return k.filter((b) => b.menu_id !== menuId);
-	return k.map((b) => (b.menu_id === menuId ? { ...b, qty: Math.min(Math.floor(qty), MAKS) } : b));
+	const q = Math.floor(qty);
+	if (!(q >= 1)) return k.filter((b) => b.menu_id !== menuId);
+	return k.map((b) => (b.menu_id === menuId ? { ...b, qty: Math.min(q, MAKS) } : b));
 }
 
 /** Pintasan "Nasi Box": nasi + box sekaligus (ayamnya dipilih terpisah). */

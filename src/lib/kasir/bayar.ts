@@ -16,9 +16,13 @@ export function kembalian(total: number, diterima: number): number | null {
 	return diterima >= total ? diterima - total : null;
 }
 
-/** Uang pas, lalu pecahan yang biasa diterima (dibulatkan ke 5rb/10rb/20rb/50rb/100rb), maksimal 4 tombol. */
+/**
+ * Uang pas, lalu jumlah yang biasa diserahkan pembeli, maksimal 4 tombol.
+ * Sampai 100rb: dibulatkan ke 5rb/10rb/20rb/50rb/100rb. Di atasnya: kelipatan 50rb dan 100rb.
+ */
 export function tombolCepat(total: number): number[] {
 	if (total <= 0) return [0];
-	const naik = [5000, 10000, 20000, 50000, 100000].map((p) => Math.ceil(total / p) * p);
+	const pecahan = total > 100000 ? [50000, 100000] : [5000, 10000, 20000, 50000, 100000];
+	const naik = pecahan.map((p) => Math.ceil(total / p) * p);
 	return [total, ...new Set(naik.filter((n) => n > total))].sort((a, b) => a - b).slice(0, 4);
 }

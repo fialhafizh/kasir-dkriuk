@@ -15,3 +15,10 @@ describe('waktu WIB', () => {
 		expect(shiftKedaluwarsa('2026-10-04T13:00:00Z', sekarang)).toBe(true);
 	});
 });
+
+describe('review Tugas 4: tanggal tidak sah tidak membuat layar error', () => {
+	it('format & kedaluwarsa aman', () => {
+		expect(formatWaktuWib('bukan tanggal')).toBe('-');
+		expect(shiftKedaluwarsa('bukan tanggal', new Date())).toBe(false);
+	});
+});
