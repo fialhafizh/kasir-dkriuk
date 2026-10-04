@@ -23,7 +23,7 @@ Aplikasi web (PWA) untuk kasir, stok bahan baku, dan keuangan tiga outlet ayam g
 |---|---|---|---|
 | Bukit Lama | D'Kriuk Bukit Lama | Jl. Sultan M. Mansyur No.1137, RT.14 RW.05, Bukit Lama, Kec. Ilir Barat I, Kota Palembang, Sumatera Selatan 30136 | Standar |
 | Talang Kerangga | D'Kriuk Talang Kerangga | Jl. Ki Rangga Wirasantika, Talang Kerangga, Palembang | Standar |
-| Kertapati | D'Krizzpy Kertapati | *(alamat menyusul)* | Ayam & kulit −Rp1.000 |
+| Kertapati | D'Krizzpy Kertapati | Jl. KH. Moh. Asyik, 3-4 Ulu, Kec. Seberang Ulu I, Kota Palembang, Sumatera Selatan 30254 (plus code XQW5+C67) | Ayam & kulit −Rp1.000 |
 
 WA di struk (semua outlet): **+62 821-8388-6369**, ditambah ucapan terima kasih di bagian bawah.
 
@@ -91,10 +91,10 @@ Harga beli awal di bawah berasal dari daftar stokis Palembang (struk 30-09-2026,
 | Kertas nasi | pack | 17.100 | 100 lembar | nasi (1 lembar per porsi) |
 | Box D'Kriuk | pack | 117.200 | 100 box | item Box |
 | Kemasan kecil | pack | 20.900 | 100 | pelengkap |
-| Kemasan besar (Kemasan Chicken) | pack | 28.500 | *(menyusul)* | pelengkap |
+| Kemasan besar (Kemasan Chicken) | pack | 28.500 | 100 | pelengkap |
 | Plastik besar 36/25 | pack | 15.200 | 50 | pelengkap |
 | Plastik kecil 25/15 | pack | 15.200 | 100 | pelengkap |
-| Plastik merah | pack | 19.600 | *(menyusul)* | tidak dipotong (khusus pesanan nasi box banyak); hanya dicatat saat beli |
+| Plastik merah | pack | 19.600 | 50 | tidak dipotong (khusus pesanan nasi box banyak); hanya dicatat saat beli |
 | Saus sambal (Hot Branding) | pack | 31.125 | 100 sachet | pelengkap |
 | Saus tomat (Tomat Branding) | pack | 28.800 | 100 sachet | pelengkap |
 | Tepung D'Kriuk (Tepung Ori) | pack 1,3 kg / karung 19,5 kg | 23.400/pack · 351.000/karung (Rp18.000/kg) | tanpa campuran: 1 pack ≈ 3 pack ayam | **tidak** dipotong otomatis; dianalisis (§6) |
@@ -294,10 +294,9 @@ Aplikasi bisa dipasang ke layar utama HP/tablet (PWA). Ketika internet putus:
 
 Juga terjawab: cup kulit isi 50, Tepung Ori = Tepung D'Kriuk (1,3 kg/pack), Tepung A Rp257.000/25 kg dicampur 50:50, plastik merah tidak dipotong otomatis, kertas nasi 1 lembar per porsi.
 
-Masih ditunggu (tidak menghambat pengerjaan):
-1. **Alamat lengkap** D'Krizzpy Kertapati.
-2. **Isi per pack** Kemasan Besar (Kemasan Chicken) dan plastik merah.
-3. **Kalibrasi nasi:** masak 1 kg beras, timbang nasi matangnya, lalu bagi 150 g (lihat §4).
+Alamat Kertapati, isi Kemasan Besar (100), dan isi plastik merah (50) juga sudah diterima.
+
+Masih ditunggu (tidak menghambat pengerjaan): **kalibrasi nasi**. Masak 1 kg beras, timbang nasi matangnya, lalu bagi 150 g (lihat §4). Sementara dipakai 10 porsi/kg.
 
 ## 12. Backlog (di luar versi ini)
 
