@@ -105,7 +105,7 @@ begin
   values (v_outlet, public.tanggal_wib(v_waktu), 1)
   on conflict (outlet_id, tanggal) do update set terakhir = public.nomor_harian.terakhir + 1
   returning terakhir into v_urut;
-  v_nomor := v_kode || '-' || to_char(v_waktu at time zone 'Asia/Jakarta', 'YYMMDD') || '-' || lpad(v_urut::text, 3, '0');
+  v_nomor := v_kode || '-' || to_char(v_waktu at time zone interval '+07:00', 'YYMMDD') || '-' || lpad(v_urut::text, 3, '0');
 
   insert into public.penjualan (id, outlet_id, shift_id, kasir_id, nomor, waktu, metode, total, diterima, kembalian)
   values (v_id, v_outlet, v_shift, auth.uid(), v_nomor, v_waktu, v_metode, v_total, v_diterima, v_kembalian);

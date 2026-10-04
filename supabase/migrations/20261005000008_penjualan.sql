@@ -3,10 +3,10 @@
 
 create type public.metode_bayar as enum ('cash', 'qris', 'gofood', 'grabfood', 'shopeefood');
 
--- Tanggal bisnis WIB (UTC+7, tanpa musim panas).
+-- Tanggal bisnis WIB. Offset tetap +07:00 (WIB tanpa musim panas) supaya benar-benar immutable dan aman diindeks.
 create function public.tanggal_wib(t timestamptz) returns date
 language sql immutable set search_path = '' as $$
-  select (t at time zone 'Asia/Jakarta')::date
+  select (t at time zone interval '+07:00')::date
 $$;
 
 create table public.shift (
@@ -22,17 +22,22 @@ create table public.shift (
   constraint shift_tutup_lengkap check ((ditutup_at is null) = (ditutup_oleh is null) and (ditutup_at is null) = (uang_fisik is null))
 );
 create unique index shift_satu_terbuka on public.shift (outlet_id) where ditutup_at is null;
+create index shift_outlet_dibuka on public.shift (outlet_id, dibuka_at desc);
+-- Kunci gabungan agar penjualan & shift selalu dari outlet yang sama.
+alter table public.shift add constraint shift_id_outlet unique (id, outlet_id);
 
 create table public.penjualan (
   id uuid primary key,
   outlet_id uuid not null references public.outlets (id) on delete restrict,
-  shift_id uuid not null references public.shift (id) on delete restrict,
+  shift_id uuid not null,
   kasir_id uuid not null references public.profiles (id) on delete restrict,
   nomor text not null unique,
+  -- waktu = waktu bisnis (boleh dari perangkat saat offline); dicatat_at = saat server menerima (audit).
   waktu timestamptz not null default now(),
+  dicatat_at timestamptz not null default now(),
   metode public.metode_bayar not null,
   total integer not null check (total >= 0),
-  diterima integer,
+  diterima integer constraint penjualan_diterima check (diterima is null or diterima <= 100000000),
   kembalian integer,
   void_at timestamptz,
   void_oleh uuid references public.profiles (id) on delete restrict,
@@ -43,8 +48,9 @@ create table public.penjualan (
   ),
   constraint penjualan_void_lengkap check (
     (void_at is null and void_oleh is null and void_alasan is null)
-    or (void_at is not null and void_oleh is not null and length(trim(void_alasan)) >= 3)
-  )
+    or (void_at is not null and void_oleh is not null and length(trim(void_alasan)) between 3 and 200)
+  ),
+  constraint penjualan_shift_outlet foreign key (shift_id, outlet_id) references public.shift (id, outlet_id) on delete restrict
 );
 create index penjualan_outlet_waktu on public.penjualan (outlet_id, waktu);
 create index penjualan_shift on public.penjualan (shift_id);
@@ -56,8 +62,10 @@ create table public.penjualan_item (
   harga integer not null check (harga >= 0),
   qty integer not null check (qty between 1 and 999),
   subtotal integer generated always as (harga * qty) stored,
-  primary key (penjualan_id, menu_id)
+  primary key (penjualan_id, menu_id),
+  constraint penjualan_item_batas check (harga::bigint * qty <= 2000000000)
 );
+create index penjualan_item_menu on public.penjualan_item (menu_id);
 
 create table public.nomor_harian (
   outlet_id uuid not null references public.outlets (id) on delete restrict,

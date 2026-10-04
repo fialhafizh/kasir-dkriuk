@@ -96,3 +96,61 @@ describe('RLS baca penjualan', () => {
 		await expect(db.query(`delete from public.menu where kode = 'ori_dada'`)).rejects.toThrow(/penjualan_item_menu_id_fkey/);
 	});
 });
+
+describe('review Tugas 2 Tahap 2', () => {
+	it('penjualan mencatat waktu diterima server (dicatat_at) terpisah dari waktu bisnis', async () => {
+		const s = await shiftLangsung(db, 'BL', kasirBL);
+		const p = await penjualanLangsung('BL', s, kasirBL, 'BL-261005-001');
+		const { rows } = await db.query<{ ada: boolean }>('select dicatat_at is not null as ada from public.penjualan where id = $1', [p]);
+		expect(rows[0].ada).toBe(true);
+	});
+
+	it('penjualan & shift harus dari outlet yang sama', async () => {
+		const sTK = await shiftLangsung(db, 'TK', kasirTK);
+		await expect(penjualanLangsung('BL', sTK, kasirBL, 'BL-X')).rejects.toThrow(/penjualan_shift_outlet/);
+	});
+
+	it('batas wajar: uang diterima ≤ 100 juta, alasan batal ≤ 200 karakter', async () => {
+		const s = await shiftLangsung(db, 'BL', kasirBL);
+		const o = await idOutlet(db, 'BL');
+		await expect(
+			db.query(
+				`insert into public.penjualan (id, outlet_id, shift_id, kasir_id, nomor, metode, total, diterima, kembalian) values ($1, $2, $3, $4, 'BL-Y', 'cash', 11000, 1000000000, 999989000)`,
+				[crypto.randomUUID(), o, s, kasirBL]
+			)
+		).rejects.toThrow(/penjualan_diterima/);
+		const p = await penjualanLangsung('BL', s, kasirBL, 'BL-Z');
+		await expect(
+			db.query(`update public.penjualan set void_at = now(), void_oleh = $2, void_alasan = $3 where id = $1`, [p, kasirBL, 'x'.repeat(201)])
+		).rejects.toThrow(/penjualan_void_lengkap/);
+	});
+
+	it('shift tidak bisa ditutup tanpa uang fisik; void tanpa alasan ditolak', async () => {
+		const s = await shiftLangsung(db, 'BL', kasirBL);
+		await expect(db.query('update public.shift set ditutup_at = now(), ditutup_oleh = $2 where id = $1', [s, kasirBL])).rejects.toThrow(
+			/shift_tutup_lengkap/
+		);
+		const p = await penjualanLangsung('BL', s, kasirBL, 'BL-W');
+		await expect(db.query(`update public.penjualan set void_at = now(), void_oleh = $2, void_alasan = ' ' where id = $1`, [p, kasirBL])).rejects.toThrow(
+			/penjualan_void_lengkap/
+		);
+	});
+
+	it('kasir nonaktif tidak melihat apa pun; kasir tidak bisa insert langsung', async () => {
+		const s = await shiftLangsung(db, 'BL', kasirBL);
+		await penjualanLangsung('BL', s, kasirBL, 'BL-V');
+		await db.query('update public.profiles set aktif = false where id = $1', [kasirBL]);
+		const n = await sebagai(db, kasirBL, async () => (await db.query('select 1 from public.penjualan')).rows.length);
+		expect(n).toBe(0);
+		await expect(
+			sebagai(db, kasirTK, () => db.query(`insert into public.nomor_harian (outlet_id, tanggal, terakhir) values ($1, current_date, 1)`, [s]))
+		).rejects.toThrow(/permission denied/);
+	});
+
+	it('tanggal_wib memakai offset tetap +07:00 (aman diindeks)', async () => {
+		const { rows } = await db.query<{ v: string }>(`select provolatile as v from pg_proc where proname = 'tanggal_wib'`);
+		expect(rows[0].v).toBe('i');
+		const { rows: d } = await db.query<{ d: string }>(`select public.tanggal_wib('2026-10-04 16:59:59+00')::text as d`);
+		expect(d[0].d).toBe('2026-10-04');
+	});
+});
