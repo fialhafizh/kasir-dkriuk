@@ -3,12 +3,10 @@ import { describe, expect, it } from 'vitest';
 import KasirNav from './KasirNav.svelte';
 
 describe('KasirNav', () => {
-	it('tiga tujuan kasir dengan halaman aktif ditandai', () => {
-		const { body } = render(KasirNav, { props: { aktif: '/kasir/riwayat' } });
-		expect(body).toContain('href="#/kasir"');
-		expect(body).toContain('href="#/kasir/riwayat"');
-		expect(body).toContain('href="#/kasir/tutup"');
-		expect(body).toMatch(/href="#\/kasir\/riwayat"[^>]*aria-current="page"/);
+	it('empat tujuan kasir dengan halaman aktif ditandai (termasuk sub-halaman Stok)', () => {
+		const { body } = render(KasirNav, { props: { aktif: '/kasir/stok/awal' } });
+		for (const p of ['/kasir', '/kasir/riwayat', '/kasir/stok', '/kasir/tutup']) expect(body).toContain(`href="#${p}"`);
+		expect(body).toMatch(/href="#\/kasir\/stok"[^>]*aria-current="page"/);
 		expect(body).not.toMatch(/href="#\/kasir"[^>]*aria-current="page"/);
 	});
 });

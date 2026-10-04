@@ -50,3 +50,25 @@ describe('RiwayatGerakan', () => {
 		expect(body).toContain('Belum ada gerakan stok');
 	});
 });
+
+import FormStokAwal from './FormStokAwal.svelte';
+
+describe('FormStokAwal', () => {
+	it('kotak pack + lepas untuk bahan berpack, satu kotak untuk ayam; terisi dari jumlah awal', () => {
+		const { body } = render(FormStokAwal, {
+			props: {
+				isian: [
+					{ bahan_id: 'd', label: 'Dada Ori', jenis: 'satu' as const, satuan: 'potong', desimal: false },
+					{ bahan_id: 'k', label: 'Kemasan Kecil', jenis: 'pack' as const, satuan: 'pcs', isi: 100 }
+				],
+				awal: new Map([['k', 340]]),
+				labelKirim: 'Kirim ke admin',
+				onkirim: async () => {}
+			}
+		});
+		expect(body).toMatch(/aria-label="Dada Ori \(potong\)"/);
+		expect(body).toMatch(/aria-label="Kemasan Kecil: jumlah pack utuh"[^>]*value="3"|value="3"[^>]*aria-label="Kemasan Kecil: jumlah pack utuh"/);
+		expect(body).toMatch(/aria-label="Kemasan Kecil: pcs lepas"[^>]*value="40"|value="40"[^>]*aria-label="Kemasan Kecil: pcs lepas"/);
+		expect(body).toContain('Kirim ke admin');
+	});
+});
