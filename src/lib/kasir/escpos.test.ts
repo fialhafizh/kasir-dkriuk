@@ -19,3 +19,24 @@ describe('ESC/POS', () => {
 		expect(urlRawBT(new Uint8Array([0x1b, 0x40]))).toBe('rawbt:base64,G0A=');
 	});
 });
+
+import { kirimBertahap } from './escpos';
+
+describe('kirimBertahap (BLE printer murah)', () => {
+	it('default paket 20 byte, berurutan, dengan jeda di antaranya', async () => {
+		const paket: number[] = [];
+		const jeda: number[] = [];
+		await kirimBertahap(new Uint8Array(45), async (p) => void paket.push(p.length), { tunda: async (ms) => void jeda.push(ms) });
+		expect(paket).toEqual([20, 20, 5]);
+		expect(jeda).toEqual([15, 15]);
+	});
+	it('galat menulis dihentikan dan diteruskan', async () => {
+		let ke = 0;
+		await expect(
+			kirimBertahap(new Uint8Array(60), async () => {
+				if (++ke === 2) throw new Error('putus');
+			}, { tunda: async () => {} })
+		).rejects.toThrow('putus');
+		expect(ke).toBe(2);
+	});
+});

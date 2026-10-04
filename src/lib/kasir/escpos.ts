@@ -16,8 +16,9 @@ export function encodeStruk(baris: string[]): Uint8Array {
 }
 
 /** BLE mengirim data dalam paket kecil. */
-export function potong(bytes: Uint8Array, ukuran: number): Uint8Array[] {
-	const hasil: Uint8Array[] = [];
+export function potong(bytes: Uint8Array, ukuran: number): Uint8Array<ArrayBuffer>[] {
+	// slice() selalu membuat ArrayBuffer baru (dibutuhkan Web Bluetooth).
+	const hasil: Uint8Array<ArrayBuffer>[] = [];
 	for (let i = 0; i < bytes.length; i += ukuran) hasil.push(bytes.slice(i, i + ukuran));
 	return hasil;
 }
@@ -27,4 +28,21 @@ export function urlRawBT(bytes: Uint8Array): string {
 	let biner = '';
 	for (const x of bytes) biner += String.fromCharCode(x);
 	return `rawbt:base64,${btoa(biner)}`;
+}
+
+/**
+ * Banyak printer BLE murah hanya menerima 20 byte per tulisan dan buffernya kecil:
+ * kirim per paket kecil dengan jeda singkat agar struk tidak acak/terpotong.
+ */
+export async function kirimBertahap(
+	bytes: Uint8Array,
+	tulis: (paket: Uint8Array<ArrayBuffer>) => Promise<void>,
+	opsi: { ukuran?: number; jedaMs?: number; tunda?: (ms: number) => Promise<void> } = {}
+): Promise<void> {
+	const { ukuran = 20, jedaMs = 15, tunda = (ms) => new Promise<void>((r) => setTimeout(r, ms)) } = opsi;
+	const paket = potong(bytes, ukuran);
+	for (const [i, p] of paket.entries()) {
+		await tulis(p);
+		if (i < paket.length - 1) await tunda(jedaMs);
+	}
 }
