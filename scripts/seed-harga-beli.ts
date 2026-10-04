@@ -1,3 +1,4 @@
+// PERHATIAN: menjalankan ulang MENIMPA harga yang sudah diubah admin di aplikasi untuk outlet & satuan beli di file.
 // Mengisi harga beli dari data/harga-beli.local.json (diabaikan git). Jalankan:
 //   node --env-file=.env.local scripts/seed-harga-beli.ts
 import { createClient } from '@supabase/supabase-js';

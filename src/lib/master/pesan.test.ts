@@ -46,3 +46,13 @@ describe('review Tugas 3: pesan yang tidak menyesatkan', () => {
 		expect(pesanErrorData({ code: 'XX000', message: 'boom' })).toBe('Terjadi kesalahan di server. Coba lagi beberapa saat lagi.');
 	});
 });
+
+describe('review akhir Tahap 1', () => {
+	it('isian kosong/format salah dari database → isian tidak sah, bukan "kesalahan server"', () => {
+		expect(pesanErrorData({ code: '23502', message: 'null value in column "qty"' })).toBe('Isian tidak sah.');
+		expect(pesanErrorData({ code: '22P02', message: 'invalid input syntax for type uuid' })).toBe('Isian tidak sah.');
+	});
+	it('pesan aturan bahan dari database diteruskan', () => {
+		expect(pesanErrorData({ code: '22023', message: 'Bahan masih dipakai di resep: Nasi' })).toBe('Bahan masih dipakai di resep: Nasi.');
+	});
+});

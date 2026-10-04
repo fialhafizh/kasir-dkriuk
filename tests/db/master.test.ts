@@ -239,10 +239,11 @@ describe('review Tugas 1: batas yang dijaga database', () => {
 				sebagai(db, adminId, () => db.query('select public.simpan_resep($1, $2::jsonb)', [nasi, JSON.stringify([{ bahan_id: b, qty: 1 }])]))
 			).rejects.toThrow(/bahan aktif yang dipotong otomatis/);
 		}
-		const beras = await idDari('bahan', 'beras');
-		await db.query('update public.bahan set aktif = false where id = $1', [beras]);
+		const { rows } = await db.query<{ id: string }>(
+			`insert into public.bahan (kode, nama, satuan, mode, aktif) values ('uji_nonaktif', 'Uji Nonaktif', 'pcs', 'otomatis', false) returning id`
+		);
 		await expect(
-			sebagai(db, adminId, () => db.query('select public.simpan_resep($1, $2::jsonb)', [nasi, JSON.stringify([{ bahan_id: beras, qty: 0.1 }])]))
+			sebagai(db, adminId, () => db.query('select public.simpan_resep($1, $2::jsonb)', [nasi, JSON.stringify([{ bahan_id: rows[0].id, qty: 1 }])]))
 		).rejects.toThrow(/bahan aktif yang dipotong otomatis/);
 		expect(await jumlah(`public.resep where menu_id = '${nasi}'`)).toBe(2);
 	});
@@ -286,5 +287,35 @@ describe('review Tugas 1: batas yang dijaga database', () => {
 			[bl, s]
 		);
 		expect(r.tahun).toBeGreaterThan(2020);
+	});
+});
+
+describe('review akhir Tahap 1: aturan resep selalu berlaku & master tidak terhapus', () => {
+	it('bahan yang dipakai resep tidak bisa dinonaktifkan atau diubah dari otomatis', async () => {
+		await expect(
+			sebagai(db, adminId, () => db.query(`update public.bahan set aktif = false where kode = 'beras'`))
+		).rejects.toThrow(/Bahan masih dipakai di resep: Nasi/);
+		await expect(
+			sebagai(db, adminId, () => db.query(`update public.bahan set mode = 'analisis' where kode = 'kertas_nasi'`))
+		).rejects.toThrow(/Bahan masih dipakai di resep/);
+		expect(await jumlah(`public.bahan where kode = 'beras' and aktif`)).toBe(1);
+	});
+
+	it('bahan yang tidak dipakai resep tetap bisa dinonaktifkan', async () => {
+		await sebagai(db, adminId, () => db.query(`update public.bahan set aktif = false where kode = 'plastik_merah'`));
+		expect(await jumlah(`public.bahan where kode = 'plastik_merah' and not aktif`)).toBe(1);
+	});
+
+	it('baris resep langsung (tanpa simpan_resep) tetap ditolak bila bahannya bukan otomatis', async () => {
+		const nasi = await idDari('menu', 'nasi');
+		const tepung = await idDari('bahan', 'tepung_a');
+		await expect(
+			sebagai(db, adminId, () => db.query('insert into public.resep (menu_id, bahan_id, qty) values ($1, $2, 1)', [nasi, tepung]))
+		).rejects.toThrow(/Resep hanya boleh memakai bahan aktif yang dipotong otomatis/);
+	});
+
+	it('outlet tidak bisa dihapus lewat API (harga & riwayat aman)', async () => {
+		await sebagai(db, adminId, () => db.query(`delete from public.outlets where kode = 'KP'`));
+		expect(await jumlah(`public.outlets where kode = 'KP'`)).toBe(1);
 	});
 });

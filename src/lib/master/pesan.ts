@@ -1,5 +1,5 @@
 // Pesan berbahasa Indonesia dari fungsi SQL kita sendiri (22023) boleh diteruskan apa adanya.
-const PESAN_SENDIRI = /^(Resep|Isi satuan beli|Hanya admin)/;
+const PESAN_SENDIRI = /^(Resep|Isi satuan beli|Hanya admin|Bahan masih dipakai)/;
 
 export function pesanErrorData(err: { code?: string; message?: string; status?: number; name?: string } | null): string | null {
 	if (!err) return null;
@@ -9,6 +9,9 @@ export function pesanErrorData(err: { code?: string; message?: string; status?: 
 			return 'Anda tidak punya izin untuk perubahan ini.';
 		case '22023':
 			return PESAN_SENDIRI.test(msg) ? (msg.endsWith('.') ? msg : `${msg}.`) : 'Isian tidak sah.';
+		case '23502':
+		case '22P02':
+			return 'Isian tidak sah.';
 		case '23505':
 			return 'Ada data ganda. Periksa isian Anda.';
 		case '23514':

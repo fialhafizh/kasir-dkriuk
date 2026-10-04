@@ -123,11 +123,11 @@ describe('struktur aturan akses', () => {
 		expect(await jumlah(`pg_policies where tablename = 'outlets' and cmd = 'ALL'`)).toBe(0);
 	});
 
-	it('admin tetap bisa menambah dan menghapus outlet', async () => {
+	it('admin bisa menambah outlet, tetapi tidak menghapusnya (cukup nonaktif)', async () => {
 		await sebagai(db, adminId, async () => {
 			await db.query(`insert into public.outlets (kode, nama, merek, alamat, telepon) values ('ZZ','Uji','x','x','x')`);
 			await db.query(`delete from public.outlets where kode = 'ZZ'`);
 		});
-		expect(await jumlah(`public.outlets where kode = 'ZZ'`)).toBe(0);
+		expect(await jumlah(`public.outlets where kode = 'ZZ'`)).toBe(1);
 	});
 });

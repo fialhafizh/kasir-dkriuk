@@ -199,7 +199,7 @@
 				</div>
 				{#if b.aktif && pemakai.length > 0}
 					<p class="mt-1 text-xs text-muted">
-						Dipakai di resep: {pemakai.join(', ')}. Bila dinonaktifkan, resep itu harus diganti bahannya sebelum bisa disimpan ulang.
+						Dipakai di resep: {pemakai.join(', ')}. Ganti bahan di resep itu dulu sebelum menonaktifkan.
 					</p>
 				{/if}
 				{#if pesanBahan[b.id]}<p class="mt-1 text-xs text-danger" role="alert">{pesanBahan[b.id]}</p>{/if}
