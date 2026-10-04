@@ -49,3 +49,17 @@ describe('review Tugas 4: jumlah selalu bilangan bulat 1..999', () => {
 		expect(tambah([], dada, -3)).toEqual([]);
 	});
 });
+
+import { parseJumlah } from './keranjang';
+
+describe('parseJumlah (kotak jumlah keranjang)', () => {
+	it.each([
+		['150', 150],
+		[' 7 ', 7],
+		['5000', 999],
+		['1', 1]
+	])('"%s" → %s', (t, n) => expect(parseJumlah(t)).toBe(n));
+	it.each(['', '0', '00', '1,5', '-3', 'abc', '2.000'])('"%s" → null (baris tidak boleh terhapus)', (t) =>
+		expect(parseJumlah(t)).toBeNull()
+	);
+});

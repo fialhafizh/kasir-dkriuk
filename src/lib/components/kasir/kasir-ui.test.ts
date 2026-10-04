@@ -48,3 +48,16 @@ describe('RingkasanShift', () => {
 		expect(render(RingkasanShift, { props: { r: { ...r, uang_fisik: null, selisih: null } } }).body).not.toContain('Selisih');
 	});
 });
+
+import Keranjang from './Keranjang.svelte';
+
+describe('Keranjang', () => {
+	it('jumlah tampil di kotak yang bisa diketik (keyboard angka)', () => {
+		const { body } = render(Keranjang, {
+			props: { isi: [{ menu_id: 'n', nama: 'Nasi', harga: 5000, qty: 150 }], onubah: () => {}, onkosongkan: () => {} }
+		});
+		expect(body).toMatch(/<input[^>]*aria-label="Jumlah Nasi"/);
+		expect(body).toMatch(/<input[^>]*inputmode="numeric"/);
+		expect(body).toMatch(/<input[^>]*value="150"/);
+	});
+});
