@@ -31,16 +31,28 @@ export interface MetaUser {
 	nama_tampilan?: string;
 }
 
+const APP_META_BAWAAN = { provider: 'email', providers: ['email'] };
+
 /**
- * Meniru pembuatan user oleh admin (service role): peran disimpan di app_metadata,
- * yang tidak bisa diubah pengguna. user_metadata opsional untuk menguji bahwa ia diabaikan.
+ * Meniru auth.admin.createUser di Supabase Auth (internal/api/admin.go), dalam satu transaksi:
+ * 1) INSERT user dengan app_metadata bawaan (provider saja),
+ * 2) UPDATE app_metadata dengan data dari admin (peran & outlet).
+ * user_metadata opsional untuk menguji bahwa ia diabaikan.
  */
 export async function buatUser(db: PGlite, app: MetaUser, userMeta: Record<string, unknown> = {}): Promise<string> {
 	const id = crypto.randomUUID();
-	await db.query(
-		'insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data) values ($1, $2, $3, $4)',
-		[id, `${app.username}@test.local`, JSON.stringify(app), JSON.stringify(userMeta)]
-	);
+	await db.transaction(async (tx) => {
+		await tx.query('insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data) values ($1, $2, $3, $4)', [
+			id,
+			`${app.username}@test.local`,
+			JSON.stringify(APP_META_BAWAAN),
+			JSON.stringify(userMeta)
+		]);
+		await tx.query('update auth.users set raw_app_meta_data = raw_app_meta_data || $2::jsonb where id = $1', [
+			id,
+			JSON.stringify(app)
+		]);
+	});
 	return id;
 }
 

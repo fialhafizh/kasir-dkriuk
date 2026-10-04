@@ -19,17 +19,32 @@ beforeEach(async () => {
 });
 
 describe('pembuatan akun', () => {
-	it('peran dari user_metadata (bisa diubah pengguna) diabaikan', async () => {
-		const sebelum = await jumlah('auth.users');
-		await expect(
-			db.query('insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)', [
-				crypto.randomUUID(),
-				'penyusup@test.local',
-				JSON.stringify({ username: 'penyusup', role: 'admin' })
-			])
-		).rejects.toThrow();
-		expect(await jumlah('auth.users')).toBe(sebelum);
-		expect(await jumlah(`public.profiles where username = 'penyusup'`)).toBe(0);
+	it('peran dari user_metadata (bisa diubah pengguna) diabaikan: tidak ada profil, tidak ada akses', async () => {
+		const id = crypto.randomUUID();
+		await db.query('insert into auth.users (id, email, raw_app_meta_data, raw_user_meta_data) values ($1, $2, $3, $4)', [
+			id,
+			'penyusup@test.local',
+			JSON.stringify({ provider: 'email', providers: ['email'] }),
+			JSON.stringify({ username: 'penyusup', role: 'admin' })
+		]);
+		expect(await jumlah(`public.profiles where id = '${id}'`)).toBe(0);
+		const admin = await sebagai(db, id, async () => (await db.query<{ v: boolean }>('select public.is_admin() as v')).rows[0].v);
+		expect(admin).toBe(false);
+	});
+
+	it('profil dibuat saat admin mengisi app_metadata (urutan asli Supabase: insert lalu update)', async () => {
+		const id = await buatUser(db, { username: 'kasir.baru', role: 'kasir', outlet_kode: 'KP' });
+		const { rows } = await db.query<{ role: string; kode: string }>(
+			'select p.role, o.kode from public.profiles p join public.outlets o on o.id = p.outlet_id where p.id = $1',
+			[id]
+		);
+		expect(rows).toEqual([{ role: 'kasir', kode: 'KP' }]);
+	});
+
+	it('pembaruan app_metadata berikutnya tidak menggandakan atau mengubah profil', async () => {
+		await db.query(`update auth.users set raw_app_meta_data = raw_app_meta_data || '{"role":"admin"}'::jsonb where id = $1`, [kasirBL]);
+		const { rows } = await db.query<{ role: string }>('select role from public.profiles where id = $1', [kasirBL]);
+		expect(rows).toEqual([{ role: 'kasir' }]);
 	});
 
 	it('kode outlet tak dikenal ditolak tanpa meninggalkan akun yatim', async () => {
