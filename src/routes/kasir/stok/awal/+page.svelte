@@ -11,11 +11,14 @@
 	let status = $state<'memuat' | 'siap' | 'gagal'>('memuat');
 	let pesan = $state('');
 	let terkirim = $state(false);
+	let ulang = $state(0);
 
 	$effect(() => {
 		const o = pos.outlet;
 		if (!o) return;
 		let batal = false;
+		void ulang;
+		terkirim = false;
 		status = 'memuat';
 		Promise.all([muatDataStok(), muatStokAwal(o.id)])
 			.then(([d, a]) => {
@@ -56,6 +59,7 @@
 	<p class="mt-4 text-muted" role="status">Memuat…</p>
 {:else if status === 'gagal'}
 	<p class="mt-4 text-danger" role="alert">{pesan}</p>
+	<button type="button" class="mt-3 min-h-12 rounded-xl bg-surface-2 px-4 font-semibold" onclick={() => ulang++}>Coba lagi</button>
 {:else if terkirim}
 	<p class="mt-4 rounded-xl bg-surface-2 p-4 font-semibold text-ok" role="status">Terkirim. Menunggu persetujuan admin.</p>
 	<a href={href('/kasir/stok')} class="mt-3 inline-flex min-h-12 items-center rounded-xl bg-surface-2 px-4 font-semibold">Kembali ke Stok</a>

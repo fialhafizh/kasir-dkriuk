@@ -7,19 +7,25 @@
 	let minus = $state<string[]>([]);
 	// Data master & status stok awal jarang berubah: dimuat sekali per halaman.
 	let data: DataStok | null = null;
-	let sah = false;
+	// Status stok awal disimpan per outlet (admin bisa berganti outlet tanpa komponen dibuat ulang).
+	let sahUntuk: string | null = null;
 
 	$effect(() => {
 		const id = outletId;
 		void segar;
 		let batal = false;
+		if (sahUntuk !== id) minus = [];
 		(async () => {
 			try {
 				data ??= await muatDataStok();
-				if (!sah) sah = (await muatStokAwal(id)).some((a) => a.status === 'disetujui');
-				if (!sah) {
-					if (!batal) minus = [];
-					return;
+				if (sahUntuk !== id) {
+					const sah = (await muatStokAwal(id)).some((a) => a.status === 'disetujui');
+					if (batal) return;
+					if (!sah) {
+						minus = [];
+						return;
+					}
+					sahUntuk = id;
 				}
 				const s = await muatStok(id);
 				if (batal) return;
