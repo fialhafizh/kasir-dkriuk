@@ -11,6 +11,8 @@ class PosState {
 	shift = $state<Shift | null>(null);
 	status = $state<'memuat' | 'siap' | 'gagal'>('memuat');
 	pesan = $state('');
+	// Hasil muat untuk outlet lama yang telat datang diabaikan (admin berganti outlet dengan cepat).
+	#gen = 0;
 
 	/** Kasir: outlet akunnya. Admin: outlet yang dipilih di perangkat ini. */
 	get outlet(): Outlet | null {
@@ -20,6 +22,8 @@ class PosState {
 	pilihOutlet(o: Outlet | null) {
 		this.pilihanAdmin = o;
 		this.shift = null;
+		this.status = 'memuat';
+		this.pesan = '';
 		try {
 			if (o) localStorage.setItem(KUNCI, o.id);
 			else localStorage.removeItem(KUNCI);
@@ -39,11 +43,16 @@ class PosState {
 	async muatShift(): Promise<void> {
 		const o = this.outlet;
 		if (!o) return;
+		const gen = ++this.#gen;
 		this.status = 'memuat';
 		try {
-			this.shift = await shiftTerbuka(o.id);
+			const s = await shiftTerbuka(o.id);
+			if (gen !== this.#gen) return;
+			this.shift = s;
+			this.pesan = '';
 			this.status = 'siap';
 		} catch (e) {
+			if (gen !== this.#gen) return;
 			this.pesan = (e as Error).message;
 			this.status = 'gagal';
 		}

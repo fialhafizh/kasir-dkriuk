@@ -67,6 +67,7 @@ export async function daftarPenjualanShift(shiftId: string): Promise<PenjualanRi
 			.select('id, nomor, waktu, metode, total, diterima, kembalian, void_at, void_alasan, item:penjualan_item(nama, harga, qty)')
 			.eq('shift_id', shiftId)
 			.order('waktu', { ascending: false })
+			.order('nama', { referencedTable: 'item' })
 	) as PenjualanRiwayat[];
 }
 

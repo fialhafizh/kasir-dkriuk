@@ -9,9 +9,9 @@
 
 	let { children } = $props();
 
-	// Muat shift setiap kali outlet yang dilayani berganti.
+	// Muat shift setiap kali outlet berganti, dan lagi saat internet kembali.
 	$effect(() => {
-		if (pos.outlet) void pos.muatShift();
+		if (pos.outlet && !auth.offline) void pos.muatShift();
 	});
 </script>
 
