@@ -20,6 +20,8 @@
 	let pesan = $state('');
 	let alasan = $state<Record<string, string>>({});
 	let pesanBaris = $state<Record<string, string>>({});
+	// Galat memuat daftar ditampilkan di dekat daftar: daftar kosong karena galat ≠ belum ada barang masuk.
+	let pesanDaftar = $state('');
 
 	const outlet = $derived(outlets.find((o) => o.id === outletId) ?? null);
 
@@ -38,15 +40,20 @@
 	async function muatDaftar() {
 		const id = outletId;
 		if (!id) return;
-		const d = await muatBarangMasuk(id);
-		if (id === outletId) daftar = d;
+		pesanDaftar = '';
+		try {
+			const d = await muatBarangMasuk(id);
+			if (id === outletId) daftar = d;
+		} catch (e) {
+			if (id === outletId) pesanDaftar = `Daftar tidak bisa dimuat: ${(e as Error).message}`;
+		}
 	}
 	onMount(muatSemua);
 
 	function gantiOutlet(id: string) {
 		outletId = id;
 		daftar = [];
-		muatDaftar().catch((e) => (pesan = (e as Error).message));
+		void muatDaftar();
 	}
 
 	async function simpan(p: KirimBarangMasuk) {
@@ -92,7 +99,10 @@
 		{#key outlet.id}<FormBarangMasuk {outlet} {satuan} {hargaBeli} onsimpan={simpan} />{/key}
 		<section aria-label="Barang masuk terakhir">
 			<h2 class="font-display text-xl">Terakhir di {outlet.nama}</h2>
-			{#if daftar.length === 0}
+			{#if pesanDaftar}
+				<p class="mt-2 text-sm text-danger" role="alert">{pesanDaftar}</p>
+				<button type="button" class="mt-2 min-h-12 rounded-xl bg-surface-2 px-4 font-semibold" onclick={muatDaftar}>Coba lagi</button>
+			{:else if daftar.length === 0}
 				<p class="mt-2 rounded-xl bg-surface-2 p-4 text-sm text-muted">Belum ada barang masuk.</p>
 			{:else}
 				<ul class="mt-2 grid gap-2">

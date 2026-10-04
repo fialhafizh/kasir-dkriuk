@@ -75,3 +75,14 @@ describe('bantuan tampilan', () => {
 		expect(hitungRingkasan(susun({ dada: -1, kemasan: 40 }))).toEqual({ minus: 1, menipis: 1 });
 	});
 });
+
+describe('review Tugas 4', () => {
+	it('minus kecil tetap terlihat minus (tidak tampil "0")', () => {
+		expect(angkaStok(-0.0033)).toBe('-0,0033');
+		expect(angkaStok(0.004)).toBe('0,004');
+	});
+	it('sisa pembulatan di bawah 0,001 = nol: tampil 0 dan tidak bertanda minus', () => {
+		expect(susun({ beras: -0.0004 }).find((x) => x.label === 'Beras')).toMatchObject({ teks: '0 kg', status: 'aman' });
+		expect(susun({ beras: -0.0033 }).find((x) => x.label === 'Beras')).toMatchObject({ teks: '-0,0033 kg', status: 'minus' });
+	});
+});

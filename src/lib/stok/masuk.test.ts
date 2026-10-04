@@ -53,3 +53,19 @@ describe('harga awal', () => {
 		expect(hargaOutlet('beras', harga, 'kp')).toBeNull();
 	});
 });
+
+describe('review Tugas 6', () => {
+	it('total pratinjau sama dengan pembulatan server (bukan pembulatan float)', () => {
+		const r = periksaBarangMasuk(
+			[
+				{ satuan_beli_id: 'ayam', qty: '0,009', harga: '1500' },
+				{ satuan_beli_id: 'beras', qty: '0,043', harga: '2500' }
+			],
+			satuan
+		);
+		expect(r.total).toBe(14 + 108);
+	});
+	it('harga tetap yang kosong (harga beli outlet belum diatur) → pesan jelas', () => {
+		expect(periksaBarangMasuk([{ satuan_beli_id: 'ayam', qty: '1', harga: '' }], satuan).galat[0]).toMatch(/Isi harga/);
+	});
+});

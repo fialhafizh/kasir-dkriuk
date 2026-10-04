@@ -4,6 +4,8 @@ import type { Bahan, IsiSatuanBeli, SatuanBeli } from '#lib/master/types.ts';
 import type { BarisStok, JenisGerakan, StatusStok } from './types.ts';
 
 const EPS = 1e-9;
+// Sisa pembulatan resep 4 desimal (mis. 12 porsi × 0,0833 kg) di bawah 0,001 dianggap nol: tampilan & tanda sama.
+const NOL = 0.001;
 const DESIMAL = new Set(['kg', 'liter']);
 
 export const LABEL_JENIS: Record<JenisGerakan, string> = {
@@ -16,6 +18,9 @@ export const LABEL_JENIS: Record<JenisGerakan, string> = {
 
 /** Paling banyak 2 desimal, koma Indonesia; -0 ditampilkan 0. */
 export function angkaStok(n: number): string {
+	// Angka sangat kecil (sisa resep 4 desimal) jangan dibulatkan ke 0: minus harus tetap terlihat.
+	if (Math.abs(n) < NOL) return '0';
+	if (Math.abs(n) < 0.01) return formatQty(n);
 	const r = Math.round(n * 100) / 100;
 	return formatQty(Object.is(r, -0) ? 0 : r);
 }
@@ -41,7 +46,7 @@ interface Anggota {
 
 function barisGrup(g: SatuanBeli, anggota: Anggota[]): BarisStok {
 	const utuh = Math.max(0, Math.floor(Math.min(...anggota.map((a) => a.n / a.isi)) + EPS));
-	const sisa = anggota.map((a) => ({ nama: a.b.nama, n: a.n - utuh * a.isi })).filter((x) => Math.abs(x.n) > EPS);
+	const sisa = anggota.map((a) => ({ nama: a.b.nama, n: a.n - utuh * a.isi })).filter((x) => Math.abs(x.n) >= NOL);
 	const bagian = [...(utuh > 0 || sisa.length === 0 ? [`${utuh} pack`] : []), ...sisa.map((x) => `${angkaStok(x.n)} ${x.nama}`)];
 	const total = anggota.reduce((t, a) => t + a.n, 0);
 	const isiPack = anggota.reduce((t, a) => t + a.isi, 0);
@@ -49,13 +54,13 @@ function barisGrup(g: SatuanBeli, anggota: Anggota[]): BarisStok {
 		kunci: g.id,
 		label: labelGrup(g.nama),
 		teks: bagian.join(' + '),
-		status: status(anggota.some((a) => a.n < -EPS), total / isiPack, g.ambang),
+		status: status(anggota.some((a) => a.n < -NOL), total / isiPack, g.ambang),
 		bahan_id: anggota.map((a) => a.b.id)
 	};
 }
 
 function barisTunggal(b: Bahan, n: number, t: { s: SatuanBeli; isi: number } | undefined): BarisStok {
-	const st = status(n < -EPS, t ? n / t.isi : 0, t?.s.ambang ?? null);
+	const st = status(n < -NOL, t ? n / t.isi : 0, t?.s.ambang ?? null);
 	const dasar = { kunci: b.id, label: b.nama, bahan_id: [b.id], status: st };
 	if (!t || t.isi === 1 || DESIMAL.has(b.satuan) || n < 0) return { ...dasar, teks: `${angkaStok(n)} ${b.satuan}` };
 	const pack = Math.floor(n / t.isi + EPS);

@@ -36,10 +36,11 @@ export function periksaBarangMasuk(
 		else if ((hitung.get(r.satuan_beli_id) ?? 0) > 1) galat[i] = 'Barang ini sudah ada di baris lain; gabungkan jumlahnya.';
 		else if (qty === null) galat[i] = 'Jumlah tidak sah (mis. 2 atau 1,5).';
 		else if (!s.harga_tetap && (harga === null || harga === 0)) galat[i] = 'Harga wajib diisi (harganya berubah-ubah).';
-		else if (harga === null) galat[i] = 'Harga tidak sah (mis. 40.000).';
+		else if (harga === null) galat[i] = r.harga.trim() === '' ? 'Isi harga (harga beli outlet ini belum diatur).' : 'Harga tidak sah (mis. 40.000).';
 		else {
 			item.push({ satuan_beli_id: s.id, qty, harga });
-			total += Math.round(qty * harga);
+			// Sama dengan pembulatan numeric di server: qty paling banyak 3 desimal → hitung dalam perseribu.
+			total += Math.floor((Math.round(qty * 1000) * harga + 500) / 1000);
 		}
 	});
 	return { item, galat, total };

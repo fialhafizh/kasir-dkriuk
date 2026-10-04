@@ -101,7 +101,9 @@
 							inputmode="numeric"
 							placeholder={tetap(r.satuan_beli_id)
 								? ''
-								: `acuan ${formatAngka(hargaOutlet(r.satuan_beli_id, hargaBeli, outlet.id) ?? 0)}`}
+								: hargaOutlet(r.satuan_beli_id, hargaBeli, outlet.id) === null
+									? 'isi harga'
+									: `acuan ${formatAngka(hargaOutlet(r.satuan_beli_id, hargaBeli, outlet.id)!)}`}
 							class="{kotak} w-36"
 						/>
 						<button

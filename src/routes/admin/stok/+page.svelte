@@ -61,14 +61,17 @@
 	}
 
 	async function pilih(b: BarisStok) {
+		const oid = outletId!;
 		dipilih = b;
 		gerakan = [];
 		pesanRiwayat = '';
+		// Jawaban yang telat (outlet/bahan sudah berganti) diabaikan; kunci bahan sama di semua outlet.
+		const masihSama = () => dipilih === b && outletId === oid;
 		try {
-			const g = await muatGerakan(outletId!, b.bahan_id);
-			if (dipilih?.kunci === b.kunci) gerakan = g;
+			const g = await muatGerakan(oid, b.bahan_id);
+			if (masihSama()) gerakan = g;
 		} catch (e) {
-			pesanRiwayat = (e as Error).message;
+			if (masihSama()) pesanRiwayat = (e as Error).message;
 		}
 	}
 
