@@ -12,3 +12,4 @@ node_modules/
 .svelte-kit/
 build/
 supabase/.temp/
+*.local.json
