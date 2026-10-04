@@ -1,8 +1,15 @@
 import { pesanErrorData } from '#lib/master/pesan.ts';
 
-/** Pesan untuk pengguna dari galat functions.invoke: pakai pesan server bila ada, selain itu pesan umum. */
-export async function bacaGalatFungsi(galat: { message?: string }, res: Response | undefined): Promise<string> {
-	if (!res) return pesanErrorData({ message: 'Failed to fetch', status: 0 }) ?? 'Gagal menghubungi server.';
+/**
+ * Pesan untuk pengguna dari galat supabase.functions.invoke.
+ * - FunctionsHttpError: context = Response → pakai pesan JSON dari fungsi server bila ada.
+ * - FunctionsFetchError (jaringan putus): context = TypeError → pesan koneksi.
+ */
+export async function bacaGalatFungsi(galat: { name?: string; message?: string; context?: unknown }): Promise<string> {
+	const res = galat.context instanceof Response ? galat.context : undefined;
+	if (!res || galat.name === 'FunctionsFetchError') {
+		return pesanErrorData({ message: 'Failed to fetch', status: 0 }) ?? 'Gagal menghubungi server.';
+	}
 	try {
 		const isi = (await res.json()) as { error?: unknown };
 		if (typeof isi?.error === 'string' && isi.error) return isi.error;

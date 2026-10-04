@@ -15,5 +15,5 @@ export async function muatAkun(): Promise<Profile[]> {
 export async function kirimPerintahAkun(p: Perintah): Promise<{ ok: true; id?: string; username?: string; password?: string }> {
 	const { data, error } = await supabase.functions.invoke('admin-akun', { body: p });
 	if (!error) return data;
-	throw new Error(await bacaGalatFungsi(error, (error as { context?: Response }).context));
+	throw new Error(await bacaGalatFungsi(error));
 }
