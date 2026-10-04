@@ -295,3 +295,27 @@ describe('review Tugas 3 Tahap 2', () => {
 		expect(rows[0].src).toMatch(/where id = p_id for update/);
 	});
 });
+
+describe('kasir nonaktif ditolak di semua fungsi (NULL tidak boleh lolos)', () => {
+	it('void, ringkasan, tutup shift, buka shift', async () => {
+		const bl = await idOutlet(db, 'BL');
+		const s = await buka(kasirBL, bl);
+		const p = await pesanan('BL', [['nasi', 1]]);
+		await jual(kasirBL, p);
+		await db.query('update public.profiles set aktif = false where id = $1', [kasirBL]);
+		await expect(rpc(kasirBL, 'public.void_penjualan($1, $2)', [p.id, 'Coba batal'])).rejects.toThrow(/tidak ditemukan/);
+		await expect(rpc(kasirBL, 'public.ringkasan_shift($1)', [s])).rejects.toThrow(/tidak ditemukan/);
+		await expect(rpc(kasirBL, 'public.tutup_shift($1, $2, $3)', [s, 0, null])).rejects.toThrow(/tidak ditemukan/);
+		await expect(buka(kasirBL, bl)).rejects.toThrow(/tidak berhak/);
+	});
+});
+
+describe('nomor harian lebih dari 999', () => {
+	it('transaksi ke-1000 bernomor -1000, tidak terpotong menjadi -100', async () => {
+		const bl = await idOutlet(db, 'BL');
+		await buka(kasirBL, bl);
+		await db.query(`insert into public.nomor_harian (outlet_id, tanggal, terakhir) values ($1, public.tanggal_wib(now()), 999)`, [bl]);
+		const r = await jual(kasirBL, await pesanan('BL', [['nasi', 1]]));
+		expect(r.nomor).toMatch(/-1000$/);
+	});
+});

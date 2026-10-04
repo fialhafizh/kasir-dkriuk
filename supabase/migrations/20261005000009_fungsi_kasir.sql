@@ -4,7 +4,8 @@
 create function public._cek_akses_outlet(p_outlet uuid) returns void
 language plpgsql stable security definer set search_path = '' as $$
 begin
-  if p_outlet is null or not (public.is_admin() or public.my_outlet_id() = p_outlet) then
+  -- coalesce: kasir nonaktif → my_outlet_id() NULL → perbandingan NULL tidak boleh lolos.
+  if p_outlet is null or not (public.is_admin() or coalesce(public.my_outlet_id() = p_outlet, false)) then
     raise exception 'Anda tidak berhak mengakses outlet ini' using errcode = '42501';
   end if;
 end
@@ -111,7 +112,7 @@ begin
   values (v_outlet, public.tanggal_wib(v_waktu), 1)
   on conflict (outlet_id, tanggal) do update set terakhir = public.nomor_harian.terakhir + 1
   returning terakhir into v_urut;
-  v_nomor := v_kode || '-' || to_char(v_waktu at time zone interval '+07:00', 'YYMMDD') || '-' || lpad(v_urut::text, 3, '0');
+  v_nomor := v_kode || '-' || to_char(v_waktu at time zone interval '+07:00', 'YYMMDD') || '-' || lpad(v_urut::text, greatest(3, length(v_urut::text)), '0');
 
   insert into public.penjualan (id, outlet_id, shift_id, kasir_id, nomor, waktu, metode, total, diterima, kembalian)
   values (v_id, v_outlet, v_shift, auth.uid(), v_nomor, v_waktu, v_metode, v_total, v_diterima, v_kembalian);
@@ -135,7 +136,7 @@ declare
   v_tutup timestamptz;
 begin
   select * into v from public.penjualan where id = p_id for update;
-  if not found or not (public.is_admin() or public.my_outlet_id() = v.outlet_id) then
+  if not found or not (public.is_admin() or coalesce(public.my_outlet_id() = v.outlet_id, false)) then
     raise exception 'Penjualan tidak ditemukan' using errcode = '22023';
   end if;
   if v.void_at is not null then
@@ -165,7 +166,7 @@ declare
   v_cash integer;
 begin
   select * into s from public.shift where id = p_shift;
-  if not found or not (public.is_admin() or public.my_outlet_id() = s.outlet_id) then
+  if not found or not (public.is_admin() or coalesce(public.my_outlet_id() = s.outlet_id, false)) then
     raise exception 'Shift tidak ditemukan' using errcode = '22023';
   end if;
   select jsonb_object_agg(m.metode, jsonb_build_object('jumlah', coalesce(x.jumlah, 0), 'total', coalesce(x.total, 0)))
@@ -195,7 +196,7 @@ declare
   s public.shift;
 begin
   select * into s from public.shift where id = p_shift for update;
-  if not found or not (public.is_admin() or public.my_outlet_id() = s.outlet_id) then
+  if not found or not (public.is_admin() or coalesce(public.my_outlet_id() = s.outlet_id, false)) then
     raise exception 'Shift tidak ditemukan' using errcode = '22023';
   end if;
   if s.ditutup_at is not null then
