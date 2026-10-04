@@ -172,3 +172,49 @@ describe('stok awal', () => {
 		).rejects.toThrow(/tidak dikenal/);
 	});
 });
+
+describe('review Tugas 3: barang masuk mundur vs stok awal', () => {
+	const setujuiAwal = async (item: [string, number][], mundurJam = 0) => {
+		const id = await rpc<string>(kasirBL, 'public.ajukan_stok_awal($1, $2::jsonb)', [
+			await idOutlet(db, 'BL'),
+			JSON.stringify(await Promise.all(item.map(async ([kode, qty]) => ({ bahan_id: await idBahan(db, kode), qty }))))
+		]);
+		if (mundurJam) await db.query(`update public.stok_awal set dihitung_at = now() - make_interval(hours => $2::int) where id = $1`, [id, mundurJam]);
+		await rpc(adminId, 'public.putuskan_stok_awal($1, $2, $3::jsonb, $4)', [id, true, null, null]);
+	};
+
+	it('barang masuk bertanggal sebelum stok awal dihitung ditolak (sudah termasuk hitungan)', async () => {
+		await setujuiAwal([['ori_dada', 5]]);
+		await expect(masuk(adminId, await kiriman([['pack_ayam_ori', 1, 1]], { tanggal: await hariIni(-2) }))).rejects.toThrow(
+			/sebelum stok awal dihitung/
+		);
+		expect(await stok('ori_dada')).toBe(5);
+	});
+
+	it('barang masuk yang tercatat sebelum stok awal dihitung tidak bisa dibatalkan', async () => {
+		const p = await kiriman([['pack_ayam_ori', 1, 1]]);
+		await masuk(adminId, p);
+		await setujuiAwal([['ori_dada', 5]]);
+		await expect(batalMasuk(adminId, p.id)).rejects.toThrow(/sebelum stok awal dihitung/);
+		expect(await stok('ori_dada')).toBe(5);
+	});
+
+	it('hitungan 0 dengan saldo 0 tidak menulis baris; saldo lebih dari hitungan → koreksi negatif', async () => {
+		await masuk(adminId, await kiriman([['pack_kemasan_kecil', 1, 1]]));
+		await db.query(`update public.gerakan_stok set waktu = now() - interval '2 hours'`);
+		await setujuiAwal(
+			[
+				['kemasan_kecil', 60],
+				['box', 0]
+			],
+			1
+		);
+		expect(await stok('kemasan_kecil')).toBe(60);
+		expect(await stok('box')).toBe(0);
+	});
+
+	it('barang tanpa isi bahan ditolak', async () => {
+		await db.query(`insert into public.satuan_beli (kode, nama) values ('kosong', 'Barang Kosong')`);
+		await expect(masuk(adminId, await kiriman([['kosong', 1, 1]]))).rejects.toThrow(/belum punya isi/);
+	});
+});

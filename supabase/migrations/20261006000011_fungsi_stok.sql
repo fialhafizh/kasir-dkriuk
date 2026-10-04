@@ -41,10 +41,10 @@ $$;
 create function public.catat_barang_masuk(p jsonb) returns uuid
 language plpgsql security definer set search_path = '' as $$
 declare
-  v_id uuid := (p ->> 'id')::uuid;
-  v_outlet uuid := (p ->> 'outlet_id')::uuid;
-  v_tanggal date := (p ->> 'tanggal')::date;
-  v_catatan text := nullif(trim(coalesce(p ->> 'catatan', '')), '');
+  v_id uuid;
+  v_outlet uuid;
+  v_tanggal date;
+  v_catatan text;
   v_hari_ini date := public.tanggal_wib(now());
   v_waktu timestamptz;
   v_jumlah integer;
@@ -56,6 +56,10 @@ declare
   v_total bigint;
 begin
   perform public._wajib_admin_stok();
+  v_id := (p ->> 'id')::uuid;
+  v_outlet := (p ->> 'outlet_id')::uuid;
+  v_tanggal := (p ->> 'tanggal')::date;
+  v_catatan := nullif(trim(coalesce(p ->> 'catatan', '')), '');
   if v_id is null or v_outlet is null or v_tanggal is null then
     raise exception 'Data barang masuk tidak lengkap' using errcode = '22023';
   end if;
@@ -101,9 +105,19 @@ begin
   if v_harga_kosong then
     raise exception 'Harga barang yang harganya berubah-ubah wajib diisi' using errcode = '22023';
   end if;
+  if exists (
+    select 1 from jsonb_to_recordset(p -> 'item') as x (satuan_beli_id uuid)
+    where not exists (select 1 from public.satuan_beli_isi i where i.satuan_beli_id = x.satuan_beli_id)
+  ) then
+    raise exception 'Barang belum punya isi bahan; atur dulu di menu Bahan' using errcode = '22023';
+  end if;
 
   -- Tanggal mundur: waktu = jam sekarang pada tanggal itu (urutan riwayat tetap masuk akal).
   v_waktu := case when v_tanggal = v_hari_ini then now() else now() - make_interval(days => v_hari_ini - v_tanggal) end;
+  -- Barang yang datang sebelum stok awal dihitung sudah termasuk hitungan kasir: jangan dihitung dua kali.
+  if exists (select 1 from public.stok_awal where outlet_id = v_outlet and status = 'disetujui' and dihitung_at >= v_waktu) then
+    raise exception 'Barang masuk sebelum stok awal dihitung sudah termasuk hitungan; koreksi lewat opname' using errcode = '22023';
+  end if;
 
   insert into public.barang_masuk (id, outlet_id, tanggal, waktu, total, catatan, dicatat_oleh)
   values (v_id, v_outlet, v_tanggal, v_waktu, v_total, v_catatan, auth.uid());
@@ -139,6 +153,9 @@ begin
   end if;
   if p_alasan is null or length(trim(p_alasan)) < 3 or length(p_alasan) > 200 then
     raise exception 'Alasan pembatalan wajib diisi (3–200 karakter)' using errcode = '22023';
+  end if;
+  if exists (select 1 from public.stok_awal where outlet_id = v.outlet_id and status = 'disetujui' and dihitung_at >= v.waktu) then
+    raise exception 'Barang masuk sebelum stok awal dihitung tidak bisa dibatalkan; koreksi lewat opname' using errcode = '22023';
   end if;
   update public.barang_masuk set batal_at = now(), batal_oleh = auth.uid(), batal_alasan = trim(p_alasan) where id = p_id;
   insert into public.gerakan_stok (outlet_id, bahan_id, qty, jenis, waktu, oleh, barang_masuk_id)
@@ -194,6 +211,10 @@ begin
     update public.stok_awal set status = 'ditolak', diputus_at = now(), diputus_oleh = auth.uid(), catatan = trim(p_catatan)
     where id = p_id;
     return;
+  end if;
+
+  if p_catatan is not null and length(p_catatan) > 200 then
+    raise exception 'Catatan paling banyak 200 karakter' using errcode = '22023';
   end if;
 
   -- Admin boleh membetulkan angka kasir sebelum menyetujui.
