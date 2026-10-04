@@ -89,20 +89,20 @@ describe('kasir', () => {
 	});
 
 	it('tidak bisa menghapus profil maupun outlet', async () => {
-		await sebagai(db, kasirBL, async () => {
-			await db.query('delete from public.profiles');
-			await db.query('delete from public.outlets');
-		});
+		await expect(sebagai(db, kasirBL, () => db.query('delete from public.profiles'))).rejects.toThrow(/permission denied/);
+		await sebagai(db, kasirBL, () => db.query('delete from public.outlets'));
 		expect(await jumlah('public.profiles')).toBe(2);
 		expect(await jumlah('public.outlets')).toBe(3);
 	});
 
 	it('tidak bisa memindah outlet atau mengaktifkan ulang dirinya', async () => {
-		await sebagai(db, kasirBL, () =>
-			db.query(`update public.profiles set outlet_id = (select id from public.outlets where kode = 'TK'), aktif = true where id = $1`, [
-				kasirBL
-			])
-		);
+		await expect(
+			sebagai(db, kasirBL, () =>
+				db.query(`update public.profiles set outlet_id = (select id from public.outlets where kode = 'TK'), aktif = true where id = $1`, [
+					kasirBL
+				])
+			)
+		).rejects.toThrow(/permission denied/);
 		const { rows } = await db.query<{ kode: string }>(
 			'select o.kode from public.profiles p join public.outlets o on o.id = p.outlet_id where p.id = $1',
 			[kasirBL]
