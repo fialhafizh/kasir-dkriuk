@@ -17,6 +17,8 @@ export default defineConfig({
 	test: {
 		include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
 		environment: 'node',
-		testTimeout: 30000
+		testTimeout: 30000,
+		// Tes database pertama membangun snapshot PGlite di beforeEach; di mesin sibuk bisa >10 detik.
+		hookTimeout: 60000
 	}
 });
