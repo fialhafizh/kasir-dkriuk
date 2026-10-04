@@ -19,6 +19,9 @@ SvelteKit 3 (Svelte 5) + Tailwind CSS 4, di-hosting statis (GitHub Pages, hash r
 | `npm run build` | build statis ke `build/` (`BASE_PATH=/kasir-dkriuk` untuk GitHub Pages) |
 | `npx supabase db push` | pasang migrasi ke project Supabase |
 | `node --env-file=.env.local scripts/bootstrap-users.ts` | buat 4 akun awal (sekali saja; password ditulis ke `akun-awal.txt`) |
+| `npm run sb -- <perintah>` | Supabase CLI dengan kredensial `.env.local`, output disamarkan (mis. `db push`, `functions deploy admin-akun --use-api`) |
+| `node --env-file=.env.local scripts/uji-akun.ts` | uji fungsi server akun & hak akses data master dengan akun sementara (dihapus otomatis) |
+| `node --env-file=.env.local scripts/seed-harga-beli.ts` | isi harga beli dari `data/harga-beli.local.json` (tidak di-commit) |
 
 ## Akun
 - Login memakai **username + password**. Di belakang layar username menjadi email `username@kasir-dkriuk.invalid` (domain yang tidak bisa didaftarkan siapa pun).
@@ -27,7 +30,8 @@ SvelteKit 3 (Svelte 5) + Tailwind CSS 4, di-hosting statis (GitHub Pages, hash r
 - Untuk menghapus akun, hapus user Auth-nya (profil ikut terhapus), jangan hanya baris di tabel `profiles`.
 
 ## Keamanan
-- Jangan commit `.env.local`, `akun-awal.txt`, file harga/HPP, atau data bisnis lain (sudah diatur di `.gitignore`).
+- Jangan commit `.env.local`, `akun-awal.txt`, file harga/HPP, atau data bisnis lain (sudah diatur di `.gitignore`; folder `data/` seluruhnya diabaikan).
+- `tests/rahasia.test.ts` gagal bila ada nilai dari `data/*.local.json` muncul di file yang di-commit.
 - Kunci publishable (anon) aman berada di aplikasi karena semua tabel dilindungi RLS. Build menolak kunci rahasia di variabel `PUBLIC_*`.
 - Pendaftaran akun publik dimatikan di Supabase; akun hanya dibuat oleh admin.
 
