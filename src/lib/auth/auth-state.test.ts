@@ -123,3 +123,65 @@ describe('AuthState', () => {
 		expect(a.status).toBe('guest');
 	});
 });
+
+describe('Tahap 2: tetap bekerja saat internet putus', () => {
+	function memori() {
+		const isi = new Map<string, string>();
+		return { getItem: (k: string) => isi.get(k) ?? null, setItem: (k: string, v: string) => void isi.set(k, v), removeItem: (k: string) => void isi.delete(k) };
+	}
+
+	it('profil gagal dimuat karena jaringan, tapi ada cache → tetap ready & offline', async () => {
+		const f = clientPalsu();
+		const s = memori();
+		const a = new AuthState(f.client, s);
+		a.start();
+		f.emit(sesi('u1'));
+		await f.jawab('profiles', { data: kasir, error: null });
+		await f.jawab('outlets', { data: outlet, error: null });
+		await vi.waitFor(() => expect(a.status).toBe('ready'));
+
+		f.emit(sesi('u1')); // TOKEN_REFRESHED saat internet putus
+		await f.jawab('profiles', { data: null, error: putus });
+		await vi.waitFor(() => expect(a.offline).toBe(true));
+		expect(a.status).toBe('ready');
+		expect(a.profile?.username).toBe('kasir.bukitlama');
+		expect(a.outlet?.kode).toBe('BL');
+	});
+
+	it('tanpa cache (pertama kali di perangkat ini) → keluar dengan pesan koneksi', async () => {
+		const f = clientPalsu();
+		const a = new AuthState(f.client, memori());
+		a.start();
+		f.emit(sesi('u1'));
+		await f.jawab('profiles', { data: null, error: putus });
+		await vi.waitFor(() => expect(a.status).toBe('guest'));
+		expect(a.notice).toMatch(/Tidak bisa terhubung/);
+	});
+
+	it('galat bukan jaringan (mis. izin) tidak memakai cache', async () => {
+		const f = clientPalsu();
+		const s = memori();
+		const a = new AuthState(f.client, s);
+		a.start();
+		f.emit(sesi('u1'));
+		await f.jawab('profiles', { data: kasir, error: null });
+		await f.jawab('outlets', { data: outlet, error: null });
+		await vi.waitFor(() => expect(a.status).toBe('ready'));
+		f.emit(sesi('u1'));
+		await f.jawab('profiles', { data: null, error: { message: 'permission denied', status: 403 } });
+		await vi.waitFor(() => expect(a.status).toBe('guest'));
+	});
+
+	it('keluar menghapus cache', async () => {
+		const f = clientPalsu();
+		const s = memori();
+		const a = new AuthState(f.client, s);
+		a.start();
+		f.emit(sesi('u1'));
+		await f.jawab('profiles', { data: kasir, error: null });
+		await f.jawab('outlets', { data: outlet, error: null });
+		await vi.waitFor(() => expect(a.status).toBe('ready'));
+		await a.signOut();
+		expect(s.getItem('dk-profil')).toBeNull();
+	});
+});
