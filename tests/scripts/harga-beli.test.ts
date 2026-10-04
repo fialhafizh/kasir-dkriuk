@@ -12,11 +12,11 @@ const satuan = [
 
 describe('rencanaHargaBeli', () => {
 	it('mengubah kode menjadi baris id', () => {
-		const r = rencanaHargaBeli({ BL: { pack_ayam_ori: 49000 }, TK: { pack_cup_kulit: 33300 } }, outlets, satuan);
+		const r = rencanaHargaBeli({ BL: { pack_ayam_ori: 44444 }, TK: { pack_cup_kulit: 66666 } }, outlets, satuan);
 		expect(r.error).toEqual([]);
 		expect(r.baris).toEqual([
-			{ outlet_id: 'o-bl', satuan_beli_id: 's-ori', harga: 49000 },
-			{ outlet_id: 'o-tk', satuan_beli_id: 's-cup', harga: 33300 }
+			{ outlet_id: 'o-bl', satuan_beli_id: 's-ori', harga: 44444 },
+			{ outlet_id: 'o-tk', satuan_beli_id: 's-cup', harga: 66666 }
 		]);
 	});
 	it('kode tak dikenal dan harga tidak sah dilaporkan, tidak disimpan', () => {
@@ -28,5 +28,13 @@ describe('rencanaHargaBeli', () => {
 			'Harga tidak sah untuk BL/pack_ayam_ori: -5',
 			'Harga tidak sah untuk BL/pack_cup_kulit: 1.5'
 		]);
+	});
+});
+
+describe('review Tugas 8', () => {
+	it('harga di atas batas database (100 juta) ditolak sebelum dikirim', () => {
+		const r = rencanaHargaBeli({ BL: { pack_ayam_ori: 100_000_001 } }, outlets, satuan);
+		expect(r.baris).toEqual([]);
+		expect(r.error).toEqual(['Harga tidak sah untuk BL/pack_ayam_ori: 100000001']);
 	});
 });

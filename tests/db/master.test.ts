@@ -123,7 +123,7 @@ describe('RLS master', () => {
 	it('kasir tidak melihat harga beli sama sekali', async () => {
 		const bl = await idDari('outlets', 'BL');
 		const s = await idDari('satuan_beli', 'pack_ayam_ori');
-		await db.query('insert into public.harga_beli (outlet_id, satuan_beli_id, harga) values ($1, $2, 49000)', [bl, s]);
+		await db.query('insert into public.harga_beli (outlet_id, satuan_beli_id, harga) values ($1, $2, 44444)', [bl, s]);
 		const n = await sebagai(db, kasirKP, async () => (await db.query('select 1 from public.harga_beli')).rows.length);
 		expect(n).toBe(0);
 	});

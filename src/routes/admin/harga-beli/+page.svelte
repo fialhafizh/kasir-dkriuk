@@ -39,8 +39,8 @@
 
 <h1 class="font-display text-3xl">Harga Beli</h1>
 <p class="mt-1 max-w-prose text-muted">
-	Harga beli per satuan beli di tiap outlet. Untuk barang berharga berubah-ubah (beras, tepung A, minyak), angka ini hanya acuan;
-	harga sebenarnya diisi saat barang masuk.
+	Harga beli per satuan beli di tiap outlet. Untuk barang yang harganya berubah-ubah, angka ini hanya acuan; harga sebenarnya
+	diisi saat barang masuk. Kolom kosong berarti harga belum diisi.
 </p>
 
 {#if status === 'memuat'}
@@ -52,7 +52,10 @@
 	<ul class="mt-6 grid gap-3">
 		{#each satuan as s (s.id)}
 			<li class="rounded-2xl border border-line bg-surface p-4">
-				<p class="font-semibold">{s.nama}</p>
+				<p class="font-semibold">
+					{s.nama}
+					{#if !s.aktif}<span class="ml-1 rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted">Nonaktif</span>{/if}
+				</p>
 				<p class="text-xs text-muted">{s.harga_tetap ? 'Harga tetap' : 'Harga berubah-ubah — acuan'}</p>
 				<div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
 					{#each outlets as o (o.id)}

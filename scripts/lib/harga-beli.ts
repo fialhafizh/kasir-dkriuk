@@ -18,7 +18,7 @@ export function rencanaHargaBeli(
 		for (const [kodeSatuan, harga] of Object.entries(daftar)) {
 			const satuanId = s.get(kodeSatuan);
 			if (!satuanId) error.push(`Satuan beli tidak dikenal: ${kodeSatuan}`);
-			else if (!Number.isSafeInteger(harga) || harga < 0) error.push(`Harga tidak sah untuk ${kodeOutlet}/${kodeSatuan}: ${harga}`);
+			else if (!Number.isSafeInteger(harga) || harga < 0 || harga > 100_000_000) error.push(`Harga tidak sah untuk ${kodeOutlet}/${kodeSatuan}: ${harga}`);
 			else baris.push({ outlet_id: outletId, satuan_beli_id: satuanId, harga });
 		}
 	}

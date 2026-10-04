@@ -4,7 +4,7 @@ import { formatAngka, formatQty, formatRupiah, parseQty, parseRupiah } from './r
 describe('Rupiah', () => {
 	it('format dengan titik ribuan', () => {
 		expect(formatAngka(11000)).toBe('11.000');
-		expect(formatAngka(117200)).toBe('117.200');
+		expect(formatAngka(33333)).toBe('33.333');
 		expect(formatAngka(0)).toBe('0');
 		expect(formatRupiah(9000)).toBe('Rp9.000');
 	});

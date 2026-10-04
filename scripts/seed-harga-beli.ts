@@ -8,10 +8,12 @@ const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_
 	auth: { persistSession: false, autoRefreshToken: false }
 });
 const data = JSON.parse(readFileSync('data/harga-beli.local.json', 'utf8')) as Record<string, Record<string, number>>;
-const [{ data: outlets }, { data: satuan }] = await Promise.all([
-	db.from('outlets').select('id, kode'),
-	db.from('satuan_beli').select('id, kode')
-]);
+const [o, s] = await Promise.all([db.from('outlets').select('id, kode'), db.from('satuan_beli').select('id, kode')]);
+if (o.error || s.error) {
+	console.error(`Gagal membaca outlet/satuan beli: ${(o.error ?? s.error)!.message}`);
+	process.exit(1);
+}
+const outlets = o.data, satuan = s.data;
 const { baris, error } = rencanaHargaBeli(data, outlets ?? [], satuan ?? []);
 if (error.length) {
 	console.error(error.join('\n'));
