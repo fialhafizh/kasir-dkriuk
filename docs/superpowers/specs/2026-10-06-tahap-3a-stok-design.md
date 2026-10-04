@@ -37,8 +37,8 @@ Berhasil bila: owner menjual 1 Dada Ori dan melihat stok dada Ori berkurang 1 (b
 
 ## 4. Pemotongan otomatis (di server)
 
-- `catat_penjualan` diganti (`create or replace` di migrasi baru): pada cabang **bukan kiriman ulang**, setelah item tersimpan, tulis satu baris `jual` per bahan = −Σ(qty item × resep.qty) untuk bahan `mode = 'otomatis'`, `waktu` = waktu penjualan. Hasil fungsi tetap sama bentuknya (+ daftar bahan yang menjadi minus, untuk peringatan kasir).
-- `void_penjualan` diganti: tulis baris `jual_batal` = kebalikan **persis** dari baris `jual` transaksi itu (dibaca dari `gerakan_stok`, bukan resep terkini). Berlaku juga untuk void admin di luar shift. Penjualan sebelum Tahap 3 terpasang tidak punya baris `jual`, jadi void-nya tidak mengubah stok.
+- **Trigger** (fungsi kasir 0009 tidak diubah): setelah item penjualan tersimpan, trigger per-statement pada `penjualan_item` menulis satu baris `jual` per bahan = −Σ(qty item × resep.qty) untuk bahan `mode = 'otomatis'`, `waktu` = waktu penjualan. Kiriman ulang tidak menyisipkan item, jadi tidak memotong dua kali.
+- Trigger pada `penjualan.void_at` (kosong → terisi) menulis baris `jual_batal` = kebalikan **persis** dari baris `jual` transaksi itu (dibaca dari `gerakan_stok`, bukan resep terkini). Berlaku juga untuk void admin di luar shift. Penjualan sebelum Tahap 3 terpasang tidak punya baris `jual`, jadi void-nya tidak mengubah stok.
 - Stok **boleh minus**; penjualan tidak pernah ditolak karena stok.
 - Bahan `catat`/`analisis` (plastik merah, tepung, minyak) tidak pernah dipotong otomatis; hanya bertambah dari barang masuk/stok awal (pemakaian lewat opname 3b).
 
@@ -66,7 +66,7 @@ Berhasil bila: owner menjual 1 Dada Ori dan melihat stok dada Ori berkurang 1 (b
 
 **Admin:** menu baru **Stok** — pilih outlet; daftar bahan per kelompok dengan status; ketuk bahan → riwayat gerakan (waktu, jenis, jumlah, nomor transaksi/barang masuk, oleh). Halaman **Barang masuk** (daftar + tambah + batalkan). Halaman **Stok awal** (ajuan per outlet → setujui/tolak). Beranda admin: ringkasan per outlet "2 menipis, 1 minus" + ajuan stok awal yang menunggu.
 
-**Kasir:** tab **Stok** di navigasi bawah (baca saja, outlet sendiri) + tombol Isi stok awal bila perlu. Layar jualan: pita peringatan bila ada bahan minus ("Stok minus: dada Ori — lapor admin"); diperbarui setelah setiap transaksi dari daftar minus yang dikembalikan `catat_penjualan`.
+**Kasir:** tab **Stok** di navigasi bawah (baca saja, outlet sendiri) + tombol Isi stok awal bila perlu. Layar jualan: pita peringatan bila ada bahan minus ("Stok minus: dada Ori — lapor admin"); dimuat ulang dari `stok_outlet` setelah setiap transaksi (galat jaringan diabaikan; hanya peringatan).
 
 ## 8. Koreksi Tahap 2 (tugas pertama)
 
