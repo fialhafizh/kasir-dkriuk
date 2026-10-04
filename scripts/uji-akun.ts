@@ -62,6 +62,17 @@ try {
 	const olehKasir = await panggil(k1.c, { aksi: 'reset_password', id: hapus[0] });
 	cek('kasir memanggil fungsi → 403', olehKasir.status === 403, String(olehKasir.status));
 
+	// Hak akses data master di server sungguhan (bukan PGlite): kasir hanya harga outletnya, tanpa harga beli.
+	const hitung = async (c: SupabaseClient, t: string) => (await c.from(t).select('*', { count: 'exact', head: true })).count;
+	const kasirLihat = [await hitung(k1.c, 'menu'), await hitung(k1.c, 'harga_jual'), await hitung(k1.c, 'harga_beli')];
+	const adminLihat = [await hitung(admin, 'menu'), await hitung(admin, 'harga_jual'), await hitung(admin, 'harga_beli')];
+	cek('kasir: 17 menu, 17 harga jual outletnya, 0 harga beli', kasirLihat.join() === '17,17,0', kasirLihat.join());
+	cek('admin: 17 menu, 51 harga jual, harga beli terlihat', adminLihat[0] === 17 && adminLihat[1] === 51 && (adminLihat[2] ?? 0) > 0, adminLihat.join());
+	const kasirUbahHarga = await k1.c.from('harga_jual').update({ harga: 1 }).gte('harga', 0).select('menu_id');
+	cek('kasir tidak bisa mengubah harga jual (ditolak aturan akses)', !kasirUbahHarga.error && (kasirUbahHarga.data ?? []).length === 0, String(kasirUbahHarga.error?.code ?? 'tanpa galat, 0 baris'));
+	const anonLihat = await tanpaSesi.from('menu').select('id');
+	cek('tanpa login tidak bisa membaca menu', anonLihat.error?.code === '42501', anonLihat.error?.code ?? `${anonLihat.data?.length} baris`);
+
 	// Kunci profil (migrasi 0006) di server sungguhan: klien kasir & admin tidak bisa menulis profil langsung.
 	const kasirTulis = await k1.c.from('profiles').update({ role: 'admin' }).eq('id', buat.data.id);
 	const adminTulis = await admin.from('profiles').update({ aktif: false }).eq('id', buat.data.id);
