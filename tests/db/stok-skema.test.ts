@@ -35,7 +35,17 @@ describe('hak akses stok', () => {
 			sebagai(db, adminId, () =>
 				db.query(`insert into public.gerakan_stok (outlet_id, bahan_id, qty, jenis, waktu) values ($1, $2, 1, 'awal', now())`, [bl, dada])
 			)
-		).rejects.toThrow(/permission denied/);
+		).rejects.toThrow(/permission denied for table gerakan_stok/);
+	});
+
+	it('kasir tidak bisa menyisipkan item penjualan langsung (jalur satu-satunya ke trigger potong stok)', async () => {
+		await jual(kasirBL, 'BL', 'ori_dada');
+		const pid = (await db.query<{ id: string }>('select id from public.penjualan limit 1')).rows[0].id;
+		await expect(
+			sebagai(db, kasirBL, async () =>
+				db.query(`insert into public.penjualan_item (penjualan_id, menu_id, nama, harga, qty) values ($1, $2, 'x', 1, 1)`, [pid, await idMenu(db, 'kulit')])
+			)
+		).rejects.toThrow(/permission denied for table penjualan_item/);
 	});
 
 	it('kasir hanya membaca gerakan outletnya sendiri', async () => {
@@ -73,7 +83,7 @@ describe('hak akses stok', () => {
 	});
 
 	it.each(TABEL)('anon tidak bisa membaca %s', async (t) => {
-		await expect(sebagaiAnon(db, () => db.query(`select * from public.${t}`))).rejects.toThrow(/permission denied/);
+		await expect(sebagaiAnon(db, () => db.query(`select * from public.${t}`))).rejects.toThrow(new RegExp(`permission denied for (table|view) ${t}`));
 	});
 });
 

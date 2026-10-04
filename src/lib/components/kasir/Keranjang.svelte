@@ -42,10 +42,13 @@
 						class="tabular h-12 w-14 rounded-xl border border-line-strong bg-surface text-center font-bold focus:border-brand focus:ring-3 focus:ring-brand/25 focus:outline-none"
 						onfocus={(e) => e.currentTarget.select()}
 						onkeydown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-						onchange={(e) => {
+						oninput={(e) => {
+							// Langsung diterapkan saat mengetik (iOS tidak memicu change bila langsung menekan + / −).
 							const n = parseJumlah(e.currentTarget.value);
-							e.currentTarget.value = String(n ?? b.qty);
 							if (n !== null) onubah(b.menu_id, n);
+						}}
+						onchange={(e) => {
+							e.currentTarget.value = String(parseJumlah(e.currentTarget.value) ?? b.qty);
 						}}
 					/>
 					<button
