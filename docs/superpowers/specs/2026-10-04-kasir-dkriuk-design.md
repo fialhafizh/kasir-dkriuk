@@ -86,26 +86,38 @@ Harga beli awal di bawah berasal dari daftar stokis Palembang (struk 30-09-2026,
 | Ayam Ori (Karkas 1) | pack = 1 kg | 49.000 | 9 potong: 2 sayap · 2 paha bawah · 3 dada · 2 paha atas | ayam Ori per potongan |
 | Ayam Hot (Karkas 2) | pack = 1 kg | 49.000 | sama, pack terpisah dari Ori | ayam Hot per potongan |
 | Kulit mentah | pack | 45.000 | 17 porsi | kulit krispy |
-| Cup kulit | pack | 33.300 | 50 cup *(konfirmasi, lihat §11)* | kulit krispy |
+| Cup kulit | pack | 33.300 | 50 cup | kulit krispy |
 | Beras | kg (karung 20 kg) | ±15.000/kg, berubah-ubah | porsi per kg diatur admin (default 10) | nasi |
-| Kertas nasi | pack | 17.100 | 100 lembar | nasi (1 lembar per porsi, *konfirmasi*) |
+| Kertas nasi | pack | 17.100 | 100 lembar | nasi (1 lembar per porsi) |
 | Box D'Kriuk | pack | 117.200 | 100 box | item Box |
 | Kemasan kecil | pack | 20.900 | 100 | pelengkap |
 | Kemasan besar (Kemasan Chicken) | pack | 28.500 | *(menyusul)* | pelengkap |
 | Plastik besar 36/25 | pack | 15.200 | 50 | pelengkap |
 | Plastik kecil 25/15 | pack | 15.200 | 100 | pelengkap |
-| Plastik merah | pack | 19.600 | *(menyusul)* | pelengkap |
+| Plastik merah | pack | 19.600 | *(menyusul)* | tidak dipotong (khusus pesanan nasi box banyak); hanya dicatat saat beli |
 | Saus sambal (Hot Branding) | pack | 31.125 | 100 sachet | pelengkap |
 | Saus tomat (Tomat Branding) | pack | 28.800 | 100 sachet | pelengkap |
-| Tepung Ori, Minyak | per pembelian (jumlah & harga) | 23.400/pack tepung | 1 pack tepung ≈ 3 kg ayam | **tidak** dipotong otomatis; dianalisis (§6) |
+| Tepung D'Kriuk (Tepung Ori) | pack 1,3 kg / karung 19,5 kg | 23.400/pack · 351.000/karung (Rp18.000/kg) | tanpa campuran: 1 pack ≈ 3 pack ayam | **tidak** dipotong otomatis; dianalisis (§6) |
+| Tepung A | karung 25 kg | 257.000 (Rp10.280/kg) | dicampur 50:50 dengan Tepung D'Kriuk | **tidak** dipotong otomatis; dianalisis (§6) |
+| Minyak | per pembelian | berubah-ubah | — | **tidak** dipotong otomatis; dianalisis (§6) |
 
 **Nasi.** Stok beras dicatat dalam kg. Setiap porsi nasi memotong `1 ÷ porsi_per_kg` kg. Nilai `porsi_per_kg` diatur admin, dengan default **10** (sama dengan hitungan HPP franchise: Rp1.500/porsi). Setiap opname, aplikasi menghitung **porsi per kg aktual** dari beras yang benar-benar terpakai dibagi porsi nasi terjual, lalu menampilkannya sebagai saran kalibrasi. Kalau angkanya terus di bawah perkiraan, itu tanda porsi nasi di toko lebih besar dari 150 g.
+
+**Modal tepung (acuan awal analisis).** Tepung D'Kriuk Rp18.000/kg, Tepung A Rp10.280/kg.
+
+| Cara pakai | Tepung per pack ayam | Modal per pack ayam | Modal per potong |
+|---|---|---|---|
+| Tanpa campuran: 1 pack D'Kriuk untuk 3 pack ayam | 433 g | Rp7.800 | Rp867 |
+| Campur 50:50: 1,3 kg D'Kriuk + 1,3 kg Tepung A (Rp36.764) untuk 5 pack ayam | 520 g | Rp7.353 | Rp817 |
+| Campur 50:50, untuk 6 pack ayam | 433 g | Rp6.127 | Rp681 |
+
+Analisis tepung di aplikasi menghitung angka sebenarnya per outlet: total kg tepung (D'Kriuk + A) yang dibeli di antara dua pembelian, dibagi potong ayam dan cup kulit terjual pada periode itu.
 
 **Data bisnis tidak masuk repo publik.** Harga beli, file HPP, dan daftar harga stokis hanya diinput lewat aplikasi atau lewat file seed lokal yang di-*gitignore*. Migrasi publik hanya berisi struktur dan data yang tidak sensitif.
 
 **Tampilan stok ayam:** disimpan per potongan, lalu ditampilkan sebagai *pack utuh + potongan lepas*. Contoh: "5 pack Ori + 3 sayap". Pack utuh = jumlah komposisi lengkap yang masih bisa dibentuk dari potongan yang tersisa. Ambang stok menipis memakai pack-ekuivalen (total potong ÷ 9).
 
-**Ambang stok menipis (default, bisa diubah admin):** Ayam Ori 10 pack, Ayam Hot 5 pack, setiap kemasan 2 pack, cup kulit 50 pcs. Bahan lain diatur admin.
+**Ambang stok menipis (default, bisa diubah admin):** Ayam Ori 10 pack, Ayam Hot 5 pack, setiap kemasan 2 pack, cup kulit 50 pcs (1 pack). Bahan lain diatur admin.
 
 **Stok minus:** penjualan tetap boleh, tetapi kasir melihat peringatan dan admin dapat notifikasi.
 
@@ -280,13 +292,12 @@ Aplikasi bisa dipasang ke layar utama HP/tablet (PWA). Ketika internet putus:
 
 **Sudah terjawab (4 Okt):** harga beli & isi pack (daftar stokis), box nasi = stok tersendiri (Box D'Kriuk), pengeluaran kecil kasir tidak memengaruhi hitungan laci, ejaan alamat "Wirasantika", logo (`4.jpg` ikon, `5.jpg` wordmark).
 
-Masih ditunggu:
-1. **Cup kulit** isi 50 (menurut struk stokis) atau 100 (jawaban awal)? Ambang default "setengah pack" disesuaikan.
-2. **Tepung:** di struk hanya ada "Tepung Ori". Apakah itu Tepung D'Kriuk? Tepung A dibeli di mana dan berapa harganya?
-3. **Isi per pack** kemasan besar (Kemasan Chicken) dan plastik merah. Plastik merah dipakai untuk apa?
-4. **Kertas nasi** otomatis terpotong 1 lembar setiap porsi nasi?
-5. **Alamat lengkap** D'Krizzpy Kertapati.
-6. **Kalibrasi nasi:** masak 1 kg beras, timbang nasi matangnya, lalu bagi 150 g (lihat §4).
+Juga terjawab: cup kulit isi 50, Tepung Ori = Tepung D'Kriuk (1,3 kg/pack), Tepung A Rp257.000/25 kg dicampur 50:50, plastik merah tidak dipotong otomatis, kertas nasi 1 lembar per porsi.
+
+Masih ditunggu (tidak menghambat pengerjaan):
+1. **Alamat lengkap** D'Krizzpy Kertapati.
+2. **Isi per pack** Kemasan Besar (Kemasan Chicken) dan plastik merah.
+3. **Kalibrasi nasi:** masak 1 kg beras, timbang nasi matangnya, lalu bagi 150 g (lihat §4).
 
 ## 12. Backlog (di luar versi ini)
 
