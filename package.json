@@ -10,7 +10,8 @@
     "prepare": "svelte-kit sync || echo ''",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "sb": "node --env-file=.env.local scripts/sb.ts"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
