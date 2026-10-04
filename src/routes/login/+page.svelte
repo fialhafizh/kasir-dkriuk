@@ -19,11 +19,20 @@
 		errUsername = validateUsername(username) ?? '';
 		errPassword = password.length === 0 ? 'Password wajib diisi.' : '';
 		errUmum = null;
-		if (errUsername || errPassword) return;
+		if (errUsername || errPassword) {
+			document.getElementById(errUsername ? 'username' : 'password')?.focus();
+			return;
+		}
 		memproses = true;
 		errUmum = await auth.signIn(username, password);
-		memproses = false;
+		// Berhasil: tombol tetap memutar sampai profil termuat dan halaman berpindah.
+		if (errUmum) memproses = false;
 	}
+
+	// Profil gagal dimuat setelah password diterima: aktifkan lagi tombolnya.
+	$effect(() => {
+		if (auth.notice) memproses = false;
+	});
 </script>
 
 <svelte:head><title>Masuk · Kasir D'Kriuk</title></svelte:head>
@@ -41,9 +50,9 @@
 			<div class="mb-8 flex items-center justify-between">
 				<div class="flex items-center gap-3 lg:hidden">
 					<Logo size="md" />
-					<span class="font-display text-2xl text-brand">Kasir D'Kriuk</span>
+					<span class="font-display text-2xl text-brand" aria-hidden="true">Kasir D'Kriuk</span>
 				</div>
-				<span class="hidden font-display text-2xl text-brand lg:inline">Masuk</span>
+				<h1 class="sr-only lg:not-sr-only lg:font-display lg:text-2xl lg:text-brand">Masuk</h1>
 				<ThemeToggle />
 			</div>
 
@@ -73,8 +82,8 @@
 						error={errPassword}
 						autocomplete="current-password"
 					/>
-					<label class="flex min-h-10 items-center gap-2 text-sm text-muted">
-						<input id="lihat-password" type="checkbox" bind:checked={lihatPassword} class="size-4 accent-brand" />
+					<label class="flex min-h-12 items-center gap-3 text-sm text-muted">
+						<input id="lihat-password" type="checkbox" bind:checked={lihatPassword} class="size-5 accent-brand" />
 						Tampilkan password
 					</label>
 				</div>

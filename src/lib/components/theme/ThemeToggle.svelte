@@ -6,7 +6,7 @@
 <button
 	type="button"
 	onclick={() => theme.cycle()}
-	class="inline-flex min-h-12 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-fg hover:bg-surface-2 focus-visible:outline-3 focus-visible:outline-focus"
+	class="inline-flex min-h-12 min-w-12 items-center justify-center gap-2 rounded-xl px-3 text-sm font-semibold text-fg hover:bg-surface-2 focus-visible:outline-3 focus-visible:outline-focus"
 	aria-label="Ganti tema, sekarang {themeLabel(theme.pref)}"
 >
 	<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">

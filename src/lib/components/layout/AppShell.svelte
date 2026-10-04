@@ -16,7 +16,7 @@
 		class="sticky top-0 z-10 flex items-center gap-3 border-b border-line bg-surface/95 px-4 pt-[env(safe-area-inset-top)] backdrop-blur"
 	>
 		<div class="flex min-h-16 min-w-0 flex-1 items-center gap-3">
-			<Logo size="sm" />
+			<Logo size="sm" alt="" />
 			<div class="min-w-0">
 				<p class="font-display text-xl leading-none text-brand">{title}</p>
 				<p class="truncate text-xs font-semibold text-muted">{lingkup}</p>
