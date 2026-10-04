@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Konfirmasi from '#lib/components/ui/Konfirmasi.svelte';
 	import { jumlahItem, totalKeranjang } from '#lib/kasir/keranjang.ts';
 	import type { BarisKeranjang } from '#lib/kasir/types.ts';
 	import { formatAngka } from '#lib/master/rupiah.ts';
@@ -14,7 +15,7 @@
 	<div class="flex items-center justify-between">
 		<h2 class="font-display text-xl">Pesanan ({jumlahItem(isi)})</h2>
 		{#if isi.length}
-			<button type="button" class="min-h-12 rounded-xl px-3 text-sm text-danger hover:bg-surface-2" onclick={onkosongkan}>Kosongkan</button>
+			<Konfirmasi label="Kosongkan" konfirmasiLabel="Ya, kosongkan" variant="ghost" onkonfirmasi={onkosongkan} />
 		{/if}
 	</div>
 	{#if isi.length === 0}

@@ -34,3 +34,32 @@ describe('dataStrukDari', () => {
 		expect(d.kembalian).toBeNull();
 	});
 });
+
+import { dataStrukRiwayat, sidikTransaksi } from './cetak';
+
+describe('review Tugas 8: struk dari data server & sidik transaksi', () => {
+	const outlet = { id: 'o', kode: 'BL', nama: 'Bukit Lama', merek: "D'Kriuk", alamat: 'Jl. X', telepon: '+62 1', aktif: true };
+	it('struk dari penjualan tersimpan (bukan keranjang)', () => {
+		const d = dataStrukRiwayat(outlet, 'Kasir BL', {
+			id: 'p',
+			nomor: 'BL-261005-001',
+			waktu: '2026-10-05T05:00:00Z',
+			metode: 'cash',
+			total: 11000,
+			diterima: 20000,
+			kembalian: 9000,
+			void_at: '2026-10-05T06:00:00Z',
+			void_alasan: 'x',
+			item: [{ nama: 'Dada Ori', harga: 11000, qty: 1 }]
+		});
+		expect(d).toMatchObject({ nomor: 'BL-261005-001', total: 11000, diterima: 20000, kembalian: 9000, batal: true });
+		expect(d.item).toEqual([{ nama: 'Dada Ori', harga: 11000, qty: 1 }]);
+	});
+	it('sidik berubah bila keranjang, metode, atau uang diterima berubah; urutan item tidak berpengaruh', () => {
+		const a = sidikTransaksi([{ menu_id: 'x', nama: 'X', harga: 1, qty: 1 }, { menu_id: 'y', nama: 'Y', harga: 1, qty: 2 }], 'cash', 5000);
+		const b = sidikTransaksi([{ menu_id: 'y', nama: 'Y', harga: 1, qty: 2 }, { menu_id: 'x', nama: 'X', harga: 1, qty: 1 }], 'cash', 5000);
+		expect(a).toBe(b);
+		expect(sidikTransaksi([{ menu_id: 'x', nama: 'X', harga: 1, qty: 2 }], 'cash', 5000)).not.toBe(a);
+		expect(sidikTransaksi([{ menu_id: 'x', nama: 'X', harga: 1, qty: 1 }, { menu_id: 'y', nama: 'Y', harga: 1, qty: 2 }], 'qris', null)).not.toBe(a);
+	});
+});

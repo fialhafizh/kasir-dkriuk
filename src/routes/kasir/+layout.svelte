@@ -24,7 +24,9 @@
 	{/if}
 	{#if auth.profile?.role === 'admin'}<div class="mb-4"><PilihOutlet /></div>{/if}
 	{#if !pos.outlet}
-		<p class="text-muted">Pilih outlet untuk mulai.</p>
+		<p class="text-muted">
+			{auth.profile?.role === 'admin' ? 'Pilih outlet untuk mulai.' : 'Akun ini belum terhubung ke outlet. Hubungi admin.'}
+		</p>
 	{:else}
 		{@render children()}
 	{/if}

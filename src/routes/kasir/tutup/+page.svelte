@@ -44,11 +44,19 @@
 <h1 class="font-display text-3xl">Tutup toko</h1>
 
 {#if hasil}
-	<p class="mt-2 font-semibold text-ok" role="status">Toko ditutup. Setorkan uang cash ke owner.</p>
+	<p class="mt-2 font-semibold text-ok" role="status">
+		Toko ditutup. Setorkan Rp{formatAngka(Math.max(0, (hasil.uang_fisik ?? 0) - hasil.modal))} ke owner dan sisakan modal
+		Rp{formatAngka(hasil.modal)} di laci untuk besok.
+	</p>
 	<div class="mt-4 max-w-md"><RingkasanShift r={hasil} /></div>
 	<a href={href('/kasir')} class="mt-4 inline-flex min-h-12 items-center rounded-xl bg-surface-2 px-4 font-semibold">Ke layar jualan</a>
+{:else if pos.status === 'memuat' && !pos.shift}
+	<p class="mt-4 text-muted" role="status">Memuat…</p>
+{:else if pos.status === 'gagal'}
+	<p class="mt-4 text-danger" role="alert">{pos.pesan}</p>
+	<button type="button" class="mt-3 min-h-12 rounded-xl bg-surface-2 px-4 font-semibold" onclick={() => pos.muatShift()}>Coba lagi</button>
 {:else if !pos.shift}
-	<p class="mt-2 text-muted">Tidak ada shift terbuka.</p>
+	<p class="mt-2 text-muted">Tidak ada shift terbuka. Toko sudah ditutup.</p>
 {:else if r}
 	<div class="mt-4 grid max-w-md gap-4">
 		<RingkasanShift {r} />
@@ -63,7 +71,7 @@
 				class="tabular min-h-14 rounded-xl border border-line-strong bg-surface px-3 text-right text-2xl text-fg"
 			/>
 			{#if selisih !== null}
-				<p class="text-sm font-semibold {selisih === 0 ? 'text-ok' : 'text-danger'}" role="status">
+				<p class="text-sm font-semibold {selisih === 0 ? 'text-ok' : 'text-danger'}">
 					{selisih === 0 ? 'Pas dengan catatan.' : `${selisih > 0 ? 'Lebih' : 'Kurang'} Rp${formatAngka(Math.abs(selisih))} dari catatan.`}
 				</p>
 			{/if}
@@ -73,7 +81,11 @@
 			<input id="catatan-tutup" bind:value={catatan} maxlength="500" class="min-h-12 rounded-xl border border-line-strong bg-surface px-3 text-fg" />
 		</div>
 		{#if pesan}<p class="text-sm text-danger" role="alert">{pesan}</p>{/if}
-		<Konfirmasi label="Tutup toko" konfirmasiLabel="Ya, tutup toko" variant="primary" onkonfirmasi={tutup} />
+		{#if uang === null}
+			<p class="text-sm text-muted">Isi jumlah uang di laci dulu untuk menutup toko.</p>
+		{:else}
+			<Konfirmasi label="Tutup toko" konfirmasiLabel="Ya, tutup toko" variant="primary" onkonfirmasi={tutup} />
+		{/if}
 	</div>
 {:else if pesan}
 	<p class="mt-4 text-danger" role="alert">{pesan}</p>

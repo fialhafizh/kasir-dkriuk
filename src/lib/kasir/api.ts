@@ -71,6 +71,18 @@ export async function daftarPenjualanShift(shiftId: string): Promise<PenjualanRi
 	) as PenjualanRiwayat[];
 }
 
+/** Satu penjualan beserta item dari server (null bila belum tercatat). */
+export async function muatPenjualan(id: string): Promise<PenjualanRiwayat | null> {
+	return periksa(
+		await supabase
+			.from('penjualan')
+			.select('id, nomor, waktu, metode, total, diterima, kembalian, void_at, void_alasan, item:penjualan_item(nama, harga, qty)')
+			.eq('id', id)
+			.order('nama', { referencedTable: 'item' })
+			.maybeSingle()
+	) as PenjualanRiwayat | null;
+}
+
 export async function voidPenjualan(id: string, alasan: string): Promise<void> {
 	periksa(await supabase.rpc('void_penjualan', { p_id: id, p_alasan: alasan }));
 }

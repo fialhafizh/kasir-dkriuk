@@ -13,11 +13,14 @@
 	let input = $state<HTMLInputElement>();
 
 	onMount(async () => {
+		let awal = '0';
 		try {
-			teks = formatAngka(await modalTerakhir(outlet.id));
+			awal = formatAngka(await modalTerakhir(outlet.id));
 		} catch {
-			teks = '0';
+			// biarkan 0
 		}
+		// Jangan timpa angka yang sudah mulai diketik kasir.
+		if (teks.trim() === '') teks = awal;
 		input?.focus();
 		input?.select();
 	});

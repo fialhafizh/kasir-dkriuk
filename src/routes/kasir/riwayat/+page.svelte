@@ -5,7 +5,8 @@
 	import { encodeStruk, urlRawBT } from '#lib/kasir/escpos.ts';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
 	import { printer } from '#lib/kasir/printer.svelte.ts';
-	import { barisStruk, type DataStruk } from '#lib/kasir/struk.ts';
+	import { dataStrukRiwayat } from '#lib/kasir/cetak.ts';
+	import { barisStruk } from '#lib/kasir/struk.ts';
 	import type { PenjualanRiwayat } from '#lib/kasir/types.ts';
 	import { formatWaktuWib } from '#lib/kasir/waktu.ts';
 	import { auth } from '#lib/auth/session.svelte.ts';
@@ -41,22 +42,8 @@
 		}
 	}
 
-	function strukDari(p: PenjualanRiwayat): DataStruk {
-		const o = pos.outlet!;
-		return {
-			outlet: { merek: o.merek, nama: o.nama, alamat: o.alamat, telepon: o.telepon },
-			nomor: p.nomor,
-			waktu: p.waktu,
-			kasir: auth.profile?.nama_tampilan ?? '',
-			item: p.item,
-			total: p.total,
-			metode: p.metode,
-			diterima: p.diterima,
-			kembalian: p.kembalian,
-			cetakUlang: true,
-			batal: p.void_at !== null
-		};
-	}
+	const strukDari = (p: PenjualanRiwayat) => dataStrukRiwayat(pos.outlet!, auth.profile?.nama_tampilan ?? '', p, true);
+
 
 	async function cetakUlang(p: PenjualanRiwayat) {
 		try {
@@ -70,12 +57,18 @@
 <svelte:head><title>Riwayat · Kasir D'Kriuk</title></svelte:head>
 
 <h1 class="font-display text-3xl">Riwayat shift ini</h1>
-{#if !pos.shift}
+{#if pos.status === 'memuat' && !pos.shift}
+	<p class="mt-4 text-muted" role="status">Memuat…</p>
+{:else if pos.status === 'gagal'}
+	<p class="mt-4 text-danger" role="alert">{pos.pesan}</p>
+	<button type="button" class="mt-3 min-h-12 rounded-xl bg-surface-2 px-4 font-semibold" onclick={() => pos.muatShift()}>Coba lagi</button>
+{:else if !pos.shift}
 	<p class="mt-2 text-muted">Belum ada shift terbuka.</p>
 {:else if status === 'memuat'}
 	<p class="mt-4 text-muted" role="status">Memuat…</p>
 {:else if status === 'gagal'}
 	<p class="mt-4 text-danger" role="alert">{pesan}</p>
+	<button type="button" class="mt-3 min-h-12 rounded-xl bg-surface-2 px-4 font-semibold" onclick={muat}>Coba lagi</button>
 {:else if daftar.length === 0}
 	<p class="mt-4 text-muted">Belum ada transaksi.</p>
 {:else}
@@ -96,6 +89,7 @@
 							<input
 								id="alasan-{p.id}"
 								bind:value={alasan[p.id]}
+								maxlength="200"
 								placeholder="mis. salah input"
 								class="min-h-12 rounded-xl border border-line-strong bg-surface px-3 text-fg"
 							/>
