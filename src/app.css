@@ -15,8 +15,10 @@
 	--dk-accent: #ffd60a;
 	--dk-on-accent: #2a1712;
 	--dk-danger: #c6281f;
-	--dk-ok: #1f8a4c;
-	--dk-warn: #b86e00;
+	--dk-ok: #1a7a43;
+	--dk-warn: #965a00;
+	--dk-focus: #b5121a;
+	--dk-line-strong: #9c8068;
 	color-scheme: light;
 }
 
@@ -35,6 +37,8 @@
 	--dk-danger: #ff6a5e;
 	--dk-ok: #4cc97e;
 	--dk-warn: #f2b13c;
+	--dk-focus: #ffd23f;
+	--dk-line-strong: #8f7362;
 	color-scheme: dark;
 }
 
@@ -53,6 +57,8 @@
 	--color-danger: var(--dk-danger);
 	--color-ok: var(--dk-ok);
 	--color-warn: var(--dk-warn);
+	--color-focus: var(--dk-focus);
+	--color-line-strong: var(--dk-line-strong);
 	--font-display: 'Lilita One', 'Arial Black', system-ui, sans-serif;
 	--font-sans: 'Plus Jakarta Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }

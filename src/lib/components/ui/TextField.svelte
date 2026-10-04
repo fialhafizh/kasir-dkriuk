@@ -6,6 +6,7 @@
 		label,
 		value = $bindable(''),
 		error = '',
+		class: cls = '',
 		...rest
 	}: Omit<HTMLInputAttributes, 'value'> & { id: string; label: string; value?: string; error?: string } = $props();
 </script>
@@ -18,7 +19,7 @@
 		bind:value
 		aria-invalid={error ? 'true' : undefined}
 		aria-describedby={error ? `${id}-error` : undefined}
-		class="min-h-12 rounded-xl border border-line bg-surface px-4 text-base text-fg placeholder:text-muted focus:border-brand focus:ring-3 focus:ring-brand/25 focus:outline-none"
+		class="min-h-12 rounded-xl border border-line-strong bg-surface px-4 text-base text-fg placeholder:text-muted focus:border-brand focus:ring-3 focus:ring-brand/25 focus:outline-none {cls}"
 	/>
 	{#if error}
 		<p id="{id}-error" class="text-sm text-danger">{error}</p>
