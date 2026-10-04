@@ -98,9 +98,9 @@ describe('seed master', () => {
 });
 
 describe('RLS master', () => {
-	it('pengunjung tanpa login tidak membaca menu maupun harga', async () => {
-		const n = await sebagaiAnon(db, async () => (await db.query('select 1 from public.menu')).rows.length);
-		expect(n).toBe(0);
+	it('pengunjung tanpa login tidak punya izin atas menu maupun harga', async () => {
+		await expect(sebagaiAnon(db, () => db.query('select 1 from public.menu'))).rejects.toThrow(/permission denied/);
+		await expect(sebagaiAnon(db, () => db.query('select 1 from public.harga_jual'))).rejects.toThrow(/permission denied/);
 	});
 
 	it('kasir membaca menu, bahan, resep, satuan beli', async () => {
@@ -175,7 +175,7 @@ describe('simpan_resep (atomik)', () => {
 			{ bahan_id: beras, qty: 0.1 },
 			{ bahan_id: beras, qty: 0.2 }
 		]);
-		await expect(sebagai(db, adminId, () => db.query('select public.simpan_resep($1, $2::jsonb)', [nasi, isi]))).rejects.toThrow();
+		await expect(sebagai(db, adminId, () => db.query('select public.simpan_resep($1, $2::jsonb)', [nasi, isi]))).rejects.toThrow(/resep_pkey|duplicate key/);
 		expect(await jumlah(`public.resep where menu_id = '${nasi}'`)).toBe(2);
 	});
 
@@ -216,7 +216,75 @@ describe('simpan_isi_satuan_beli (atomik)', () => {
 			sebagai(db, adminId, () =>
 				db.query('select public.simpan_isi_satuan_beli($1, $2::jsonb)', [pack, JSON.stringify([{ bahan_id: kulit, qty: 0 }])])
 			)
-		).rejects.toThrow();
+		).rejects.toThrow(/satuan_beli_isi_qty_check/);
 		expect(await jumlah(`public.satuan_beli_isi where satuan_beli_id = '${pack}'`)).toBe(1);
+	});
+});
+
+describe('review Tugas 1: batas yang dijaga database', () => {
+	it('p_isi NULL tidak menghapus resep', async () => {
+		const nasi = await idDari('menu', 'nasi');
+		await expect(sebagai(db, adminId, () => db.query('select public.simpan_resep($1, null)', [nasi]))).rejects.toThrow(/minimal satu bahan/);
+		await expect(sebagai(db, adminId, () => db.query('select public.simpan_isi_satuan_beli($1, null)', [nasi]))).rejects.toThrow(
+			/minimal satu bahan/
+		);
+		expect(await jumlah(`public.resep where menu_id = '${nasi}'`)).toBe(2);
+	});
+
+	it('resep menolak bahan yang dianalisis (tepung/minyak), hanya-dicatat, atau nonaktif', async () => {
+		const nasi = await idDari('menu', 'nasi');
+		for (const kode of ['tepung_dkriuk', 'minyak', 'plastik_merah']) {
+			const b = await idDari('bahan', kode);
+			await expect(
+				sebagai(db, adminId, () => db.query('select public.simpan_resep($1, $2::jsonb)', [nasi, JSON.stringify([{ bahan_id: b, qty: 1 }])]))
+			).rejects.toThrow(/bahan aktif yang dipotong otomatis/);
+		}
+		const beras = await idDari('bahan', 'beras');
+		await db.query('update public.bahan set aktif = false where id = $1', [beras]);
+		await expect(
+			sebagai(db, adminId, () => db.query('select public.simpan_resep($1, $2::jsonb)', [nasi, JSON.stringify([{ bahan_id: beras, qty: 0.1 }])]))
+		).rejects.toThrow(/bahan aktif yang dipotong otomatis/);
+		expect(await jumlah(`public.resep where menu_id = '${nasi}'`)).toBe(2);
+	});
+
+	it('elemen rusak ditolak dengan galat yang jelas, resep lama utuh', async () => {
+		const nasi = await idDari('menu', 'nasi');
+		await expect(
+			sebagai(db, adminId, () => db.query('select public.simpan_resep($1, $2::jsonb)', [nasi, JSON.stringify([{ bahan_id: 'bukan-uuid', qty: 1 }])]))
+		).rejects.toThrow(/invalid input syntax for type uuid/);
+		expect(await jumlah(`public.resep where menu_id = '${nasi}'`)).toBe(2);
+	});
+
+	it('kasir tidak boleh mengubah isi satuan beli', async () => {
+		const pack = await idDari('satuan_beli', 'pack_kulit');
+		const kulit = await idDari('bahan', 'kulit');
+		await expect(
+			sebagai(db, kasirKP, () =>
+				db.query('select public.simpan_isi_satuan_beli($1, $2::jsonb)', [pack, JSON.stringify([{ bahan_id: kulit, qty: 1 }])])
+			)
+		).rejects.toThrow(/Hanya admin/);
+	});
+
+	it('menu, bahan, dan satuan beli tidak bisa dihapus (cukup dinonaktifkan) agar riwayat aman', async () => {
+		await sebagai(db, adminId, async () => {
+			await db.query(`delete from public.menu where kode = 'box'`);
+			await db.query(`delete from public.satuan_beli where kode = 'pack_box'`);
+			await db.query(`delete from public.bahan where kode = 'plastik_merah'`);
+		});
+		expect(await jumlah(`public.menu where kode = 'box'`)).toBe(1);
+		expect(await jumlah(`public.satuan_beli where kode = 'pack_box'`)).toBe(1);
+		expect(await jumlah(`public.bahan where kode = 'plastik_merah'`)).toBe(1);
+	});
+
+	it('diubah_at harga beli diperbarui otomatis walau klien tidak mengirimnya', async () => {
+		const bl = await idDari('outlets', 'BL');
+		const s = await idDari('satuan_beli', 'pack_box');
+		await db.query(`insert into public.harga_beli (outlet_id, satuan_beli_id, harga, diubah_at) values ($1, $2, 1, '2020-01-01')`, [bl, s]);
+		await sebagai(db, adminId, () => db.query('update public.harga_beli set harga = 2 where outlet_id = $1 and satuan_beli_id = $2', [bl, s]));
+		const r = await satu<{ tahun: number }>(
+			'select extract(year from diubah_at)::int as tahun from public.harga_beli where outlet_id = $1 and satuan_beli_id = $2',
+			[bl, s]
+		);
+		expect(r.tahun).toBeGreaterThan(2020);
 	});
 });

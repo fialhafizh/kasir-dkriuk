@@ -74,10 +74,19 @@ begin
     execute format('alter table public.%I enable row level security', t);
     execute format('create policy %I on public.%I for insert to authenticated with check ((select public.is_admin()))', t || '_admin_tambah', t);
     execute format('create policy %I on public.%I for update to authenticated using ((select public.is_admin())) with check ((select public.is_admin()))', t || '_admin_ubah', t);
-    execute format('create policy %I on public.%I for delete to authenticated using ((select public.is_admin()))', t || '_admin_hapus', t);
+    -- Menu, bahan, dan satuan beli tidak pernah dihapus (cukup dinonaktifkan) supaya riwayat transaksi/stok aman.
+    if t not in ('bahan', 'menu', 'satuan_beli') then
+      execute format('create policy %I on public.%I for delete to authenticated using ((select public.is_admin()))', t || '_admin_hapus', t);
+    end if;
   end loop;
 end
 $$;
+
+-- Hak eksplisit: project Supabase baru tidak selalu memberi hak otomatis ke tabel baru. RLS tetap yang membatasi.
+grant select, insert, update, delete on public.bahan, public.satuan_beli, public.satuan_beli_isi, public.menu,
+  public.harga_jual, public.resep, public.harga_beli to authenticated;
+revoke all on public.bahan, public.satuan_beli, public.satuan_beli_isi, public.menu,
+  public.harga_jual, public.resep, public.harga_beli from anon;
 
 -- Dibaca semua pengguna login (layar kasir butuh menu, resep, bahan untuk stok).
 create policy bahan_baca on public.bahan for select to authenticated using (true);
@@ -99,8 +108,16 @@ begin
   if not public.is_admin() then
     raise exception 'Hanya admin yang boleh mengubah resep' using errcode = '42501';
   end if;
-  if jsonb_typeof(p_isi) <> 'array' or jsonb_array_length(p_isi) = 0 then
+  if p_isi is null or jsonb_typeof(p_isi) is distinct from 'array' or jsonb_array_length(p_isi) = 0 then
     raise exception 'Resep minimal satu bahan' using errcode = '22023';
+  end if;
+  -- Tepung/minyak (analisis) dan plastik merah (catat) tidak boleh dipotong otomatis lewat resep.
+  if exists (
+    select 1 from jsonb_array_elements(p_isi) as x
+    join public.bahan b on b.id = (x ->> 'bahan_id')::uuid
+    where b.mode <> 'otomatis' or not b.aktif
+  ) then
+    raise exception 'Resep hanya boleh memakai bahan aktif yang dipotong otomatis' using errcode = '22023';
   end if;
   delete from public.resep where menu_id = p_menu;
   insert into public.resep (menu_id, bahan_id, qty)
@@ -115,7 +132,7 @@ begin
   if not public.is_admin() then
     raise exception 'Hanya admin yang boleh mengubah isi satuan beli' using errcode = '42501';
   end if;
-  if jsonb_typeof(p_isi) <> 'array' or jsonb_array_length(p_isi) = 0 then
+  if p_isi is null or jsonb_typeof(p_isi) is distinct from 'array' or jsonb_array_length(p_isi) = 0 then
     raise exception 'Isi satuan beli minimal satu bahan' using errcode = '22023';
   end if;
   delete from public.satuan_beli_isi where satuan_beli_id = p_satuan;
@@ -129,3 +146,17 @@ revoke execute on function public.simpan_resep(uuid, jsonb) from public, anon;
 revoke execute on function public.simpan_isi_satuan_beli(uuid, jsonb) from public, anon;
 grant execute on function public.simpan_resep(uuid, jsonb) to authenticated;
 grant execute on function public.simpan_isi_satuan_beli(uuid, jsonb) to authenticated;
+
+-- Waktu ubah harga beli selalu diisi server, apa pun yang dikirim klien.
+create function public.cap_waktu_harga_beli() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  new.diubah_at := now();
+  return new;
+end
+$$;
+revoke execute on function public.cap_waktu_harga_beli() from public, anon, authenticated;
+
+create trigger harga_beli_diubah_at
+  before insert or update on public.harga_beli
+  for each row execute function public.cap_waktu_harga_beli();
