@@ -7,7 +7,7 @@
 	import { formatAngka, formatQty } from '#lib/master/rupiah.ts';
 	import type { HargaBeli, SatuanBeli } from '#lib/master/types.ts';
 	import { href } from '#lib/nav.ts';
-	import { batalBarangMasuk, catatBarangMasuk, muatBarangMasuk } from '#lib/stok/api.ts';
+	import { batalBarangMasuk, catatBarangMasuk, muatBarangMasuk, muatStokAwal } from '#lib/stok/api.ts';
 	import type { BarangMasuk, KirimBarangMasuk } from '#lib/stok/types.ts';
 	import type { Outlet } from '#lib/types/db.ts';
 
@@ -16,6 +16,7 @@
 	let hargaBeli = $state<HargaBeli[]>([]);
 	let outletId = $state<string | null>(null);
 	let daftar = $state<BarangMasuk[]>([]);
+	let dihitungAt = $state<string | null>(null);
 	let status = $state<'memuat' | 'siap' | 'gagal'>('memuat');
 	let pesan = $state('');
 	let alasan = $state<Record<string, string>>({});
@@ -42,8 +43,10 @@
 		if (!id) return;
 		pesanDaftar = '';
 		try {
-			const d = await muatBarangMasuk(id);
-			if (id === outletId) daftar = d;
+			const [d, a] = await Promise.all([muatBarangMasuk(id), muatStokAwal(id)]);
+			if (id !== outletId) return;
+			daftar = d;
+			dihitungAt = a.find((x) => x.status === 'disetujui')?.dihitung_at ?? null;
 		} catch (e) {
 			if (id === outletId) pesanDaftar = `Daftar tidak bisa dimuat: ${(e as Error).message}`;
 		}
@@ -53,6 +56,7 @@
 	function gantiOutlet(id: string) {
 		outletId = id;
 		daftar = [];
+		dihitungAt = null;
 		void muatDaftar();
 	}
 
@@ -96,7 +100,7 @@
 	<button type="button" class="mt-3 min-h-12 rounded-xl bg-surface-2 px-4 font-semibold" onclick={muatSemua}>Coba lagi</button>
 {:else if outlet}
 	<div class="mt-4 grid gap-6 lg:grid-cols-2">
-		{#key outlet.id}<FormBarangMasuk {outlet} {satuan} {hargaBeli} onsimpan={simpan} />{/key}
+		{#key outlet.id}<FormBarangMasuk {outlet} {satuan} {hargaBeli} {dihitungAt} onsimpan={simpan} />{/key}
 		<section aria-label="Barang masuk terakhir">
 			<h2 class="font-display text-xl">Terakhir di {outlet.nama}</h2>
 			{#if pesanDaftar}

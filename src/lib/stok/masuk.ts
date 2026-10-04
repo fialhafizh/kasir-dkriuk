@@ -1,4 +1,5 @@
 // Validasi formulir barang masuk sebelum dikirim (server memeriksa lagi).
+import { formatWaktuWib, tanggalWib } from '#lib/kasir/waktu.ts';
 import { formatAngka, parseQty, parseRupiah } from '#lib/master/rupiah.ts';
 import type { HargaBeli, SatuanBeli } from '#lib/master/types.ts';
 import type { KirimBarangMasuk } from './types.ts';
@@ -44,4 +45,14 @@ export function periksaBarangMasuk(
 		}
 	});
 	return { item, galat, total };
+}
+
+/**
+ * Barang yang datang pada hari stok awal dihitung, SEBELUM jam hitung, sudah termasuk hitungan kasir.
+ * Server hanya tahu jam input, jadi admin diingatkan (tanggal sebelum hari hitung ditolak server).
+ */
+export function peringatanStokAwal(tanggal: string, dihitungAt: string | null, namaOutlet: string): string | null {
+	if (!dihitungAt || tanggalWib(dihitungAt) !== tanggal) return null;
+	const jam = formatWaktuWib(dihitungAt).slice(-8, -3);
+	return `Stok awal ${namaOutlet} dihitung hari ini jam ${jam}. Barang yang datang sebelum jam itu sudah termasuk hitungan — jangan dicatat lagi.`;
 }

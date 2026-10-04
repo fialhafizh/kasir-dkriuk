@@ -3,7 +3,7 @@
 	import { tanggalWib } from '#lib/kasir/waktu.ts';
 	import { formatAngka } from '#lib/master/rupiah.ts';
 	import type { HargaBeli, SatuanBeli } from '#lib/master/types.ts';
-	import { hargaAwal, hargaOutlet, periksaBarangMasuk, type BarisMasuk } from '#lib/stok/masuk.ts';
+	import { hargaAwal, hargaOutlet, peringatanStokAwal, periksaBarangMasuk, type BarisMasuk } from '#lib/stok/masuk.ts';
 	import type { KirimBarangMasuk } from '#lib/stok/types.ts';
 	import type { Outlet } from '#lib/types/db.ts';
 
@@ -11,8 +11,16 @@
 		outlet,
 		satuan,
 		hargaBeli,
+		dihitungAt = null,
 		onsimpan
-	}: { outlet: Outlet; satuan: SatuanBeli[]; hargaBeli: HargaBeli[]; onsimpan: (p: KirimBarangMasuk) => Promise<void> } = $props();
+	}: {
+		outlet: Outlet;
+		satuan: SatuanBeli[];
+		hargaBeli: HargaBeli[];
+		/** Waktu stok awal outlet ini dihitung (bila sudah disetujui). */
+		dihitungAt?: string | null;
+		onsimpan: (p: KirimBarangMasuk) => Promise<void>;
+	} = $props();
 
 	const hariIni = tanggalWib(new Date());
 	const batasBawah = tanggalWib(new Date(Date.now() - 7 * 86_400_000));
@@ -28,6 +36,7 @@
 
 	const aktif = $derived(satuan.filter((s) => s.aktif));
 	const cek = $derived(periksaBarangMasuk(baris, satuan));
+	const ingat = $derived(peringatanStokAwal(tanggal, dihitungAt, outlet.nama));
 	const nama = (sid: string) => satuan.find((s) => s.id === sid)?.nama ?? '';
 	const tetap = (sid: string) => satuan.find((s) => s.id === sid)?.harga_tetap ?? true;
 	const kotak =
@@ -74,6 +83,7 @@
 		<label for="tanggal-masuk" class="text-sm font-semibold">Tanggal barang datang</label>
 		<input id="tanggal-masuk" type="date" bind:value={tanggal} min={batasBawah} max={hariIni} class="{kotak} w-48 text-left" />
 	</div>
+	{#if ingat}<p class="rounded-xl border-2 border-warn bg-surface p-3 text-sm font-semibold" role="status">{ingat}</p>{/if}
 
 	<div class="flex flex-wrap items-end gap-2">
 		<div class="grid min-w-0 flex-1 gap-1.5">

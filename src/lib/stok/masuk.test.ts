@@ -69,3 +69,16 @@ describe('review Tugas 6', () => {
 		expect(periksaBarangMasuk([{ satuan_beli_id: 'ayam', qty: '1', harga: '' }], satuan).galat[0]).toMatch(/Isi harga/);
 	});
 });
+
+import { peringatanStokAwal } from './masuk';
+
+describe('peringatanStokAwal (review akhir: barang datang sebelum dihitung)', () => {
+	const dihitung = '2026-10-06T03:00:00Z'; // 10:00 WIB
+	it('tanggal barang = tanggal stok awal dihitung → ingatkan jamnya', () => {
+		expect(peringatanStokAwal('2026-10-06', dihitung, 'Bukit Lama')).toMatch(/Bukit Lama.*10:00.*sebelum jam itu sudah termasuk hitungan/);
+	});
+	it('tanggal sesudahnya atau belum ada stok awal → tanpa peringatan', () => {
+		expect(peringatanStokAwal('2026-10-07', dihitung, 'Bukit Lama')).toBeNull();
+		expect(peringatanStokAwal('2026-10-06', null, 'Bukit Lama')).toBeNull();
+	});
+});

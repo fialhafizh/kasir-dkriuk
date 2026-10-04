@@ -22,6 +22,7 @@ Status: **belum dicoba**. Jalankan `npm run dev`, buka di Chrome. Centang `[x]` 
 - [ ] Stok Ayam Ori bertambah 5 pack
 - [ ] Beras: harga harus diketik (tidak terisi otomatis)
 - [ ] Batalkan barang masuk (isi alasan) → stok kembali
+- [ ] Di hari stok awal dihitung, formulir barang masuk menampilkan jam hitung: barang yang datang **sebelum** jam itu jangan dicatat lagi (sudah termasuk hitungan)
 
 ## Peringatan
 - [ ] Jual ayam melebihi stok → di layar jualan muncul pita "Stok minus: …"; penjualan tetap bisa
