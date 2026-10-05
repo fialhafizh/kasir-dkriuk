@@ -1,8 +1,9 @@
 <script module lang="ts">
 	export const kunciSisa = (shiftId: string) => `dk-sisa-${shiftId}`;
-	export function sudahDijawab(shiftId: string): boolean {
+	/** Dijawab untuk salah satu id shift ini (id perangkat & id server bisa berbeda setelah digabung). */
+	export function sudahDijawab(...shiftIds: string[]): boolean {
 		try {
-			return sessionStorage.getItem(kunciSisa(shiftId)) === '1';
+			return shiftIds.some((id) => sessionStorage.getItem(kunciSisa(id)) === '1');
 		} catch {
 			return false;
 		}
@@ -12,7 +13,12 @@
 <script lang="ts">
 	import Button from '#lib/components/ui/Button.svelte';
 	import { muatBahan, muatMenu, muatResep } from '#lib/master/api.ts';
-	import { catatRusak } from '#lib/stok/api-lanjut.ts';
+	import { buatKejadianRusak } from '#lib/kasir/offline-kasir.ts';
+	import { galatJaringan } from '#lib/auth/cache-profil.ts';
+	import { auth } from '#lib/auth/session.svelte.ts';
+	import { tambahKejadian } from '#lib/offline/antrean.ts';
+	import { denganSalinan } from '#lib/offline/salinan.ts';
+	import { dbKasir, sinkron } from '#lib/offline/sinkron.svelte.ts';
 	import { bentukSisa, kumpulkanSisa, type BarisSisa } from '#lib/stok/sisa.ts';
 	import { ALASAN_RUSAK, LABEL_ALASAN } from '#lib/stok/tampil.ts';
 	import type { AlasanRusak } from '#lib/stok/types.ts';
@@ -44,7 +50,12 @@
 		tahap = 'isi';
 		pesan = '';
 		try {
-			const [bahan, menu, resep] = await Promise.all([muatBahan(), muatMenu(), muatResep()]);
+			const jar = (e: unknown) => galatJaringan(e as { message?: string });
+			const [bahan, menu, resep] = await Promise.all([
+				denganSalinan(dbKasir, 'master:bahan', muatBahan, jar).then((r) => r.nilai),
+				denganSalinan(dbKasir, 'master:menu', muatMenu, jar).then((r) => r.nilai),
+				denganSalinan(dbKasir, 'master:resep', muatResep, jar).then((r) => r.nilai)
+			]);
 			baris = bentukSisa(bahan, menu, resep);
 		} catch (e) {
 			pesan = (e as Error).message;
@@ -63,7 +74,9 @@
 		}
 		menyimpan = true;
 		try {
-			await catatRusak({ id, outlet_id: outletId, alasan, item: h.item });
+			// Lewat antrean: tetap tercatat walau tutup toko tanpa internet.
+			await tambahKejadian(dbKasir, { ...buatKejadianRusak(outletId, alasan, h.item, new Date()), id, user_id: auth.profile?.id ?? null });
+			void sinkron.jalankan();
 			tercatat = `Tercatat sebagai "${LABEL_ALASAN[alasan]}". Ada sisa dengan alasan lain? Isi lagi, atau lanjut.`;
 			id = crypto.randomUUID();
 			teks = {};

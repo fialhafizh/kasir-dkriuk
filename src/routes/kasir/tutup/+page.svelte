@@ -2,7 +2,14 @@
 	import RingkasanShift from '#lib/components/kasir/RingkasanShift.svelte';
 	import LangkahSisa, { sudahDijawab } from '#lib/components/stok/LangkahSisa.svelte';
 	import Konfirmasi from '#lib/components/ui/Konfirmasi.svelte';
-	import { ringkasanShift, tutupShift } from '#lib/kasir/api.ts';
+	import { galatJaringan } from '#lib/auth/cache-profil.ts';
+	import { daftarPenjualanShift, ringkasanShift } from '#lib/kasir/api.ts';
+	import { buatKejadianTutup } from '#lib/kasir/offline-kasir.ts';
+	import { tambahKejadian } from '#lib/offline/antrean.ts';
+	import { auth } from '#lib/auth/session.svelte.ts';
+	import { gabungRiwayat, idSatuShift, ringkasanLokal } from '#lib/offline/proyeksi.ts';
+	import { bacaSalinan, denganSalinan } from '#lib/offline/salinan.ts';
+	import { dbKasir, sinkron } from '#lib/offline/sinkron.svelte.ts';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
 	import type { Ringkasan } from '#lib/kasir/types.ts';
 	import { href } from '#lib/nav.ts';
@@ -21,16 +28,39 @@
 		// Hanya dibaca ulang saat shift berganti (muat ulang shift yang sama tidak mengulang pertanyaan).
 		if (id && id !== sisaUntuk) {
 			sisaUntuk = id;
-			sisaSelesai = sudahDijawab(id);
+			void dbKasir.kejadian
+				.toArray()
+				.then((k) => (sisaSelesai = sudahDijawab(...idSatuShift(k, id))))
+				.catch(() => (sisaSelesai = sudahDijawab(id)));
 		}
 	});
 
+	// Ringkasan = ringkasan server (salinan bila offline) + penjualan yang masih di antrean perangkat.
 	$effect(() => {
 		const s = pos.shift;
+		void sinkron.terakhir;
 		if (!s) return;
-		ringkasanShift(s.id)
-			.then((x) => (r = x))
-			.catch((e) => (pesan = (e as Error).message));
+		let batal = false;
+		const jar = (e: unknown) => galatJaringan(e as { message?: string });
+		const coba = async <T,>(kunci: string, ambil: () => Promise<T>): Promise<T | null> => {
+			try {
+				return (await denganSalinan(dbKasir, kunci, ambil, jar)).nilai;
+			} catch {
+				// Shift baru dibuka di perangkat ini (belum ada di server) atau belum ada salinan.
+				return bacaSalinan<T>(dbKasir, kunci);
+			}
+		};
+		void (async () => {
+			const [dasar, server, kejadian] = await Promise.all([
+				coba(`ringkasan:${s.id}`, () => ringkasanShift(s.id)),
+				coba(`riwayat:${s.id}`, () => daftarPenjualanShift(s.id)),
+				dbKasir.kejadian.toArray()
+			]);
+			if (!batal) r = ringkasanLokal(dasar, s, gabungRiwayat(server ?? [], kejadian, s.id));
+		})();
+		return () => {
+			batal = true;
+		};
 	});
 
 	const uang = $derived(parseRupiah(teks));
@@ -42,14 +72,27 @@
 			pesan = 'Isi jumlah uang yang ada di laci, mis. 350.000.';
 			return;
 		}
+		// Tutup toko masuk antrean (bisa tanpa internet); ringkasan resmi dihitung server saat sinkron.
+		// Kirim dengan id shift milik perangkat ini (bila ia ikut membuka) supaya hitungan lacinya tercatat atas namanya.
+		let shiftKirim = pos.shift.id;
 		try {
-			hasil = await tutupShift(pos.shift.id, uang, catatan);
-			await pos.muatShift();
-		} catch (e) {
-			pesan = (e as Error).message;
-			// Sudah ditutup di tablet lain: muat ulang supaya halaman tidak menunggu yang mustahil.
-			if (/Shift belum dibuka|Shift sudah ditutup/.test(pesan)) void pos.muatShift();
+			const semua = await dbKasir.kejadian.toArray();
+			const ids = idSatuShift(semua, pos.shift.id);
+			const milik = semua.find((x) => x.jenis === 'buka_shift' && x.shift_id && ids.has(x.shift_id));
+			if (milik?.shift_id) shiftKirim = milik.shift_id;
+		} catch {
+			// pakai id shift yang ada
 		}
+		const k = buatKejadianTutup(pos.shift.outlet_id, shiftKirim, uang, catatan, new Date());
+		try {
+			await tambahKejadian(dbKasir, { ...k, user_id: auth.profile?.id ?? null });
+		} catch (e) {
+			pesan = `Gagal menyimpan di perangkat: ${(e as Error).message}`;
+			return;
+		}
+		hasil = { ...r!, uang_fisik: uang, selisih: uang - r!.cash_seharusnya, ditutup_at: k.waktu };
+		void sinkron.jalankan();
+		await pos.muatShift();
 	}
 </script>
 

@@ -14,6 +14,10 @@ export interface DataStruk {
 	diterima: number | null;
 	kembalian: number | null;
 	cetakUlang?: boolean;
+	/** Kode pendek permanen untuk menelusuri transaksi (Tahap 4). */
+	kodeStruk?: string | null;
+	/** Diisi bila struk dicetak sebelum nomor resmi didapat (offline). */
+	nomorSementara?: string | null;
 	batal?: boolean;
 }
 
@@ -66,6 +70,8 @@ export function barisStruk(d: DataStruk, lebar = 32): string[] {
 	b.push(garis);
 	b.push(...kiriKanan(d.nomor, formatWaktuWib(d.waktu), lebar));
 	b.push(...bungkus(`Kasir: ${d.kasir}`, lebar));
+	if (d.nomorSementara) b.push(...bungkus('No. sementara - nomor resmi menyusul', lebar));
+	if (d.kodeStruk) b.push(...bungkus(`Kode: ${d.kodeStruk}`, lebar));
 	b.push(garis);
 	for (const i of d.item) {
 		b.push(...bungkus(i.nama, lebar));

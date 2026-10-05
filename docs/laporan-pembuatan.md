@@ -17,7 +17,8 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 | 2 | Kasir: jualan, 5 metode bayar, kembalian, struk printer Bluetooth/RawBT, buka & tutup toko, riwayat & batal | Selesai, di main — **uji printer menunggu owner** |
 | 3a | Stok dasar: potong otomatis dari penjualan, barang masuk, stok awal, tanda Aman/Menipis/Minus | Selesai, di main — uji owner menunggu |
 | 3b | Stok lanjutan: rusak/terbuang & sisa harian, transfer antar outlet, opname mingguan | Selesai, di main — uji owner menunggu |
-| 4 | Offline penuh untuk kasir + pemasangan online (GitHub Pages) | Desain disetujui, sedang dikerjakan |
+| 4a | Offline: buka toko, jualan + struk, sisa, tutup toko tanpa internet; aplikasi online & bisa dipasang ke layar utama | Selesai — uji owner menunggu |
+| 4b | Offline: batal, rusak, transfer, opname; halaman admin Perangkat & kejadian diabaikan | Berikutnya |
 | 5 | Keuangan: pengeluaran, setoran, kas harian, gaji, sewa, laba-rugi | Belum |
 | 6 | Telegram: struk, ringkasan shift & harian, peringatan | Belum |
 | 7 | Dashboard & analisis (termasuk modal tepung, terbuang, susut) | Belum |
@@ -63,6 +64,14 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - Perangkat yang pernah login bisa dibuka offline kapan pun; perangkat baru butuh internet untuk login pertama. Keluar (logout) ditolak selama masih ada data belum terkirim.
 
 ---
+
+### Tahap 4a — yang sudah jadi
+- Buka toko, jualan (struk dengan **kode struk**; offline juga **nomor sementara**), catat sisa, dan tutup toko bisa tanpa internet; data terkirim otomatis berurutan saat online (penanda **Online/Offline**, **N belum terkirim**, **Sinkron sekarang**).
+- Data yang ditolak server masuk menu **Perlu perhatian** (dengan alasan, bisa dicoba lagi).
+- Dua perangkat yang membuka toko di hari yang sama digabung ke satu shift; tutup toko dari perangkat kedua tetap dicatat (hitungan lacinya disimpan).
+- Penjualan/sisa yang jamnya sebelum stok awal/opname **disetujui** tetapi baru terkirim sesudahnya tidak memotong stok lagi.
+- Aplikasi bisa dibuka offline walau login sudah lama; **Keluar** ditolak selama masih ada data belum terkirim.
+- Kode struk 6 huruf/angka bisa sama untuk dua transaksi berbeda (jarang); pencarian akan menampilkan keduanya beserta jam & outlet.
 
 ## Catatan penting untuk tahap berikutnya
 

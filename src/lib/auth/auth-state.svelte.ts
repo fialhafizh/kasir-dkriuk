@@ -2,6 +2,7 @@ import type { Session, SupabaseClient } from '@supabase/supabase-js';
 import type { Outlet, Profile } from '#lib/types/db.ts';
 import { bacaCache, galatJaringan, hapusCache, simpanCache, type Penyimpan } from './cache-profil.ts';
 import { pesanErrorLogin } from './login-error.ts';
+import { userTersimpan } from './sesi-tersimpan.ts';
 import { usernameToEmail } from './username.ts';
 
 type Status = 'loading' | 'guest' | 'ready';
@@ -23,6 +24,8 @@ export class AuthState {
 	offline = $state(false);
 	#penyimpan: Penyimpan | null;
 	#sesiTerakhir: Session | null = null;
+	/** Masuk offline dari sesi & profil tersimpan tanpa sesi aktif (token kedaluwarsa saat dibuka ulang). */
+	#dingin = false;
 
 	constructor(client: SupabaseClient, penyimpan: Penyimpan | null = null) {
 		this.#client = client;
@@ -41,6 +44,7 @@ export class AuthState {
 
 	#keluarLokal(notice: string | null) {
 		this.#sesiTerakhir = null;
+		this.#dingin = false;
 		if (this.#penyimpan) hapusCache(this.#penyimpan);
 		this.offline = false;
 		this.profile = null;
@@ -53,6 +57,17 @@ export class AuthState {
 		if (gen !== this.#gen) return;
 		this.#sesiTerakhir = session;
 		if (!session) {
+			// Dibuka ulang offline dengan token kedaluwarsa: auth-js memberi null walau sesi masih tersimpan.
+			const uid = this.#penyimpan ? userTersimpan(this.#penyimpan) : null;
+			const cache = uid && this.#penyimpan ? bacaCache(this.#penyimpan, uid) : null;
+			if (cache) {
+				this.profile = cache.profile;
+				this.outlet = cache.outlet;
+				this.offline = true;
+				this.#dingin = true;
+				this.status = 'ready';
+				return;
+			}
 			if (this.#penyimpan) hapusCache(this.#penyimpan);
 			this.offline = false;
 			this.profile = null;
@@ -60,6 +75,7 @@ export class AuthState {
 			this.status = 'guest';
 			return;
 		}
+		this.#dingin = false;
 
 		const res = await this.#client
 			.from('profiles')
@@ -109,10 +125,22 @@ export class AuthState {
 	/** Dipanggil saat koneksi kembali: muat ulang profil dari server. */
 	cobaLagi() {
 		// Hanya memulihkan saat sedang offline; tidak pernah menghidupkan lagi sesi yang sudah Keluar.
-		if (!this.offline || !this.#sesiTerakhir) return;
+		if (!this.offline) return;
+		if (this.#sesiTerakhir) {
+			const gen = ++this.#gen;
+			const sesi = this.#sesiTerakhir;
+			setTimeout(() => void this.#apply(sesi, gen), 0);
+			return;
+		}
+		if (!this.#dingin) return;
 		const gen = ++this.#gen;
-		const sesi = this.#sesiTerakhir;
-		setTimeout(() => void this.#apply(sesi, gen), 0);
+		setTimeout(async () => {
+			const { data, error } = await this.#client.auth.getSession();
+			if (gen !== this.#gen) return;
+			if (data.session) return void this.#apply(data.session, gen);
+			if (error && galatJaringan(error as { message?: string; status?: number; name?: string })) return;
+			this.#keluarLokal('Sesi berakhir. Silakan masuk lagi.');
+		}, 0);
 	}
 
 	async signIn(username: string, password: string): Promise<string | null> {

@@ -16,7 +16,8 @@ function clientPalsu() {
 				return { data: { subscription: { unsubscribe() {} } } };
 			},
 			signOut,
-			signInWithPassword: vi.fn(async () => ({ data: {}, error: null }))
+			signInWithPassword: vi.fn(async () => ({ data: {}, error: null })),
+			getSession: vi.fn(async () => ({ data: { session: null as Session | null }, error: null as unknown }))
 		},
 		from: (tabel: string) => ({
 			select: () => ({
@@ -29,6 +30,7 @@ function clientPalsu() {
 	return {
 		client: client as unknown as SupabaseClient,
 		signOut,
+		getSession: client.auth.getSession,
 		emit: (s: Session | null) => listener(s ? 'SIGNED_IN' : 'SIGNED_OUT', s),
 		/** Menunggu query berikutnya ke tabel itu lalu menjawabnya. */
 		jawab: async (tabel: string, h: Hasil) => {
@@ -44,6 +46,12 @@ const sesi = (id: string) => ({ user: { id } }) as unknown as Session;
 const kasir = { id: 'u1', username: 'kasir.bukitlama', nama_tampilan: 'K', role: 'kasir', outlet_id: 'o1', aktif: true };
 const outlet = { id: 'o1', kode: 'BL', nama: 'Bukit Lama', merek: "D'Kriuk", alamat: 'x', telepon: 'y', aktif: true };
 const putus = { message: 'Load failed', status: 0, name: 'AuthRetryableFetchError' };
+
+/** Penyimpanan di memori (pengganti localStorage) untuk tes tingkat atas. */
+function memori() {
+	const isi = new Map<string, string>();
+	return { getItem: (k: string) => isi.get(k) ?? null, setItem: (k: string, v: string) => void isi.set(k, v), removeItem: (k: string) => void isi.delete(k) };
+}
 
 describe('AuthState', () => {
 	it('login normal: profil dan outlet termuat, status ready', async () => {
@@ -263,5 +271,52 @@ describe('review Tugas 1 Tahap 2: Keluar saat offline', () => {
 		const a = new AuthState(f.client, s);
 		await a.signOut();
 		expect(isi.has('dk-auth')).toBe(false);
+	});
+	it('dibuka ulang offline dengan token kedaluwarsa (sesi null) tapi sesi & profil tersimpan → tetap masuk, offline', async () => {
+		const f = clientPalsu();
+		const s = memori();
+		s.setItem('dk-auth', JSON.stringify({ refresh_token: 'r', user: { id: 'u1' } }));
+		s.setItem('dk-profil', JSON.stringify({ userId: 'u1', profile: kasir, outlet }));
+		const a = new AuthState(f.client, s);
+		a.start();
+		f.emit(null);
+		await vi.waitFor(() => expect(a.status).toBe('ready'));
+		expect(a.offline).toBe(true);
+		expect(a.outlet?.kode).toBe('BL');
+	});
+	it('online lagi: cobaLagi mengambil sesi baru lalu memuat profil dari server', async () => {
+		const f = clientPalsu();
+		const s = memori();
+		s.setItem('dk-auth', JSON.stringify({ refresh_token: 'r', user: { id: 'u1' } }));
+		s.setItem('dk-profil', JSON.stringify({ userId: 'u1', profile: kasir, outlet }));
+		const a = new AuthState(f.client, s);
+		a.start();
+		f.emit(null);
+		await vi.waitFor(() => expect(a.offline).toBe(true));
+		f.getSession.mockResolvedValueOnce({ data: { session: sesi('u1') }, error: null });
+		a.cobaLagi();
+		await f.jawab('profiles', { data: kasir, error: null });
+		await f.jawab('outlets', { data: outlet, error: null });
+		await vi.waitFor(() => expect(a.offline).toBe(false));
+	});
+	it('online lagi tapi sesi dicabut di server → keluar', async () => {
+		const f = clientPalsu();
+		const s = memori();
+		s.setItem('dk-auth', JSON.stringify({ refresh_token: 'r', user: { id: 'u1' } }));
+		s.setItem('dk-profil', JSON.stringify({ userId: 'u1', profile: kasir, outlet }));
+		const a = new AuthState(f.client, s);
+		a.start();
+		f.emit(null);
+		await vi.waitFor(() => expect(a.offline).toBe(true));
+		f.getSession.mockResolvedValueOnce({ data: { session: null }, error: null });
+		a.cobaLagi();
+		await vi.waitFor(() => expect(a.status).toBe('guest'));
+	});
+	it('setelah Keluar (cache & sesi dihapus) tidak bisa masuk offline', async () => {
+		const f = clientPalsu();
+		const a = new AuthState(f.client, memori());
+		a.start();
+		f.emit(null);
+		await vi.waitFor(() => expect(a.status).toBe('guest'));
 	});
 });

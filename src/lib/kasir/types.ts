@@ -37,6 +37,10 @@ export interface PenjualanRiwayat {
 	kembalian: number | null;
 	void_at: string | null;
 	void_alasan: string | null;
+	kode_struk?: string | null;
+	nomor_sementara?: string | null;
+	dicatat_at?: string;
+	perangkat_id?: string | null;
 	item: { nama: string; harga: number; qty: number }[];
 }
 

@@ -40,7 +40,8 @@
 </script>
 
 <div class="mx-auto grid max-w-md gap-4 rounded-2xl border-2 border-ok bg-surface p-5 text-center">
-	<p class="text-sm text-muted">{data.nomor}</p>
+	<p class="text-sm text-muted">{data.nomor}{#if data.kodeStruk} · Kode struk <span class="font-semibold">{data.kodeStruk}</span>{/if}</p>
+	{#if data.nomorSementara}<p class="text-xs text-muted">Nomor sementara; nomor resmi diberikan saat sinkron.</p>{/if}
 	{#if peringatan}<p class="rounded-xl bg-surface-2 p-3 text-sm font-semibold text-warn" role="alert">{peringatan}</p>{/if}
 	{#if data.kembalian !== null}
 		<p class="text-lg">Kembalian</p>

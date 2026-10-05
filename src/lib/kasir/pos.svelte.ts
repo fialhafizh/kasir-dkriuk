@@ -1,5 +1,10 @@
 import { auth } from '#lib/auth/session.svelte.ts';
 import type { Outlet } from '#lib/types/db.ts';
+import { galatJaringan } from '#lib/auth/cache-profil.ts';
+import type { Kejadian } from '#lib/offline/db.ts';
+import { shiftLokal } from '#lib/offline/proyeksi.ts';
+import { denganSalinan } from '#lib/offline/salinan.ts';
+import { dbKasir } from '#lib/offline/sinkron.svelte.ts';
 import { shiftTerbuka } from './api.ts';
 import type { Shift } from './types.ts';
 
@@ -46,7 +51,15 @@ class PosState {
 		const gen = ++this.#gen;
 		this.status = 'memuat';
 		try {
-			const s = await shiftTerbuka(o.id);
+			// Shift dari server (salinan bila offline) lalu disesuaikan dengan buka/tutup di antrean perangkat.
+			const { nilai } = await denganSalinan(dbKasir, `shift:${o.id}`, () => shiftTerbuka(o.id), (e) => galatJaringan(e as { message?: string }));
+			let kejadian: Kejadian[] = [];
+			try {
+				kejadian = await dbKasir.kejadian.toArray();
+			} catch {
+				// Penyimpanan perangkat tidak tersedia: pakai data server saja.
+			}
+			const s = shiftLokal(nilai, kejadian, o.id);
 			if (gen !== this.#gen) return;
 			this.shift = s;
 			this.pesan = '';

@@ -1,27 +1,40 @@
 <script lang="ts">
 	import Konfirmasi from '#lib/components/ui/Konfirmasi.svelte';
+	import { galatJaringan } from '#lib/auth/cache-profil.ts';
+	import { auth } from '#lib/auth/session.svelte.ts';
 	import { daftarPenjualanShift, voidPenjualan } from '#lib/kasir/api.ts';
 	import { labelMetode } from '#lib/kasir/bayar.ts';
+	import { dataStrukRiwayat } from '#lib/kasir/cetak.ts';
 	import { encodeStruk, urlRawBT } from '#lib/kasir/escpos.ts';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
 	import { printer } from '#lib/kasir/printer.svelte.ts';
-	import { dataStrukRiwayat } from '#lib/kasir/cetak.ts';
 	import { barisStruk } from '#lib/kasir/struk.ts';
-	import type { PenjualanRiwayat } from '#lib/kasir/types.ts';
 	import { formatWaktuWib } from '#lib/kasir/waktu.ts';
-	import { auth } from '#lib/auth/session.svelte.ts';
 	import { formatAngka } from '#lib/master/rupiah.ts';
+	import { bacaPerangkat } from '#lib/offline/perangkat.ts';
+	import { cocokCari, gabungRiwayat, type PenjualanLokal } from '#lib/offline/proyeksi.ts';
+	import { bacaSalinan, denganSalinan } from '#lib/offline/salinan.ts';
+	import { dbKasir, sinkron } from '#lib/offline/sinkron.svelte.ts';
 
-	let daftar = $state<PenjualanRiwayat[]>([]);
+	let daftar = $state<PenjualanLokal[]>([]);
 	let status = $state<'memuat' | 'siap' | 'gagal'>('memuat');
 	let pesan = $state('');
+	let cari = $state('');
 	let alasan = $state<Record<string, string>>({});
 	let pesanBaris = $state<Record<string, string>>({});
+	const perangkatIni = typeof localStorage === 'undefined' ? null : bacaPerangkat(localStorage).id;
 
 	async function muat() {
-		if (!pos.shift) return;
+		const s = pos.shift;
+		if (!s) return;
 		try {
-			daftar = await daftarPenjualanShift(pos.shift.id);
+			let server = null;
+			try {
+				server = (await denganSalinan(dbKasir, `riwayat:${s.id}`, () => daftarPenjualanShift(s.id), (e) => galatJaringan(e as { message?: string }))).nilai;
+			} catch {
+				server = await bacaSalinan<typeof daftar>(dbKasir, `riwayat:${s.id}`);
+			}
+			daftar = gabungRiwayat(server ?? [], await dbKasir.kejadian.toArray(), s.id);
 			status = 'siap';
 		} catch (e) {
 			pesan = (e as Error).message;
@@ -29,10 +42,14 @@
 		}
 	}
 	$effect(() => {
+		void sinkron.terakhir;
+		void sinkron.menunggu;
 		if (pos.shift) void muat();
 	});
 
-	async function batal(p: PenjualanRiwayat) {
+	const tampil = $derived(daftar.filter((p) => cocokCari(p, cari)));
+
+	async function batal(p: PenjualanLokal) {
 		pesanBaris[p.id] = '';
 		try {
 			await voidPenjualan(p.id, alasan[p.id] ?? '');
@@ -42,10 +59,13 @@
 		}
 	}
 
-	const strukDari = (p: PenjualanRiwayat) => dataStrukRiwayat(pos.outlet!, auth.profile?.nama_tampilan ?? '', p, true);
+	const strukDari = (p: PenjualanLokal) => ({
+		...dataStrukRiwayat(pos.outlet!, auth.profile?.nama_tampilan ?? '', p, true),
+		kodeStruk: p.kode_struk,
+		nomorSementara: p.status_kirim === 'server' || p.status_kirim === 'terkirim' ? null : p.nomor_sementara
+	});
 
-
-	async function cetakUlang(p: PenjualanRiwayat) {
+	async function cetakUlang(p: PenjualanLokal) {
 		try {
 			await printer.cetak(encodeStruk(barisStruk(strukDari(p))));
 		} catch (e) {
@@ -72,15 +92,30 @@
 {:else if daftar.length === 0}
 	<p class="mt-4 text-muted">Belum ada transaksi.</p>
 {:else}
+	<div class="mt-4 grid gap-1.5">
+		<label for="cari-struk" class="text-sm font-semibold">Cari nomor / nomor sementara / kode struk</label>
+		<input id="cari-struk" bind:value={cari} autocomplete="off" placeholder="mis. K7Q2MX atau S1-012" class="min-h-12 rounded-xl border border-line-strong bg-surface px-3 text-fg" />
+	</div>
+	{#if tampil.length === 0}<p class="mt-3 text-sm text-muted">Tidak ada yang cocok.</p>{/if}
 	<ul class="mt-4 grid gap-3">
-		{#each daftar as p (p.id)}
+		{#each tampil as p (p.id)}
 			<li class="rounded-2xl border border-line bg-surface p-4 {p.void_at ? 'opacity-70' : ''}">
 				<div class="flex flex-wrap items-baseline justify-between gap-2">
 					<p class="font-semibold">{p.nomor} <span class="text-sm font-normal text-muted">{formatWaktuWib(p.waktu)}</span></p>
 					<p class="tabular font-bold {p.void_at ? 'line-through' : ''}">Rp{formatAngka(p.total)} · {labelMetode(p.metode)}</p>
 				</div>
 				<p class="mt-1 text-sm text-muted">{p.item.map((i) => `${i.qty}× ${i.nama}`).join(', ')}</p>
-				{#if p.void_at}
+				<p class="mt-1 text-xs text-muted">
+					{#if p.kode_struk}Kode struk {p.kode_struk}{/if}
+					{#if p.nomor_sementara} · No. sementara {p.nomor_sementara}{/if}
+					{#if p.dicatat_at} · sampai server {formatWaktuWib(p.dicatat_at)}{/if}
+					{#if p.perangkat_id && p.perangkat_id === perangkatIni} · perangkat ini{/if}
+				</p>
+				{#if p.status_kirim === 'menunggu'}<p class="mt-1 text-sm font-semibold text-warn">Belum terkirim</p>{/if}
+				{#if p.status_kirim === 'ditolak'}<p class="mt-1 text-sm font-semibold text-danger">Ditolak server: {p.alasan}</p>{/if}
+				{#if p.status_kirim === 'menunggu' || p.status_kirim === 'ditolak' || p.status_kirim === 'terkirim'}
+					<!-- Batal hanya untuk transaksi yang sudah ada di daftar server (butuh internet, Tahap 4b). -->
+				{:else if p.void_at}
 					<p class="mt-1 text-sm font-semibold text-danger">Dibatalkan: {p.void_alasan}</p>
 				{:else}
 					<div class="mt-2 flex flex-wrap items-end gap-2">
@@ -94,8 +129,9 @@
 								class="min-h-12 rounded-xl border border-line-strong bg-surface px-3 text-fg"
 							/>
 						</div>
-						<Konfirmasi label="Batalkan" konfirmasiLabel="Ya, batalkan" onkonfirmasi={() => batal(p)} />
+						{#if sinkron.online}<Konfirmasi label="Batalkan" konfirmasiLabel="Ya, batalkan" onkonfirmasi={() => batal(p)} />{/if}
 					</div>
+					{#if !sinkron.online}<p class="mt-1 text-xs text-muted">Batal butuh internet.</p>{/if}
 				{/if}
 				<div class="mt-2 flex flex-wrap gap-2">
 					{#if printer.status === 'siap'}
