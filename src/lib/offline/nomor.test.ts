@@ -21,3 +21,9 @@ describe('kode struk & nomor sementara', () => {
 		expect(ambilUrutSementara(s, '2026-10-09')).toBe(1);
 	});
 });
+
+describe('review: kode struk dari bagian acak id', () => {
+	it('id yang hanya berbeda di bagian akhir menghasilkan kode berbeda', () => {
+		expect(kodeStruk('8f14e45f-ceea-467a-9e2b-1b2a3c4d5e6f')).not.toBe(kodeStruk('8f14e45f-ceea-467a-9e2b-ffffffffffff'));
+	});
+});

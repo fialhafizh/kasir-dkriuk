@@ -37,7 +37,7 @@ describe('skema offline', () => {
 		await db.query(`insert into public.penjualan_item (penjualan_id, menu_id, nama, harga, qty) values ($1, $2, 'Dada', 1, 2)`, [p, await idMenu(db, 'ori_dada')]);
 		expect(await stokBahan(db, 'BL', 'ori_dada')).toBe(0);
 	});
-	it('kode struk unik dan berformat 6 karakter', async () => {
+	it('kode struk berformat 6 karakter', async () => {
 		const bl = await idOutlet(db, 'BL');
 		const s = (await db.query<{ id: string }>(`insert into public.shift (outlet_id, dibuka_oleh, modal) values ($1, $2, 0) returning id`, [bl, kasirBL])).rows[0].id;
 		await expect(
@@ -112,13 +112,13 @@ describe('buka & tutup toko offline', () => {
 		await buka(kasirBL, crypto.randomUUID(), P1, 0, "now() - interval '30 hours'");
 		await expect(buka(kasirBL, crypto.randomUUID(), P2)).rejects.toThrow(/Toko kemarin belum ditutup/);
 	});
-	it('tutup: idempoten per id kejadian; tutup kedua dari perangkat lain ditolak; jam tutup = jam kejadian', async () => {
+	it('tutup: idempoten per id kejadian; tutup kedua dicatat sebagai "sudah ditutup"; jam tutup = jam kejadian', async () => {
 		const a = await buka(kasirBL, crypto.randomUUID(), P1, 100000, "now() - interval '5 hours'");
 		const t = crypto.randomUUID();
 		const r1 = await tutup(kasirBL, t, a, 100000, "now() - interval '1 hour'");
 		const r2 = await tutup(kasirBL, t, a, 100000);
 		expect(r2).toEqual(r1);
-		await expect(tutup(kasirBL, crypto.randomUUID(), a, 5)).rejects.toThrow(/Shift sudah ditutup/);
+		expect(await tutup(kasirBL, crypto.randomUUID(), a, 5)).toMatchObject({ sudah_ditutup: true });
 		const lama = (await db.query<{ ok: boolean }>(`select ditutup_at < now() - interval '30 minutes' as ok from public.shift where id = $1`, [a])).rows[0].ok;
 		expect(lama).toBe(true);
 	});
@@ -204,5 +204,47 @@ describe('rusak offline', () => {
 		await kirim(id, "now() - interval '1 hour'");
 		await kirim(id, "now() - interval '1 hour'");
 		expect(await stokBahan(db, 'BL', 'ori_dada')).toBe(8);
+	});
+});
+
+describe('review Tugas 1–3', () => {
+	beforeEach(async () => {
+		await daftar(kasirBL, P1);
+		await daftar(kasirBL, P2);
+	});
+	it('kode struk boleh sama di dua transaksi (bukan kunci unik)', async () => {
+		const s = await buka(kasirBL, crypto.randomUUID(), P1, 0, "now() - interval '2 hours'");
+		await jual(kasirBL, s, { kode: 'SAMA22' });
+		await jual(kasirBL, s, { kode: 'SAMA22' });
+		const n = (await db.query<{ n: number }>(`select count(*)::int as n from public.penjualan where kode_struk = 'SAMA22'`)).rows[0].n;
+		expect(n).toBe(2);
+	});
+	it('hitungan yang masih MENUNGGU tidak membuat penjualan tanpa potong stok (bila nanti ditolak, stok tetap benar)', async () => {
+		const s = await buka(kasirBL, crypto.randomUUID(), P1, 0, "now() - interval '5 hours'");
+		const aj = await rpc<string>(db, kasirBL, 'public.ajukan_stok_awal($1, $2::jsonb)', [await idOutlet(db, 'BL'), JSON.stringify(await isian(db, [['ori_dada', 10]]))]);
+		await db.query(`update public.stok_awal set dihitung_at = now() - interval '2 hours' where id = $1`, [aj]);
+		await jual(kasirBL, s, { waktu: "now() - interval '3 hours'" });
+		await rpc(db, adminId, 'public.putuskan_stok_awal($1, $2, $3::jsonb, $4)', [aj, false, null, 'hitung ulang']);
+		expect(await stokBahan(db, 'BL', 'ori_dada')).toBe(-1);
+	});
+	it('perangkat yang baru sinkron besok saat shift hari ini sudah buka: shift kemarin tetap dibuat & bisa ditutup', async () => {
+		const hariIni = await buka(kasirBL, crypto.randomUUID(), P2, 0, 'now()');
+		const idKemarin = crypto.randomUUID();
+		const kemarin = await buka(kasirBL, idKemarin, P1, 50000, "now() - interval '26 hours'");
+		expect(kemarin).not.toBe(hariIni);
+		await jual(kasirBL, idKemarin, { waktu: "now() - interval '25 hours'" });
+		const r = await tutup(kasirBL, crypto.randomUUID(), idKemarin, 61000, "now() - interval '20 hours'");
+		expect(r).toMatchObject({ uang_fisik: 61000, jumlah_transaksi: 1, jual_setelah_tutup: 0 });
+	});
+	it('tutup kedua dari perangkat lain di shift gabungan diterima & uangnya dicatat', async () => {
+		const idA = crypto.randomUUID();
+		const idB = crypto.randomUUID();
+		const s = await buka(kasirBL, idA, P1, 100000, "now() - interval '5 hours'");
+		await buka(kasirBL, idB, P2, 0, "now() - interval '4 hours'");
+		await tutup(kasirBL, crypto.randomUUID(), idA, 100000, "now() - interval '1 hour'");
+		const r2 = await tutup(kasirBL, crypto.randomUUID(), idB, 5000, "now() - interval '50 minutes'");
+		expect(r2).toMatchObject({ sudah_ditutup: true, shift_id: s });
+		const sp = (await db.query<{ uang_fisik: number }>('select uang_fisik from public.shift_perangkat where id = $1', [idB])).rows[0];
+		expect(sp.uang_fisik).toBe(5000);
 	});
 });

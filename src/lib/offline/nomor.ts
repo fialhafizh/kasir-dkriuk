@@ -5,8 +5,9 @@ const ALFABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 
 /** Kode struk 6 karakter dari id transaksi (tetap untuk id yang sama). */
 export function kodeStruk(id: string): string {
+	// 12 digit hex terakhir UUIDv4 seluruhnya acak (digit versi ada di bagian depan).
 	const hex = id.replace(/-/g, '');
-	let n = BigInt(`0x${hex.slice(0, 15)}`);
+	let n = BigInt(`0x${hex.slice(-12)}`);
 	let s = '';
 	for (let i = 0; i < 6; i++) {
 		s += ALFABET[Number(n % 32n)];

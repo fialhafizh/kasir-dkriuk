@@ -15,6 +15,22 @@ language sql stable security definer set search_path = '' as $$
   select coalesce((select shift_id from public.shift_perangkat where id = p_id), (select id from public.shift where id = p_id))
 $$;
 
+-- Hitungan fisik terakhir yang SUDAH DISETUJUI (yang menunggu bisa ditolak; koreksinya dihitung saat disetujui).
+create function public._dihitung_disetujui(p_outlet uuid) returns timestamptz
+language sql stable security definer set search_path = '' as $$
+  select max(t) from (
+    select dihitung_at as t from public.stok_awal where outlet_id = p_outlet and status = 'disetujui'
+    union all
+    select dihitung_at from public.opname where outlet_id = p_outlet and status = 'disetujui'
+  ) x
+$$;
+
+-- Perangkat yang tidak dikenal dicatat kosong (bukan galat kunci asing).
+create function public._perangkat_dikenal(p_id uuid) returns uuid
+language sql stable security definer set search_path = '' as $$
+  select id from public.perangkat where id = p_id
+$$;
+
 create function public.daftar_perangkat(p_id uuid, p_outlet uuid) returns integer
 language plpgsql security definer set search_path = '' as $$
 declare
@@ -64,10 +80,12 @@ begin
     raise exception 'Modal kembalian tidak sah' using errcode = '22023';
   end if;
   perform pg_advisory_xact_lock(hashtextextended('shift:' || v_outlet::text, 0));
-  select shift_id into v_shift from public.shift_perangkat where id = v_id;
+  select sp.shift_id into v_shift from public.shift_perangkat sp join public.shift s on s.id = sp.shift_id
+  where sp.id = v_id and s.outlet_id = v_outlet;
   if found then
     return v_shift;
   end if;
+  v_perangkat := public._perangkat_dikenal(v_perangkat);
   -- Shift yang sedang berjalan saat perangkat ini membuka (hari WIB sama, belum ditutup saat itu) → gabung.
   select id into v_shift from public.shift
   where outlet_id = v_outlet and public.tanggal_wib(dibuka_at) = public.tanggal_wib(v_waktu)
@@ -76,13 +94,21 @@ begin
   if v_shift is not null then
     update public.shift set digabung = true where id = v_shift;
   else
-    if exists (select 1 from public.shift where outlet_id = v_outlet and ditutup_at is null) then
+    if exists (select 1 from public.shift where outlet_id = v_outlet and ditutup_at is null
+               and public.tanggal_wib(dibuka_at) < public.tanggal_wib(v_waktu)) then
       raise exception 'Toko kemarin belum ditutup' using errcode = '22023';
     end if;
-    insert into public.shift (id, outlet_id, dibuka_oleh, modal, dibuka_at, dibuka_lagi_setelah)
-    values (v_id, v_outlet, auth.uid(), v_modal, v_waktu,
-      (select max(ditutup_at) from public.shift
-       where outlet_id = v_outlet and public.tanggal_wib(dibuka_at) = public.tanggal_wib(v_waktu) and ditutup_at < v_waktu));
+    if exists (select 1 from public.shift where outlet_id = v_outlet and ditutup_at is null) then
+      -- Shift hari berikutnya sudah buka (perangkat ini terlambat sinkron): shift hari itu dibuat
+      -- tertutup sementara; tutup toko dari perangkat ini nanti mengisi angka sebenarnya.
+      insert into public.shift (id, outlet_id, dibuka_oleh, modal, dibuka_at, ditutup_at, ditutup_oleh, uang_fisik, tutup_tertunda)
+      values (v_id, v_outlet, auth.uid(), v_modal, v_waktu, v_waktu, auth.uid(), 0, true);
+    else
+      insert into public.shift (id, outlet_id, dibuka_oleh, modal, dibuka_at, dibuka_lagi_setelah)
+      values (v_id, v_outlet, auth.uid(), v_modal, v_waktu,
+        (select max(ditutup_at) from public.shift
+         where outlet_id = v_outlet and public.tanggal_wib(dibuka_at) = public.tanggal_wib(v_waktu) and ditutup_at < v_waktu));
+    end if;
     v_shift := v_id;
   end if;
   insert into public.shift_perangkat (id, shift_id, perangkat_id, modal, dibuka_at) values (v_id, v_shift, v_perangkat, v_modal, v_waktu);
@@ -119,9 +145,11 @@ begin
   return jsonb_build_object(
     'shift_id', s.id, 'outlet_id', s.outlet_id, 'modal', s.modal, 'dibuka_at', s.dibuka_at, 'ditutup_at', s.ditutup_at,
     'jumlah_transaksi', v_jumlah, 'jumlah_void', v_void, 'total', v_total, 'per_metode', v_metode,
-    'cash_seharusnya', s.modal + v_cash, 'uang_fisik', s.uang_fisik,
-    'selisih', case when s.uang_fisik is null then null else s.uang_fisik - (s.modal + v_cash) end,
-    'digabung', s.digabung, 'jual_setelah_tutup', s.jual_setelah_tutup, 'dibuka_lagi_setelah', s.dibuka_lagi_setelah
+    'cash_seharusnya', s.modal + v_cash,
+    'uang_fisik', case when s.tutup_tertunda then null else s.uang_fisik end,
+    'selisih', case when s.uang_fisik is null or s.tutup_tertunda then null else s.uang_fisik - (s.modal + v_cash) end,
+    'digabung', s.digabung, 'jual_setelah_tutup', s.jual_setelah_tutup, 'dibuka_lagi_setelah', s.dibuka_lagi_setelah,
+    'tutup_tertunda', s.tutup_tertunda
   );
 end
 $$;
@@ -130,33 +158,45 @@ create function public.tutup_shift_offline(p jsonb) returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare
   v_id uuid := (p ->> 'id')::uuid;
-  v_shift uuid := public._shift_dari_perangkat((p ->> 'shift_id')::uuid);
+  v_dev uuid := (p ->> 'shift_id')::uuid;
+  v_shift uuid := public._shift_dari_perangkat(v_dev);
   v_uang integer := (p ->> 'uang_fisik')::integer;
   v_waktu timestamptz := public._waktu_perangkat((p ->> 'waktu')::timestamptz);
+  v_outlet uuid;
   s public.shift;
 begin
-  select * into s from public.shift where id = v_shift for update;
-  if not found or not (public.is_admin() or coalesce(public.my_outlet_id() = s.outlet_id, false)) then
+  select outlet_id into v_outlet from public.shift where id = v_shift;
+  if not found or not (public.is_admin() or coalesce(public.my_outlet_id() = v_outlet, false)) then
     raise exception 'Shift tidak ditemukan' using errcode = '22023';
   end if;
-  if v_id is not null and s.tutup_id = v_id then
-    return public.ringkasan_shift(s.id);
-  end if;
-  if s.ditutup_at is not null then
-    raise exception 'Shift sudah ditutup' using errcode = '22023';
+  -- Kunci yang sama dengan buka: perangkat yang membuka tidak bisa digabung ke shift yang sedang ditutup.
+  perform pg_advisory_xact_lock(hashtextextended('shift:' || v_outlet::text, 0));
+  select * into s from public.shift where id = v_shift for update;
+  if v_id is not null and (s.tutup_id = v_id or exists (select 1 from public.shift_perangkat where tutup_id = v_id)) then
+    return public.ringkasan_shift(s.id) || jsonb_build_object('sudah_ditutup', s.tutup_id is distinct from v_id);
   end if;
   if v_id is null or v_uang is null or v_uang < 0 or v_uang > 1000000000 then
     raise exception 'Jumlah uang di laci tidak sah' using errcode = '22023';
   end if;
+  if s.ditutup_at is not null and not s.tutup_tertunda then
+    -- Sudah ditutup perangkat lain (shift gabungan): simpan hitungan laci perangkat ini sebagai catatan.
+    update public.shift_perangkat set uang_fisik = v_uang, ditutup_at = v_waktu, tutup_id = v_id where id = v_dev;
+    if not found then
+      raise exception 'Shift sudah ditutup' using errcode = '22023';
+    end if;
+    return public.ringkasan_shift(s.id) || jsonb_build_object('sudah_ditutup', true);
+  end if;
   update public.shift
   set ditutup_at = greatest(v_waktu, s.dibuka_at), ditutup_oleh = auth.uid(), uang_fisik = v_uang, tutup_id = v_id,
-      catatan = nullif(trim(coalesce(p ->> 'catatan', '')), '')
+      tutup_tertunda = false, catatan = nullif(trim(coalesce(p ->> 'catatan', '')), '')
   where id = s.id;
-  return public.ringkasan_shift(s.id);
+  return public.ringkasan_shift(s.id) || jsonb_build_object('sudah_ditutup', false);
 end
 $$;
 
 revoke execute on function public._shift_dari_perangkat(uuid) from public, anon, authenticated;
+revoke execute on function public._dihitung_disetujui(uuid) from public, anon, authenticated;
+revoke execute on function public._perangkat_dikenal(uuid) from public, anon, authenticated;
 revoke execute on function public.daftar_perangkat(uuid, uuid) from public, anon;
 revoke execute on function public.tandai_sinkron(uuid) from public, anon;
 revoke execute on function public.buka_shift_offline(jsonb) from public, anon;
@@ -255,10 +295,12 @@ begin
   returning terakhir into v_urut;
   v_nomor := v_kode || '-' || to_char(v_waktu at time zone interval '+07:00', 'YYMMDD') || '-' || lpad(v_urut::text, greatest(3, length(v_urut::text)), '0');
 
+  -- Kunci stok outlet: persetujuan stok awal/opname yang bersamaan tidak bisa melewatkan penjualan ini.
+  perform public._kunci_stok(v_outlet);
   insert into public.penjualan (id, outlet_id, shift_id, kasir_id, nomor, waktu, metode, total, diterima, kembalian,
     kode_struk, nomor_sementara, perangkat_id, tanpa_stok)
   values (v_id, v_outlet, s.id, auth.uid(), v_nomor, v_waktu, v_metode, v_total, v_diterima, v_kembalian,
-    v_kode_struk, v_sementara, v_perangkat, coalesce(public._dihitung_terakhir(v_outlet) >= v_waktu, false));
+    v_kode_struk, v_sementara, public._perangkat_dikenal(v_perangkat), coalesce(public._dihitung_disetujui(v_outlet) >= v_waktu, false));
 
   insert into public.penjualan_item (penjualan_id, menu_id, nama, harga, qty)
   select v_id, m.id, m.nama, h.harga, sum(x.qty)::integer
@@ -267,7 +309,7 @@ begin
   join public.harga_jual h on h.menu_id = m.id and h.outlet_id = v_outlet
   group by m.id, m.nama, h.harga;
 
-  if s.ditutup_at is not null then
+  if s.ditutup_at is not null and not s.tutup_tertunda then
     update public.shift set jual_setelah_tutup = jual_setelah_tutup + 1 where id = s.id;
   end if;
 
@@ -308,9 +350,9 @@ begin
     raise exception 'Catatan paling banyak 200 karakter' using errcode = '22023';
   end if;
   perform public._cek_isian_positif(p -> 'item');
-  v_tanpa := coalesce(public._dihitung_terakhir(v_outlet) >= v_waktu, false);
+  v_tanpa := coalesce(public._dihitung_disetujui(v_outlet) >= v_waktu, false);
   insert into public.rusak (id, outlet_id, waktu, alasan, catatan, dicatat_oleh, perangkat_id, tanpa_stok)
-  values (v_id, v_outlet, v_waktu, v_alasan, v_catatan, auth.uid(), (p ->> 'perangkat_id')::uuid, v_tanpa);
+  values (v_id, v_outlet, v_waktu, v_alasan, v_catatan, auth.uid(), public._perangkat_dikenal((p ->> 'perangkat_id')::uuid), v_tanpa);
   insert into public.rusak_item (rusak_id, bahan_id, qty)
   select v_id, x.bahan_id, x.qty from jsonb_to_recordset(p -> 'item') as x (bahan_id uuid, qty numeric);
   if not v_tanpa then

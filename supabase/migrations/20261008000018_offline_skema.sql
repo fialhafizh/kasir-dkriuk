@@ -17,7 +17,11 @@ create table public.shift_perangkat (
   perangkat_id uuid references public.perangkat (id) on delete restrict,
   modal integer not null check (modal >= 0),
   dibuka_at timestamptz not null,
-  dicatat_at timestamptz not null default now()
+  dicatat_at timestamptz not null default now(),
+  -- Tutup toko dari perangkat ini bila shift sudah ditutup perangkat lain (hitungan laci tetap disimpan).
+  uang_fisik integer check (uang_fisik is null or uang_fisik >= 0),
+  ditutup_at timestamptz,
+  tutup_id uuid unique
 );
 create index shift_perangkat_shift on public.shift_perangkat (shift_id);
 
@@ -25,13 +29,18 @@ alter table public.shift
   add column digabung boolean not null default false,
   add column jual_setelah_tutup integer not null default 0,
   add column dibuka_lagi_setelah timestamptz,
-  add column tutup_id uuid unique;
+  add column tutup_id uuid unique,
+  -- Shift hari lampau yang dibuat saat shift hari berikutnya sudah buka: tertutup sementara sampai tutup toko perangkatnya tiba.
+  add column tutup_tertunda boolean not null default false;
 
 alter table public.penjualan
-  add column kode_struk text unique check (kode_struk ~ '^[0-9A-Z]{6}$'),
+  -- Bukan kunci unik: 6 karakter tidak cukup menjamin unik untuk ratusan ribu transaksi; pencarian bisa memberi >1 hasil.
+  add column kode_struk text check (kode_struk ~ '^[0-9A-Z]{6}$'),
   add column nomor_sementara text check (nomor_sementara ~ '^S[0-9]+-[0-9]{3,}$'),
   add column perangkat_id uuid references public.perangkat (id) on delete restrict,
   add column tanpa_stok boolean not null default false;
+
+create index penjualan_kode_struk on public.penjualan (kode_struk) where kode_struk is not null;
 
 alter table public.rusak
   add column perangkat_id uuid references public.perangkat (id) on delete restrict,
