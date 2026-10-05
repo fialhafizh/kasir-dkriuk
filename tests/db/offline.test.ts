@@ -156,7 +156,8 @@ describe('jualan offline', () => {
 	});
 	it('tercatat dengan jam kejadian, kode struk & nomor sementara; nomor resmi urut kedatangan; kirim ulang → sama', async () => {
 		const a = await jual(kasirBL, shift, { waktu: "now() - interval '1 hour'", kode: 'K7Q2MX' });
-		const b = await jual(kasirBL, shift, { waktu: "now() - interval '3 hours'" });
+		// Satu menit lebih awal (bukan berjam-jam): kedua penjualan selalu di hari WIB yang sama.
+		const b = await jual(kasirBL, shift, { waktu: "now() - interval '61 minutes'" });
 		expect(a.hasil.nomor).toMatch(/^BL-\d{6}-001$/);
 		expect(b.hasil.nomor).toMatch(/-002$/);
 		const ulang = await rpc<{ nomor: string; ulang: boolean }>(db, kasirBL, 'public.catat_penjualan_offline($1::jsonb)', [JSON.stringify(a.p)]);
