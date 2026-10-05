@@ -114,7 +114,8 @@
 		{/if}
 		<div class="grid gap-1.5">
 			<label for="catatan-kirim" class="text-sm font-semibold">Catatan (opsional)</label>
-			<input id="catatan-kirim" bind:value={catatan} maxlength="200" class="min-h-12 rounded-xl border border-line-strong bg-surface px-3" />
+			<input id="catatan-kirim" bind:value={catatan} maxlength="200" aria-describedby="catatan-kirim-ket" class="min-h-12 rounded-xl border border-line-strong bg-surface px-3" />
+			<p id="catatan-kirim-ket" class="text-xs text-muted">Jangan tulis jumlah barang di catatan — penerima harus menghitung sendiri.</p>
 		</div>
 		{#if tercatat}<p class="rounded-xl bg-surface-2 p-3 font-semibold text-ok" role="status">{tercatat}</p>{/if}
 		{#key diubah?.id ?? id}

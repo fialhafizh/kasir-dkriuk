@@ -60,7 +60,7 @@
 	{#if dipilih}
 		<section class="mt-4 grid gap-3" aria-label="Konfirmasi kiriman">
 			<h2 class="font-display text-xl">Dari {namaOutlet(dipilih.dari_outlet_id)} · {formatWaktuWib(dipilih.dikirim_at)}</h2>
-			{#if dipilih.catatan}<p class="text-sm text-muted">Catatan pengirim: {dipilih.catatan}</p>{/if}
+			<!-- Catatan pengirim tidak ditampilkan sebelum diterima: bisa berisi jumlah (hitung buta). -->
 			<p class="text-sm">Hitung barang yang benar-benar datang, lalu isi jumlahnya. Angka harus sama dengan yang dikirim.</p>
 			{#key dipilih.id}<FormStokAwal {isian} opsional labelKirim="Konfirmasi terima" onkirim={terima} />{/key}
 			<button type="button" class="min-h-12 rounded-xl px-4 text-sm" onclick={() => (dipilih = null)}>Kembali ke daftar</button>

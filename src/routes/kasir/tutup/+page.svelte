@@ -15,9 +15,14 @@
 	let pesan = $state('');
 	// Langkah wajib "sisa tidak terjual" sekali per shift (diingat di tablet ini).
 	let sisaSelesai = $state(false);
+	let sisaUntuk: string | null = null;
 	$effect(() => {
-		const s = pos.shift;
-		if (s) sisaSelesai = sudahDijawab(s.id);
+		const id = pos.shift?.id;
+		// Hanya dibaca ulang saat shift berganti (muat ulang shift yang sama tidak mengulang pertanyaan).
+		if (id && id !== sisaUntuk) {
+			sisaUntuk = id;
+			sisaSelesai = sudahDijawab(id);
+		}
 	});
 
 	$effect(() => {

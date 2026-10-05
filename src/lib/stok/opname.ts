@@ -30,9 +30,14 @@ export function awalMingguWib(sekarang: Date): Date {
 	return new Date(tengahMalam - wib.getUTCDay() * 86_400_000);
 }
 
-/** Pengingat tampil sejak Minggu sampai ada opname (diajukan/disetujui) yang dihitung minggu ini. */
-export function perluOpname(sekarang: Date, adaStokAwal: boolean, opname: { status: string; dihitung_at: string }[]): boolean {
-	if (!adaStokAwal) return false;
+/**
+ * Pengingat tampil sejak Minggu sampai ada opname (diajukan/disetujui) yang dihitung minggu ini.
+ * Tidak tampil bila stok awal belum disetujui, stok awal baru dihitung minggu ini, atau masih ada opname menunggu.
+ */
+export function perluOpname(sekarang: Date, stokAwalAt: string | null, opname: { status: string; dihitung_at: string }[]): boolean {
+	if (!stokAwalAt) return false;
 	const awal = awalMingguWib(sekarang).getTime();
+	if (new Date(stokAwalAt).getTime() >= awal) return false;
+	if (opname.some((o) => o.status === 'diajukan')) return false;
 	return !opname.some((o) => o.status !== 'ditolak' && new Date(o.dihitung_at).getTime() >= awal);
 }

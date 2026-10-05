@@ -33,14 +33,24 @@ describe('pengingat opname mingguan (WIB)', () => {
 		expect(awalMingguWib(senin).toISOString()).toBe('2026-10-03T17:00:00.000Z');
 	});
 	it('tanpa stok awal → tidak perlu', () => {
-		expect(perluOpname(minggu, false, [])).toBe(false);
+		expect(perluOpname(minggu, null, [])).toBe(false);
 	});
 	it('belum ada opname minggu ini → perlu, termasuk Senin bila Minggu terlewat', () => {
-		expect(perluOpname(minggu, true, [])).toBe(true);
-		expect(perluOpname(senin, true, [{ status: 'disetujui', dihitung_at: '2026-09-27T10:00:00Z' }])).toBe(true);
+		expect(perluOpname(minggu, '2026-09-01T00:00:00Z', [])).toBe(true);
+		expect(perluOpname(senin, '2026-09-01T00:00:00Z', [{ status: 'disetujui', dihitung_at: '2026-09-27T10:00:00Z' }])).toBe(true);
 	});
 	it('sudah dikirim/disetujui minggu ini → tidak perlu; yang ditolak tidak dihitung', () => {
-		expect(perluOpname(senin, true, [{ status: 'diajukan', dihitung_at: '2026-10-04T12:00:00Z' }])).toBe(false);
-		expect(perluOpname(senin, true, [{ status: 'ditolak', dihitung_at: '2026-10-04T12:00:00Z' }])).toBe(true);
+		expect(perluOpname(senin, '2026-09-01T00:00:00Z', [{ status: 'diajukan', dihitung_at: '2026-10-04T12:00:00Z' }])).toBe(false);
+		expect(perluOpname(senin, '2026-09-01T00:00:00Z', [{ status: 'ditolak', dihitung_at: '2026-10-04T12:00:00Z' }])).toBe(true);
+	});
+});
+
+describe('review Tugas 5–7: pengingat', () => {
+	const senin = new Date('2026-10-05T05:00:00Z');
+	it('stok awal dihitung minggu ini → belum perlu opname', () => {
+		expect(perluOpname(senin, '2026-10-04T03:00:00Z', [])).toBe(false);
+	});
+	it('masih ada opname menunggu (dari minggu lalu) → tidak mengingatkan', () => {
+		expect(perluOpname(senin, '2026-09-01T00:00:00Z', [{ status: 'diajukan', dihitung_at: '2026-09-27T10:00:00Z' }])).toBe(false);
 	});
 });

@@ -41,3 +41,10 @@ describe('kumpulkanSisa', () => {
 		expect(kumpulkanSisa(f, { dada: '1,5' }).galat).toHaveProperty('dada');
 	});
 });
+
+describe('review Tugas 5–7', () => {
+	it('isian ayam selalu per potong (faktor 1) walau resep memakai angka lain', () => {
+		const r2 = resep.map((x) => (x.menu_id === 'm_dada' ? { ...x, qty: 2 } : x));
+		expect(bentukSisa(bahan, menu, r2)[0].ke).toEqual([{ bahan_id: 'dada', faktor: 1 }]);
+	});
+});

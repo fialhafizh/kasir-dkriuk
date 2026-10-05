@@ -23,7 +23,8 @@ export function bentukSisa(bahan: Bahan[], menu: Menu[], resep: Resep[]): BarisS
 			for (const r of resepMenu(m)) {
 				const b = perId.get(r.bahan_id)!;
 				if (b.satuan !== 'potong' || hasil.some((h) => h.kunci === b.id)) continue;
-				hasil.push({ kunci: b.id, label: b.nama, satuan: 'potong', ke: [{ bahan_id: b.id, faktor: r.qty }], urutan: b.urutan });
+				// Isian sudah dalam potong: 1 potong sisa = 1 potong bahan.
+				hasil.push({ kunci: b.id, label: b.nama, satuan: 'potong', ke: [{ bahan_id: b.id, faktor: 1 }], urutan: b.urutan });
 			}
 		} else if (m.kategori === 'kulit') {
 			const r = resepMenu(m).find((x) => perId.get(x.bahan_id)!.satuan === 'porsi');

@@ -49,7 +49,7 @@
 	const menunggu = $derived(awal.some((a) => a.status === 'diajukan'));
 	const masukMenunggu = $derived(transfer.filter((t) => t.ke_outlet_id === pos.outlet?.id && t.status === 'dikirim').length);
 	const keluarMenunggu = $derived(transfer.filter((t) => t.dari_outlet_id === pos.outlet?.id && t.status === 'dikirim').length);
-	const ingatOpname = $derived(perluOpname(new Date(), disetujui, opname));
+	const ingatOpname = $derived(perluOpname(new Date(), awal.find((a) => a.status === 'disetujui')?.dihitung_at ?? null, opname));
 	const opnameMenunggu = $derived(opname.some((o) => o.status === 'diajukan'));
 	const ditolak = $derived(!disetujui && !menunggu ? awal.find((a) => a.status === 'ditolak') : undefined);
 </script>
@@ -96,6 +96,12 @@
 			>
 			<a href={href('/kasir/stok/opname')} class="flex min-h-14 items-center justify-center rounded-2xl bg-surface-2 px-3 text-center font-semibold">Opname</a>
 		</div>
+	{/if}
+	{#if !disetujui && masukMenunggu}
+		<!-- Kiriman bisa datang sebelum stok awal disetujui; penerima tetap harus bisa mengonfirmasi. -->
+		<a href={href('/kasir/stok/terima')} class="mt-4 flex min-h-14 items-center justify-center rounded-2xl bg-brand px-3 font-semibold text-on-brand"
+			>Terima kiriman ({masukMenunggu})</a
+		>
 	{/if}
 	<div class="mt-4"><DaftarStok {baris} tanpaStatus={!disetujui} /></div>
 {/if}
