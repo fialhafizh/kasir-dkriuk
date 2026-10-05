@@ -1,0 +1,67 @@
+import { describe, expect, it } from 'vitest';
+import type { Kejadian } from './db';
+import { cocokCari, gabungRiwayat, ringkasanLokal, shiftLokal } from './proyeksi';
+
+const kej = (x: Partial<Kejadian> & Pick<Kejadian, 'id' | 'jenis'>): Kejadian => ({
+	outlet_id: 'o',
+	shift_id: 's1',
+	waktu: '2026-10-08T03:00:00Z',
+	data: {},
+	status: 'menunggu',
+	alasan: null,
+	percobaan: 0,
+	hasil: null,
+	terkirim_at: null,
+	...x
+});
+const serverShift = { id: 'srv', outlet_id: 'o', dibuka_at: '2026-10-08T00:00:00Z', modal: 100000, ditutup_at: null };
+
+describe('shiftLokal', () => {
+	it('tanpa kejadian → shift server', () => {
+		expect(shiftLokal(serverShift, [], 'o')).toEqual(serverShift);
+	});
+	it('buka di perangkat (belum terkirim) → shift lokal dengan id perangkat', () => {
+		const k = [kej({ id: 'b', jenis: 'buka_shift', shift_id: 'dev1', data: { modal: 50000 } })];
+		expect(shiftLokal(null, k, 'o')).toMatchObject({ id: 'dev1', modal: 50000, ditutup_at: null });
+	});
+	it('tutup di perangkat → tidak ada shift terbuka walau server masih terbuka', () => {
+		const k = [kej({ id: 't', jenis: 'tutup_shift', shift_id: 'srv' })];
+		expect(shiftLokal(serverShift, k, 'o')).toBeNull();
+	});
+	it('buka lalu tutup lalu buka lagi → shift terakhir', () => {
+		const k = [
+			kej({ id: 'b1', jenis: 'buka_shift', shift_id: 'd1', data: { modal: 1 } }),
+			kej({ id: 't1', jenis: 'tutup_shift', shift_id: 'd1' }),
+			kej({ id: 'b2', jenis: 'buka_shift', shift_id: 'd2', data: { modal: 2 }, waktu: '2026-10-08T05:00:00Z' })
+		];
+		expect(shiftLokal(null, k, 'o')?.id).toBe('d2');
+	});
+	it('kejadian outlet lain diabaikan', () => {
+		expect(shiftLokal(null, [kej({ id: 'b', jenis: 'buka_shift', outlet_id: 'x', shift_id: 'd' })], 'o')).toBeNull();
+	});
+});
+
+describe('riwayat & ringkasan lokal', () => {
+	const jualK = (id: string, status: Kejadian['status'], total: number, metode = 'cash') =>
+		kej({ id, jenis: 'jual', status, data: { metode, total, diterima: total, kembalian: 0, kode_struk: `K${id}AAAA`.slice(0, 6), nomor_sementara: 'S1-001', item: [{ nama: 'Dada', harga: total, qty: 1 }] } });
+	const server = [{ id: 'srv1', nomor: 'BL-1', waktu: '2026-10-08T02:00:00Z', metode: 'cash' as const, total: 10000, diterima: 10000, kembalian: 0, void_at: null, void_alasan: null, item: [], kode_struk: 'SRV111' }];
+	it('gabung: penjualan server + yang belum terkirim; yang sudah terkirim tapi sudah ada di server tidak dobel', () => {
+		const r = gabungRiwayat(server, [jualK('a', 'menunggu', 5000), jualK('srv1', 'terkirim', 10000)], 's1');
+		expect(r.map((x) => [x.id, x.status_kirim])).toEqual([
+			['a', 'menunggu'],
+			['srv1', 'server']
+		]);
+	});
+	it('ringkasan lokal = ringkasan server + penjualan belum terkirim (cash menambah cash seharusnya)', () => {
+		const lokal = gabungRiwayat([], [jualK('a', 'menunggu', 5000), jualK('b', 'ditolak', 7000, 'qris')], 's1');
+		const r = ringkasanLokal(null, { ...serverShift, id: 's1' }, lokal);
+		expect(r).toMatchObject({ jumlah_transaksi: 2, total: 12000, cash_seharusnya: 105000 });
+		expect(r.per_metode.qris).toEqual({ jumlah: 1, total: 7000 });
+	});
+	it('cari: nomor resmi, nomor sementara, kode struk (tanpa beda huruf besar/kecil)', () => {
+		const [p] = gabungRiwayat([], [jualK('a', 'menunggu', 5000)], 's1');
+		expect(cocokCari(p, 'kaaa')).toBe(true);
+		expect(cocokCari(p, 's1-001')).toBe(true);
+		expect(cocokCari(p, 'zzz')).toBe(false);
+	});
+});

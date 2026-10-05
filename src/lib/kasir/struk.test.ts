@@ -84,3 +84,25 @@ describe('review Tugas 5: tidak ada baris lebih dari 32 karakter', () => {
 		for (const x of b) expect(x.length).toBeLessThanOrEqual(32);
 	});
 });
+
+describe('kode struk (Tahap 4)', () => {
+	const dasar = {
+		outlet: { merek: "D'Kriuk", nama: 'Bukit Lama', alamat: 'Jl. X', telepon: '0811' },
+		nomor: 'BL-261008-014',
+		waktu: '2026-10-08T05:00:00Z',
+		kasir: 'Kasir BL',
+		item: [{ nama: 'Dada Ori', harga: 11000, qty: 1 }],
+		total: 11000,
+		metode: 'qris' as const,
+		diterima: null,
+		kembalian: null
+	};
+	it('online: kode struk tercetak', () => {
+		expect(barisStruk({ ...dasar, kodeStruk: 'K7Q2MX' }).join('\n')).toContain('Kode: K7Q2MX');
+	});
+	it('offline: nomor sementara & kode tercetak', () => {
+		const t = barisStruk({ ...dasar, nomor: 'S1-012', nomorSementara: 'S1-012', kodeStruk: 'K7Q2MX' }).join('\n');
+		expect(t).toContain('No. sementara');
+		expect(t).toContain('K7Q2MX');
+	});
+});

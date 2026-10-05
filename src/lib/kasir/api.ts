@@ -64,7 +64,7 @@ export async function daftarPenjualanShift(shiftId: string): Promise<PenjualanRi
 	return periksa(
 		await supabase
 			.from('penjualan')
-			.select('id, nomor, waktu, metode, total, diterima, kembalian, void_at, void_alasan, item:penjualan_item(nama, harga, qty)')
+			.select('id, nomor, waktu, metode, total, diterima, kembalian, void_at, void_alasan, kode_struk, nomor_sementara, dicatat_at, perangkat_id, item:penjualan_item(nama, harga, qty)')
 			.eq('shift_id', shiftId)
 			.order('waktu', { ascending: false })
 			.order('nama', { referencedTable: 'item' })
