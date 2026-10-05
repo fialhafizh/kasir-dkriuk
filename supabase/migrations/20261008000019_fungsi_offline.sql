@@ -165,3 +165,163 @@ grant execute on function public.daftar_perangkat(uuid, uuid) to authenticated;
 grant execute on function public.tandai_sinkron(uuid) to authenticated;
 grant execute on function public.buka_shift_offline(jsonb) to authenticated;
 grant execute on function public.tutup_shift_offline(jsonb) to authenticated;
+
+create function public.catat_penjualan_offline(p jsonb) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_outlet uuid := (p ->> 'outlet_id')::uuid;
+  v_id uuid;
+  v_shift uuid;
+  v_metode public.metode_bayar;
+  v_diterima integer;
+  v_waktu timestamptz;
+  v_kode_struk text;
+  v_sementara text;
+  v_perangkat uuid;
+  v_ada public.penjualan;
+  s public.shift;
+  v_minta integer;
+  v_cocok integer;
+  v_qty_sah boolean;
+  v_total integer;
+  v_kembalian integer;
+  v_kode text;
+  v_urut integer;
+  v_nomor text;
+begin
+  perform public._cek_akses_outlet(v_outlet);
+  v_id := (p ->> 'id')::uuid;
+  v_metode := (p ->> 'metode')::public.metode_bayar;
+  v_diterima := (p ->> 'diterima')::integer;
+  v_kode_struk := p ->> 'kode_struk';
+  v_sementara := nullif(p ->> 'nomor_sementara', '');
+  v_perangkat := (p ->> 'perangkat_id')::uuid;
+  v_waktu := public._waktu_perangkat((p ->> 'waktu')::timestamptz);
+  if v_id is null or v_metode is null then
+    raise exception 'Data penjualan tidak lengkap' using errcode = '22023';
+  end if;
+  perform pg_advisory_xact_lock(hashtextextended(v_id::text, 0));
+  select * into v_ada from public.penjualan where id = v_id;
+  if found then
+    if v_ada.outlet_id <> v_outlet then
+      raise exception 'Penjualan tidak ditemukan' using errcode = '22023';
+    end if;
+    return jsonb_build_object('id', v_ada.id, 'nomor', v_ada.nomor, 'total', v_ada.total, 'kembalian', v_ada.kembalian,
+      'waktu', v_ada.waktu, 'ulang', true, 'batal', v_ada.void_at is not null, 'kode_struk', v_ada.kode_struk);
+  end if;
+  if v_kode_struk is null or v_kode_struk !~ '^[0-9A-Z]{6}$' then
+    raise exception 'Kode struk tidak sah' using errcode = '22023';
+  end if;
+  v_shift := public._shift_dari_perangkat((p ->> 'shift_id')::uuid);
+  select * into s from public.shift where id = v_shift for share;
+  if not found or s.outlet_id <> v_outlet then
+    raise exception 'Shift belum dibuka' using errcode = '22023';
+  end if;
+
+  if jsonb_typeof(p -> 'item') is distinct from 'array' or jsonb_array_length(p -> 'item') = 0 then
+    raise exception 'Penjualan minimal satu item' using errcode = '22023';
+  end if;
+  with i as (
+    select menu_id, sum(qty)::integer as qty, bool_and(coalesce(qty between 1 and 999, false)) as sah
+    from jsonb_to_recordset(p -> 'item') as x (menu_id uuid, qty integer)
+    group by menu_id
+  )
+  select count(*), count(h.menu_id), coalesce(bool_and(i.sah and i.qty <= 999), false), coalesce(sum(h.harga * i.qty), 0)
+  into v_minta, v_cocok, v_qty_sah, v_total
+  from i
+  left join public.menu m on m.id = i.menu_id and m.aktif
+  left join public.harga_jual h on h.menu_id = m.id and h.outlet_id = v_outlet;
+  if not v_qty_sah then
+    raise exception 'Jumlah item tidak sah' using errcode = '22023';
+  end if;
+  if v_cocok <> v_minta then
+    raise exception 'Menu tidak tersedia di outlet ini' using errcode = '22023';
+  end if;
+  if v_metode = 'cash' then
+    if v_diterima is null or v_diterima < v_total then
+      raise exception 'Uang diterima kurang dari total' using errcode = '22023';
+    end if;
+    v_kembalian := v_diterima - v_total;
+  else
+    v_diterima := null;
+    v_kembalian := null;
+  end if;
+
+  -- Nomor resmi: urut kedatangan per outlet per hari WIB (hari dari jam kejadian).
+  select kode into v_kode from public.outlets where id = v_outlet;
+  insert into public.nomor_harian (outlet_id, tanggal, terakhir)
+  values (v_outlet, public.tanggal_wib(v_waktu), 1)
+  on conflict (outlet_id, tanggal) do update set terakhir = public.nomor_harian.terakhir + 1
+  returning terakhir into v_urut;
+  v_nomor := v_kode || '-' || to_char(v_waktu at time zone interval '+07:00', 'YYMMDD') || '-' || lpad(v_urut::text, greatest(3, length(v_urut::text)), '0');
+
+  insert into public.penjualan (id, outlet_id, shift_id, kasir_id, nomor, waktu, metode, total, diterima, kembalian,
+    kode_struk, nomor_sementara, perangkat_id, tanpa_stok)
+  values (v_id, v_outlet, s.id, auth.uid(), v_nomor, v_waktu, v_metode, v_total, v_diterima, v_kembalian,
+    v_kode_struk, v_sementara, v_perangkat, coalesce(public._dihitung_terakhir(v_outlet) >= v_waktu, false));
+
+  insert into public.penjualan_item (penjualan_id, menu_id, nama, harga, qty)
+  select v_id, m.id, m.nama, h.harga, sum(x.qty)::integer
+  from jsonb_to_recordset(p -> 'item') as x (menu_id uuid, qty integer)
+  join public.menu m on m.id = x.menu_id
+  join public.harga_jual h on h.menu_id = m.id and h.outlet_id = v_outlet
+  group by m.id, m.nama, h.harga;
+
+  if s.ditutup_at is not null then
+    update public.shift set jual_setelah_tutup = jual_setelah_tutup + 1 where id = s.id;
+  end if;
+
+  return jsonb_build_object('id', v_id, 'nomor', v_nomor, 'total', v_total, 'kembalian', v_kembalian,
+    'waktu', v_waktu, 'ulang', false, 'batal', false, 'kode_struk', v_kode_struk);
+end
+$$;
+
+create function public.catat_rusak_offline(p jsonb) returns uuid
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_outlet uuid := (p ->> 'outlet_id')::uuid;
+  v_id uuid;
+  v_alasan public.alasan_rusak;
+  v_catatan text;
+  v_waktu timestamptz;
+  v_tanpa boolean;
+begin
+  perform public._cek_akses_outlet(v_outlet);
+  v_id := (p ->> 'id')::uuid;
+  v_alasan := (p ->> 'alasan')::public.alasan_rusak;
+  v_catatan := nullif(trim(coalesce(p ->> 'catatan', '')), '');
+  v_waktu := public._waktu_perangkat((p ->> 'waktu')::timestamptz);
+  if v_id is null or v_alasan is null then
+    raise exception 'Data rusak tidak lengkap' using errcode = '22023';
+  end if;
+  perform public._kunci_stok(v_outlet);
+  if exists (select 1 from public.rusak where id = v_id) then
+    if not exists (select 1 from public.rusak where id = v_id and outlet_id = v_outlet) then
+      raise exception 'Anda tidak berhak mengakses outlet ini' using errcode = '42501';
+    end if;
+    return v_id;
+  end if;
+  if v_alasan = 'lainnya' and (v_catatan is null or length(v_catatan) < 3) then
+    raise exception 'Catatan wajib diisi untuk alasan lainnya (3–200 karakter)' using errcode = '22023';
+  end if;
+  if v_catatan is not null and length(v_catatan) > 200 then
+    raise exception 'Catatan paling banyak 200 karakter' using errcode = '22023';
+  end if;
+  perform public._cek_isian_positif(p -> 'item');
+  v_tanpa := coalesce(public._dihitung_terakhir(v_outlet) >= v_waktu, false);
+  insert into public.rusak (id, outlet_id, waktu, alasan, catatan, dicatat_oleh, perangkat_id, tanpa_stok)
+  values (v_id, v_outlet, v_waktu, v_alasan, v_catatan, auth.uid(), (p ->> 'perangkat_id')::uuid, v_tanpa);
+  insert into public.rusak_item (rusak_id, bahan_id, qty)
+  select v_id, x.bahan_id, x.qty from jsonb_to_recordset(p -> 'item') as x (bahan_id uuid, qty numeric);
+  if not v_tanpa then
+    insert into public.gerakan_stok (outlet_id, bahan_id, qty, jenis, waktu, oleh, rusak_id)
+    select v_outlet, i.bahan_id, -i.qty, 'rusak', v_waktu, auth.uid(), v_id from public.rusak_item i where i.rusak_id = v_id;
+  end if;
+  return v_id;
+end
+$$;
+
+revoke execute on function public.catat_penjualan_offline(jsonb) from public, anon;
+revoke execute on function public.catat_rusak_offline(jsonb) from public, anon;
+grant execute on function public.catat_penjualan_offline(jsonb) to authenticated;
+grant execute on function public.catat_rusak_offline(jsonb) to authenticated;

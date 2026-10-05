@@ -1,7 +1,7 @@
 import type { PGlite } from '@electric-sql/pglite';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { buatUser, freshDb, sebagai, sebagaiAnon } from './harness';
-import { rpc } from './harness-3b';
+import { isian, rpc, setujuiStokAwal } from './harness-3b';
 import { idMenu, idOutlet } from './harness-kasir';
 import { stokBahan } from './harness-stok';
 
@@ -126,5 +126,83 @@ describe('buka & tutup toko offline', () => {
 		const a = await buka(kasirBL, crypto.randomUUID(), P1, 0, "now() + interval '3 hours'");
 		const ok = (await db.query<{ ok: boolean }>(`select dibuka_at <= now() + interval '1 minute' as ok from public.shift where id = $1`, [a])).rows[0].ok;
 		expect(ok).toBe(true);
+	});
+});
+
+
+async function jual(oleh: string, shiftId: string, opsi: { id?: string; waktu?: string; kode?: string; item?: [string, number][]; metode?: string; diterima?: number } = {}) {
+	const w = (await db.query<{ w: string }>(`select (${opsi.waktu ?? 'now()'})::text as w`)).rows[0].w;
+	const p = {
+		id: opsi.id ?? crypto.randomUUID(),
+		outlet_id: await idOutlet(db, 'BL'),
+		shift_id: shiftId,
+		metode: opsi.metode ?? 'qris',
+		...(opsi.diterima !== undefined ? { diterima: opsi.diterima } : {}),
+		waktu: w,
+		perangkat_id: P1,
+		kode_struk: opsi.kode ?? Math.random().toString(36).slice(2, 8).toUpperCase().padEnd(6, 'X'),
+		nomor_sementara: 'S1-001',
+		item: await Promise.all((opsi.item ?? [['ori_dada', 1]]).map(async ([kode, qty]) => ({ menu_id: await idMenu(db, kode), qty })))
+	};
+	return { p, hasil: await rpc<{ id: string; nomor: string; total: number; ulang: boolean; kode_struk: string }>(db, oleh, 'public.catat_penjualan_offline($1::jsonb)', [JSON.stringify(p)]) };
+}
+
+describe('jualan offline', () => {
+	let shift: string;
+	beforeEach(async () => {
+		await daftar(kasirBL, P1);
+		shift = await buka(kasirBL, crypto.randomUUID(), P1, 100000, "now() - interval '6 hours'");
+	});
+	it('tercatat dengan jam kejadian, kode struk & nomor sementara; nomor resmi urut kedatangan; kirim ulang → sama', async () => {
+		const a = await jual(kasirBL, shift, { waktu: "now() - interval '1 hour'", kode: 'K7Q2MX' });
+		const b = await jual(kasirBL, shift, { waktu: "now() - interval '3 hours'" });
+		expect(a.hasil.nomor).toMatch(/^BL-\d{6}-001$/);
+		expect(b.hasil.nomor).toMatch(/-002$/);
+		const ulang = await rpc<{ nomor: string; ulang: boolean }>(db, kasirBL, 'public.catat_penjualan_offline($1::jsonb)', [JSON.stringify(a.p)]);
+		expect(ulang).toMatchObject({ nomor: a.hasil.nomor, ulang: true });
+		const r = (await db.query<{ kode_struk: string; nomor_sementara: string; lama: boolean }>(
+			`select kode_struk, nomor_sementara, waktu < now() - interval '50 minutes' as lama from public.penjualan where id = $1`, [a.p.id]
+		)).rows[0];
+		expect(r).toEqual({ kode_struk: 'K7Q2MX', nomor_sementara: 'S1-001', lama: true });
+	});
+	it('penjualan yang tiba setelah toko ditutup tetap masuk shift-nya dan ditandai', async () => {
+		await tutup(kasirBL, crypto.randomUUID(), shift, 100000, "now() - interval '30 minutes'");
+		await jual(kasirBL, shift, { waktu: "now() - interval '2 hours'", metode: 'cash', diterima: 20000 });
+		const r = await rpc<{ jual_setelah_tutup: number; jumlah_transaksi: number }>(db, kasirBL, 'public.ringkasan_shift($1)', [shift]);
+		expect(r).toMatchObject({ jual_setelah_tutup: 1, jumlah_transaksi: 1 });
+	});
+	it('penjualan berjam sebelum stok awal disetujui tidak memotong stok; sesudahnya memotong', async () => {
+		await setujuiStokAwal(db, kasirBL, adminId, 'BL', [['ori_dada', 10]], 2);
+		await jual(kasirBL, shift, { waktu: "now() - interval '4 hours'" });
+		expect(await stokBahan(db, 'BL', 'ori_dada')).toBe(10);
+		await jual(kasirBL, shift, { waktu: "now() - interval '1 hour'" });
+		expect(await stokBahan(db, 'BL', 'ori_dada')).toBe(9);
+	});
+	it('shift perangkat yang tidak dikenal → ditolak; kode struk salah → ditolak; harga dari server', async () => {
+		await expect(jual(kasirBL, crypto.randomUUID())).rejects.toThrow(/Shift belum dibuka/);
+		await expect(jual(kasirBL, shift, { kode: 'ab' })).rejects.toThrow(/Kode struk tidak sah/);
+		const { hasil } = await jual(kasirBL, shift, { item: [['nasi', 2]] });
+		expect(hasil.total).toBe(10000);
+	});
+	it('kasir outlet lain ditolak', async () => {
+		await expect(jual(kasirTK, shift)).rejects.toThrow(/tidak berhak/);
+	});
+});
+
+describe('rusak offline', () => {
+	it('jam kejadian dipakai; sebelum stok awal → tanpa efek stok; kirim ulang sekali', async () => {
+		await daftar(kasirBL, P1);
+		await setujuiStokAwal(db, kasirBL, adminId, 'BL', [['ori_dada', 10]], 2);
+		const kirim = async (id: string, waktu: string) => {
+			const w = (await db.query<{ w: string }>(`select (${waktu})::text as w`)).rows[0].w;
+			const p = { id, outlet_id: await idOutlet(db, 'BL'), alasan: 'sisa_tidak_laku', waktu: w, perangkat_id: P1, item: await isian(db, [['ori_dada', 2]]) };
+			return rpc<string>(db, kasirBL, 'public.catat_rusak_offline($1::jsonb)', [JSON.stringify(p)]);
+		};
+		await kirim(crypto.randomUUID(), "now() - interval '3 hours'");
+		expect(await stokBahan(db, 'BL', 'ori_dada')).toBe(10);
+		const id = crypto.randomUUID();
+		await kirim(id, "now() - interval '1 hour'");
+		await kirim(id, "now() - interval '1 hour'");
+		expect(await stokBahan(db, 'BL', 'ori_dada')).toBe(8);
 	});
 });
