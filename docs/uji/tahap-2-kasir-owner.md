@@ -27,6 +27,6 @@ Persiapan: di laptop jalankan `npm run dev`, buka di **Chrome**. Nyalakan Blueto
 - [ ] Tampilan di tablet sungguhan (dua kolom) dan HP
 
 ## Pertanyaan yang belum dijawab
-- Apakah ada outlet yang buka **lewat tengah malam**? Sekarang toko wajib ditutup sebelum jualan hari berikutnya (batas 00.00 WIB).
+- ~~Apakah ada outlet yang buka lewat tengah malam?~~ **Dijawab owner 5 Okt 2026: tidak ada.** Aturan tutup toko sebelum 00.00 WIB tetap.
 
 Catatan hasil uji:
