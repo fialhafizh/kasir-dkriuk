@@ -91,6 +91,12 @@ try {
 	// Bersihkan semua data uji (service role).
 	if (outletId) {
 		await svc.from('gerakan_stok').delete().eq('outlet_id', outletId);
+		const rs = ((await svc.from('rusak').select('id').eq('outlet_id', outletId)).data ?? []).map((x) => x.id);
+		if (rs.length) await svc.from('rusak_item').delete().in('rusak_id', rs);
+		await svc.from('rusak').delete().eq('outlet_id', outletId);
+		const op = ((await svc.from('opname').select('id').eq('outlet_id', outletId)).data ?? []).map((x) => x.id);
+		if (op.length) await svc.from('opname_item').delete().in('opname_id', op);
+		await svc.from('opname').delete().eq('outlet_id', outletId);
 		const ids = ((await svc.from('penjualan').select('id').eq('outlet_id', outletId)).data ?? []).map((x) => x.id);
 		if (ids.length) await svc.from('penjualan_item').delete().in('penjualan_id', ids);
 		await svc.from('penjualan').delete().eq('outlet_id', outletId);
