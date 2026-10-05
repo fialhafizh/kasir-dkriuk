@@ -9,6 +9,20 @@
 	const lingkup = $derived(
 		auth.profile?.role === 'admin' ? 'Admin · Semua outlet' : auth.outlet ? `${auth.outlet.merek} ${auth.outlet.nama}` : ''
 	);
+
+	let pesanKeluar = $state('');
+	// Data yang belum terkirim hanya ada di perangkat ini: jangan biarkan hilang karena Keluar.
+	async function keluar() {
+		pesanKeluar = '';
+		const { hitungAntrean } = await import('#lib/offline/antrean.ts');
+		const { dbKasir } = await import('#lib/offline/sinkron.svelte.ts');
+		const h = await hitungAntrean(dbKasir);
+		if (h.menunggu + h.ditolak > 0) {
+			pesanKeluar = `Sinkronkan dulu: ada ${h.menunggu + h.ditolak} data yang belum terkirim.`;
+			return;
+		}
+		await auth.signOut();
+	}
 </script>
 
 <div class="min-h-dvh bg-bg">
@@ -25,12 +39,13 @@
 		<ThemeToggle />
 		<button
 			type="button"
-			onclick={() => auth.signOut()}
+			onclick={keluar}
 			class="min-h-12 rounded-xl px-3 text-sm font-semibold text-fg hover:bg-surface-2 focus-visible:outline-3 focus-visible:outline-focus"
 		>
 			Keluar
 		</button>
 	</header>
+	{#if pesanKeluar}<p class="bg-surface-2 px-4 py-2 text-sm font-semibold text-danger" role="alert">{pesanKeluar}</p>{/if}
 	<div class="mx-auto flex w-full max-w-7xl lg:gap-6 lg:px-4">
 		{#if nav}{@render nav()}{/if}
 		<main class="min-w-0 flex-1 px-4 py-6 lg:px-0 {nav ? 'pb-28 lg:pb-6' : ''}">

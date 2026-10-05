@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { galatJaringan } from '#lib/auth/cache-profil.ts';
 	import { auth } from '#lib/auth/session.svelte.ts';
 	import BayarPanel from '#lib/components/kasir/BayarPanel.svelte';
 	import Keranjang from '#lib/components/kasir/Keranjang.svelte';
@@ -8,16 +9,20 @@
 	import PrinterChip from '#lib/components/kasir/PrinterChip.svelte';
 	import Selesai from '#lib/components/kasir/Selesai.svelte';
 	import PitaMinus from '#lib/components/stok/PitaMinus.svelte';
-	import { catatPenjualan, muatMenuOutlet, muatPenjualan } from '#lib/kasir/api.ts';
-	import { dataStrukDari, dataStrukRiwayat } from '#lib/kasir/cetak.ts';
+	import { muatMenuOutlet } from '#lib/kasir/api.ts';
 	import { tambah, tambahNasiBox, totalKeranjang, ubahQty } from '#lib/kasir/keranjang.ts';
+	import { buatKejadianJual } from '#lib/kasir/offline-kasir.ts';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
 	import type { DataStruk } from '#lib/kasir/struk.ts';
 	import type { BarisKeranjang, MenuJual, Metode } from '#lib/kasir/types.ts';
-	import { Transaksi } from '#lib/kasir/transaksi.ts';
-	import { shiftKedaluwarsa } from '#lib/kasir/waktu.ts';
+	import { shiftKedaluwarsa, tanggalWib } from '#lib/kasir/waktu.ts';
 	import { formatAngka } from '#lib/master/rupiah.ts';
 	import { href } from '#lib/nav.ts';
+	import { tambahKejadian, ubahDataMenunggu } from '#lib/offline/antrean.ts';
+	import { ambilUrutSementara, nomorSementara } from '#lib/offline/nomor.ts';
+	import { bacaPerangkat } from '#lib/offline/perangkat.ts';
+	import { denganSalinan } from '#lib/offline/salinan.ts';
+	import { dbKasir, sinkron } from '#lib/offline/sinkron.svelte.ts';
 
 	let menu = $state<MenuJual[]>([]);
 	let keranjang = $state<BarisKeranjang[]>([]);
@@ -27,11 +32,8 @@
 	let pesanMenu = $state('');
 	let muatUlang = $state(0);
 	let segarStok = $state(0);
-	// Satu id per keranjang: tekan Bayar dua kali / kirim ulang tidak menggandakan (lihat transaksi.ts).
-	const transaksi = new Transaksi();
-	const api = { catat: catatPenjualan, muat: muatPenjualan };
-	// Pesan server yang berarti shift di perangkat ini sudah tidak berlaku (ditutup di tablet lain).
-	const SHIFT_BERUBAH = /Shift belum dibuka|Shift sudah ditutup/;
+	// Satu id per keranjang: masuk antrean sekali; server idempoten per id.
+	let idTransaksi = $state(crypto.randomUUID());
 	let outletTerakhir: string | undefined;
 
 	// Ganti outlet → keranjang dikosongkan (harga & menu berbeda per outlet).
@@ -43,21 +45,22 @@
 				keranjang = [];
 				menu = [];
 				tahap = 'pilih';
-				transaksi.reset();
+				idTransaksi = crypto.randomUUID();
 			}
 		});
 	});
 
-	// Muat menu outlet; hasil untuk outlet lama yang telat datang diabaikan. Muat lagi saat internet kembali.
+	// Menu dari server bila online (lalu disimpan di perangkat), dari salinan bila offline.
 	$effect(() => {
 		const o = pos.outlet;
 		void muatUlang;
-		if (!o || auth.offline) return;
+		void auth.offline;
+		if (!o) return;
 		let batal = false;
 		pesanMenu = '';
-		muatMenuOutlet(o.id)
-			.then((m) => {
-				if (!batal) menu = m;
+		denganSalinan(dbKasir, `menu:${o.id}`, () => muatMenuOutlet(o.id), (e) => galatJaringan(e as { message?: string }))
+			.then((r) => {
+				if (!batal) menu = r.nilai;
 			})
 			.catch((e) => {
 				if (!batal) pesanMenu = (e as Error).message;
@@ -76,33 +79,50 @@
 		const o = pos.outlet!;
 		const kasir = auth.profile?.nama_tampilan ?? '';
 		const kirim = $state.snapshot(keranjang);
+		const id = idTransaksi;
 		peringatan = '';
-		try {
-			const r = await transaksi.bayar({ outletId: o.id, kirim, metode, diterima }, api);
-			// Struk harus sama persis dengan yang tersimpan di server.
-			struk = r.tersimpan
-				? dataStrukRiwayat(o, kasir, r.tersimpan)
-				: dataStrukDari({ outlet: o, kasir, hasil: r.hasil, keranjang: kirim, metode, diterima });
-			peringatan = r.peringatan.join(' ');
-			if (r.hargaBerubah) muatUlang++;
-			tahap = 'selesai';
-			segarStok++;
-		} catch (e) {
-			if (SHIFT_BERUBAH.test((e as Error).message)) void pos.muatShift();
-			throw e;
+		const r = buatKejadianJual({ id, outletId: o.id, shiftId: pos.shift!.id, metode, diterima, keranjang: kirim, waktu: new Date() });
+		await tambahKejadian(dbKasir, r.kejadian);
+		// Online: coba kirim langsung (paling lama 4 detik) supaya struk memakai nomor resmi.
+		await Promise.race([sinkron.jalankan(), new Promise((x) => setTimeout(x, 4000))]);
+		const k = await dbKasir.kejadian.where('id').equals(id).first();
+		const resmi = k?.status === 'terkirim' ? (k.hasil as { nomor: string; total: number; kembalian: number | null }) : null;
+		if (k?.status === 'ditolak') peringatan = `Belum tercatat di server: ${k.alasan} Cek menu Perlu perhatian.`;
+		let sementara: string | null = null;
+		if (!resmi) {
+			const p = bacaPerangkat(localStorage);
+			const no = nomorSementara(p.kode ?? 0, ambilUrutSementara(localStorage, tanggalWib(new Date())));
+			if (await ubahDataMenunggu(dbKasir, id, { nomor_sementara: no })) sementara = no;
 		}
+		if (resmi && resmi.total !== r.total) peringatan = 'Harga menu baru saja diubah admin; total mengikuti harga terbaru.';
+		struk = {
+			outlet: { merek: o.merek, nama: o.nama, alamat: o.alamat, telepon: o.telepon },
+			nomor: resmi?.nomor ?? sementara ?? 'menyusul',
+			nomorSementara: sementara,
+			kodeStruk: r.kodeStruk,
+			waktu: r.kejadian.waktu,
+			kasir,
+			item: kirim.map((b) => ({ nama: b.nama, harga: b.harga, qty: b.qty })),
+			total: resmi?.total ?? r.total,
+			metode,
+			diterima: metode === 'cash' ? diterima : null,
+			kembalian: metode === 'cash' ? (resmi?.kembalian ?? r.kembalian) : null
+		};
+		if (resmi && resmi.total !== r.total) muatUlang++;
+		tahap = 'selesai';
+		segarStok++;
 	}
 
 	function kosongkan() {
 		keranjang = [];
-		transaksi.reset();
+		idTransaksi = crypto.randomUUID();
 	}
 
 	function baru() {
 		keranjang = [];
 		struk = null;
 		peringatan = '';
-		transaksi.reset();
+		idTransaksi = crypto.randomUUID();
 		tahap = 'pilih';
 	}
 </script>
@@ -149,7 +169,7 @@
 		</div>
 		<aside id="pesanan" class="grid content-start gap-3 md:sticky md:top-20 md:max-h-[calc(100dvh-6rem)] md:overflow-auto">
 			{#if tahap === 'bayar'}
-				<BayarPanel {total} offline={auth.offline} onbayar={bayar} onbatal={() => (tahap = 'pilih')} />
+				<BayarPanel {total} onbayar={bayar} onbatal={() => (tahap = 'pilih')} />
 			{:else}
 				<Keranjang isi={keranjang} onubah={(id, q) => (keranjang = ubahQty(keranjang, id, q))} onkosongkan={kosongkan} />
 				<button

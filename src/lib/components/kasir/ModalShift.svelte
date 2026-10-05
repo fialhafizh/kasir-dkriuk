@@ -1,7 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Button from '#lib/components/ui/Button.svelte';
-	import { bukaShift, modalTerakhir } from '#lib/kasir/api.ts';
+	import { galatJaringan } from '#lib/auth/cache-profil.ts';
+	import { modalTerakhir } from '#lib/kasir/api.ts';
+	import { buatKejadianBuka } from '#lib/kasir/offline-kasir.ts';
+	import { tambahKejadian } from '#lib/offline/antrean.ts';
+	import { denganSalinan } from '#lib/offline/salinan.ts';
+	import { dbKasir, sinkron } from '#lib/offline/sinkron.svelte.ts';
 	import { formatAngka, parseRupiah } from '#lib/master/rupiah.ts';
 	import type { Outlet } from '#lib/types/db.ts';
 
@@ -15,7 +20,7 @@
 	onMount(async () => {
 		let awal = '0';
 		try {
-			awal = formatAngka(await modalTerakhir(outlet.id));
+			awal = formatAngka((await denganSalinan(dbKasir, `modal:${outlet.id}`, () => modalTerakhir(outlet.id), (e) => galatJaringan(e as { message?: string }))).nilai);
 		} catch {
 			// biarkan 0
 		}
@@ -35,7 +40,11 @@
 		memproses = true;
 		error = '';
 		try {
-			onbuka(await bukaShift(outlet.id, modal));
+			// Buka toko masuk antrean (bisa tanpa internet); server menggabungkan bila perangkat lain sudah membuka.
+			const k = buatKejadianBuka(outlet.id, modal, new Date());
+			await tambahKejadian(dbKasir, k);
+			void sinkron.jalankan();
+			onbuka(k.shift_id!);
 		} catch (err) {
 			error = (err as Error).message;
 		} finally {

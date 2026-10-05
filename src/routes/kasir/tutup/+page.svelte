@@ -2,7 +2,13 @@
 	import RingkasanShift from '#lib/components/kasir/RingkasanShift.svelte';
 	import LangkahSisa, { sudahDijawab } from '#lib/components/stok/LangkahSisa.svelte';
 	import Konfirmasi from '#lib/components/ui/Konfirmasi.svelte';
-	import { ringkasanShift, tutupShift } from '#lib/kasir/api.ts';
+	import { galatJaringan } from '#lib/auth/cache-profil.ts';
+	import { daftarPenjualanShift, ringkasanShift } from '#lib/kasir/api.ts';
+	import { buatKejadianTutup } from '#lib/kasir/offline-kasir.ts';
+	import { tambahKejadian } from '#lib/offline/antrean.ts';
+	import { gabungRiwayat, ringkasanLokal } from '#lib/offline/proyeksi.ts';
+	import { bacaSalinan, denganSalinan } from '#lib/offline/salinan.ts';
+	import { dbKasir, sinkron } from '#lib/offline/sinkron.svelte.ts';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
 	import type { Ringkasan } from '#lib/kasir/types.ts';
 	import { href } from '#lib/nav.ts';
@@ -25,12 +31,32 @@
 		}
 	});
 
+	// Ringkasan = ringkasan server (salinan bila offline) + penjualan yang masih di antrean perangkat.
 	$effect(() => {
 		const s = pos.shift;
+		void sinkron.terakhir;
 		if (!s) return;
-		ringkasanShift(s.id)
-			.then((x) => (r = x))
-			.catch((e) => (pesan = (e as Error).message));
+		let batal = false;
+		const jar = (e: unknown) => galatJaringan(e as { message?: string });
+		const coba = async <T,>(kunci: string, ambil: () => Promise<T>): Promise<T | null> => {
+			try {
+				return (await denganSalinan(dbKasir, kunci, ambil, jar)).nilai;
+			} catch {
+				// Shift baru dibuka di perangkat ini (belum ada di server) atau belum ada salinan.
+				return bacaSalinan<T>(dbKasir, kunci);
+			}
+		};
+		void (async () => {
+			const [dasar, server, kejadian] = await Promise.all([
+				coba(`ringkasan:${s.id}`, () => ringkasanShift(s.id)),
+				coba(`riwayat:${s.id}`, () => daftarPenjualanShift(s.id)),
+				dbKasir.kejadian.toArray()
+			]);
+			if (!batal) r = ringkasanLokal(dasar, s, gabungRiwayat(server ?? [], kejadian, s.id));
+		})();
+		return () => {
+			batal = true;
+		};
 	});
 
 	const uang = $derived(parseRupiah(teks));
@@ -42,14 +68,12 @@
 			pesan = 'Isi jumlah uang yang ada di laci, mis. 350.000.';
 			return;
 		}
-		try {
-			hasil = await tutupShift(pos.shift.id, uang, catatan);
-			await pos.muatShift();
-		} catch (e) {
-			pesan = (e as Error).message;
-			// Sudah ditutup di tablet lain: muat ulang supaya halaman tidak menunggu yang mustahil.
-			if (/Shift belum dibuka|Shift sudah ditutup/.test(pesan)) void pos.muatShift();
-		}
+		// Tutup toko masuk antrean (bisa tanpa internet); ringkasan resmi dihitung server saat sinkron.
+		const k = buatKejadianTutup(pos.shift.outlet_id, pos.shift.id, uang, catatan, new Date());
+		await tambahKejadian(dbKasir, k);
+		hasil = { ...r!, uang_fisik: uang, selisih: uang - r!.cash_seharusnya, ditutup_at: k.waktu };
+		void sinkron.jalankan();
+		await pos.muatShift();
 	}
 </script>
 
