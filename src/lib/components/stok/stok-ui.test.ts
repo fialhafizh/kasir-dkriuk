@@ -81,3 +81,17 @@ describe('PitaMinus', () => {
 		expect(body).not.toContain('Stok minus');
 	});
 });
+
+describe('FormStokAwal opsional (rusak/transfer)', () => {
+	it('mode opsional memberi petunjuk "kosongkan yang tidak ada"', () => {
+		const { body } = render(FormStokAwal, {
+			props: {
+				isian: [{ bahan_id: 'd', label: 'Dada Ori', jenis: 'satu' as const, satuan: 'potong', desimal: false }],
+				labelKirim: 'Catat rusak',
+				opsional: true,
+				onkirim: async () => {}
+			}
+		});
+		expect(body).toContain('Isi hanya bahan yang');
+	});
+});

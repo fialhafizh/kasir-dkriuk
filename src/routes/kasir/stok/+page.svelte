@@ -5,6 +5,9 @@
 	import { muatDataStok, muatStok, muatStokAwal, petaStok, type DataStok } from '#lib/stok/api.ts';
 	import { susunStok } from '#lib/stok/tampil.ts';
 	import type { StokAwal } from '#lib/stok/types.ts';
+	import { muatOpname, muatTransfer } from '#lib/stok/api-lanjut.ts';
+	import { perluOpname } from '#lib/stok/opname.ts';
+	import type { Opname, Transfer } from '#lib/stok/types.ts';
 
 	let data = $state<DataStok | null>(null);
 	let stok = $state<Map<string, number>>(new Map());
@@ -12,6 +15,8 @@
 	let status = $state<'memuat' | 'siap' | 'gagal'>('memuat');
 	let pesan = $state('');
 	let ulang = $state(0);
+	let transfer = $state<Transfer[]>([]);
+	let opname = $state<Opname[]>([]);
 
 	$effect(() => {
 		const o = pos.outlet;
@@ -19,12 +24,14 @@
 		if (!o) return;
 		let batal = false;
 		status = 'memuat';
-		Promise.all([muatDataStok(), muatStok(o.id), muatStokAwal(o.id)])
-			.then(([d, s, a]) => {
+		Promise.all([muatDataStok(), muatStok(o.id), muatStokAwal(o.id), muatTransfer(o.id), muatOpname(o.id)])
+			.then(([d, s, a, t, op]) => {
 				if (batal) return;
 				data = d;
 				stok = petaStok(s, o.id);
 				awal = a;
+				transfer = t;
+				opname = op;
 				status = 'siap';
 			})
 			.catch((e) => {
@@ -40,6 +47,10 @@
 	const baris = $derived(data ? susunStok(data.bahan, data.satuan, data.isi, stok) : []);
 	const disetujui = $derived(awal.some((a) => a.status === 'disetujui'));
 	const menunggu = $derived(awal.some((a) => a.status === 'diajukan'));
+	const masukMenunggu = $derived(transfer.filter((t) => t.ke_outlet_id === pos.outlet?.id && t.status === 'dikirim').length);
+	const keluarMenunggu = $derived(transfer.filter((t) => t.dari_outlet_id === pos.outlet?.id && t.status === 'dikirim').length);
+	const ingatOpname = $derived(perluOpname(new Date(), disetujui, opname));
+	const opnameMenunggu = $derived(opname.some((o) => o.status === 'diajukan'));
 	const ditolak = $derived(!disetujui && !menunggu ? awal.find((a) => a.status === 'ditolak') : undefined);
 </script>
 
@@ -65,6 +76,25 @@
 					>Isi stok awal</a
 				>
 			{/if}
+		</div>
+	{/if}
+	{#if disetujui}
+		{#if ingatOpname}
+			<p class="mt-4 rounded-xl border-2 border-warn bg-surface p-3 font-semibold" role="status">
+				Waktunya opname mingguan. <a class="text-brand underline" href={href('/kasir/stok/opname')}>Mulai opname</a>
+			</p>
+		{:else if opnameMenunggu}
+			<p class="mt-4 rounded-xl bg-surface-2 p-3 text-sm" role="status">Opname minggu ini sudah dikirim, menunggu persetujuan admin.</p>
+		{/if}
+		<div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+			<a href={href('/kasir/stok/rusak')} class="flex min-h-14 items-center justify-center rounded-2xl bg-surface-2 px-3 text-center font-semibold">Catat rusak</a>
+			<a href={href('/kasir/stok/kirim')} class="flex min-h-14 items-center justify-center rounded-2xl bg-surface-2 px-3 text-center font-semibold"
+				>Kirim ke outlet lain{keluarMenunggu ? ` (${keluarMenunggu})` : ''}</a
+			>
+			<a href={href('/kasir/stok/terima')} class="flex min-h-14 items-center justify-center rounded-2xl px-3 text-center font-semibold {masukMenunggu ? 'bg-brand text-on-brand' : 'bg-surface-2'}"
+				>Terima kiriman{masukMenunggu ? ` (${masukMenunggu})` : ''}</a
+			>
+			<a href={href('/kasir/stok/opname')} class="flex min-h-14 items-center justify-center rounded-2xl bg-surface-2 px-3 text-center font-semibold">Opname</a>
 		</div>
 	{/if}
 	<div class="mt-4"><DaftarStok {baris} tanpaStatus={!disetujui} /></div>
