@@ -923,9 +923,9 @@ begin
   end if;
   update public.transfer set status = 'diterima', diterima_at = now(), diterima_oleh = auth.uid() where id = p_id;
   insert into public.gerakan_stok (outlet_id, bahan_id, qty, jenis, waktu, oleh, transfer_id)
-  select t.dari_outlet_id, i.bahan_id, -i.qty, 'transfer_keluar', now(), auth.uid(), p_id from public.transfer_item i where i.transfer_id = p_id
+  select t.dari_outlet_id, i.bahan_id, -i.qty, 'transfer_keluar'::public.jenis_gerakan, now(), auth.uid(), p_id from public.transfer_item i where i.transfer_id = p_id
   union all
-  select t.ke_outlet_id, i.bahan_id, i.qty, 'transfer_masuk', now(), auth.uid(), p_id from public.transfer_item i where i.transfer_id = p_id;
+  select t.ke_outlet_id, i.bahan_id, i.qty, 'transfer_masuk'::public.jenis_gerakan, now(), auth.uid(), p_id from public.transfer_item i where i.transfer_id = p_id;
 end
 $$;
 
