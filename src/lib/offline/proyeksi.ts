@@ -11,7 +11,7 @@ export function shiftLokal(server: Shift | null, kejadian: Kejadian[], outletId:
 	for (const x of k) {
 		if (x.jenis === 'buka_shift') {
 			s = { id: x.shift_id!, outlet_id: outletId, dibuka_at: x.waktu, modal: Number(x.data.modal ?? 0), ditutup_at: null };
-		} else if (s && (x.shift_id === s.id || x.shift_id === server?.id)) {
+		} else if (s && x.shift_id && idSatuShift(kejadian, s.id).has(x.shift_id)) {
 			s = null;
 		}
 	}
@@ -54,10 +54,27 @@ function dariKejadian(k: Kejadian): PenjualanLokal {
 	};
 }
 
+/**
+ * Semua id yang berarti shift yang sama: id perangkat dan id shift server bisa berbeda bila
+ * shift digabung saat sinkron (hasil kejadian buka = id shift sebenarnya).
+ */
+export function idSatuShift(kejadian: Kejadian[], shiftId: string): Set<string> {
+	const ids = new Set([shiftId]);
+	for (const k of kejadian) {
+		if (k.jenis !== 'buka_shift' || typeof k.hasil !== 'string' || !k.shift_id) continue;
+		if (k.hasil === shiftId || k.shift_id === shiftId) {
+			ids.add(k.hasil);
+			ids.add(k.shift_id);
+		}
+	}
+	return ids;
+}
+
 /** Penjualan shift ini: dari server + yang masih di perangkat (tanpa dobel), terbaru di atas. */
 export function gabungRiwayat(server: PenjualanRiwayat[], kejadian: Kejadian[], shiftId: string): PenjualanLokal[] {
 	const ada = new Set(server.map((p) => p.id));
-	const lokal = kejadian.filter((k) => k.jenis === 'jual' && k.shift_id === shiftId && !ada.has(k.id)).map(dariKejadian);
+	const ids = idSatuShift(kejadian, shiftId);
+	const lokal = kejadian.filter((k) => k.jenis === 'jual' && !!k.shift_id && ids.has(k.shift_id) && !ada.has(k.id)).map(dariKejadian);
 	const srv: PenjualanLokal[] = server.map((p) => ({
 		...p,
 		kode_struk: p.kode_struk ?? null,

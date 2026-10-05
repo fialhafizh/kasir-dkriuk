@@ -65,3 +65,15 @@ describe('riwayat & ringkasan lokal', () => {
 		expect(cocokCari(p, 'zzz')).toBe(false);
 	});
 });
+
+describe('shift digabung saat sinkron (id perangkat ≠ id shift server)', () => {
+	const buka = kej({ id: 'b', jenis: 'buka_shift', shift_id: 'dev1', status: 'terkirim', hasil: 'srv', data: { modal: 0 } });
+	const jual = kej({ id: 'j', jenis: 'jual', shift_id: 'dev1', status: 'ditolak', alasan: 'x', data: { metode: 'qris', total: 9000, item: [] } });
+	it('penjualan yang masih memakai id perangkat tetap tampil di riwayat shift server', () => {
+		expect(gabungRiwayat([], [buka, jual], 'srv').map((p) => p.id)).toEqual(['j']);
+	});
+	it('dan sebaliknya: shift server terlihat dari id perangkat', () => {
+		const jSrv = kej({ id: 'j2', jenis: 'jual', shift_id: 'srv', data: { metode: 'qris', total: 1, item: [] } });
+		expect(gabungRiwayat([], [buka, jSrv], 'dev1').map((p) => p.id)).toEqual(['j2']);
+	});
+});
