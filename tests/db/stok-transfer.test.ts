@@ -108,3 +108,24 @@ describe('ubah & batal oleh pengirim', () => {
 		expect(await stokBahan(db, 'TK', 'ori_dada')).toBe(0);
 	});
 });
+
+describe('review Tugas 3–4', () => {
+	it('id transfer yang sudah dipakai outlet lain ditolak', async () => {
+		const id = await kirim([['ori_dada', 1]]);
+		const p = { id, dari_outlet_id: await idOutlet(db, 'TK'), ke_outlet_id: await idOutlet(db, 'BL'), item: await isian(db, [['ori_dada', 1]]) };
+		await expect(rpc(db, kasirTK, 'public.kirim_transfer($1::jsonb)', [JSON.stringify(p)])).rejects.toThrow(/tidak berhak/);
+	});
+	it('jumlah desimal dibandingkan setelah dibulatkan seperti yang tersimpan (0,33333 vs 0,3333)', async () => {
+		const id = await kirim([['beras', 0.3333]]);
+		await expect(terima(kasirTK, id, [['beras', 0.33339]])).rejects.toThrow(/perbedaan/);
+		await terima(kasirTK, id, [['beras', 0.33333]]);
+		expect(await stokBahan(db, 'TK', 'beras')).toBeCloseTo(0.3333, 4);
+	});
+	it('outlet ketiga tidak bisa mengubah/membatalkan; kasir nonaktif tidak bisa menerima', async () => {
+		const id = await kirim([['ori_dada', 1]]);
+		await expect(ubah(kasirKP, id, [['ori_dada', 2]])).rejects.toThrow(/Transfer tidak ditemukan/);
+		await expect(batal(kasirKP, id)).rejects.toThrow(/Transfer tidak ditemukan/);
+		await db.query('update public.profiles set aktif = false where id = $1', [kasirTK]);
+		await expect(terima(kasirTK, id, [['ori_dada', 1]])).rejects.toThrow(/Transfer tidak ditemukan/);
+	});
+});

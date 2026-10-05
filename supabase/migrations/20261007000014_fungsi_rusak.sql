@@ -11,13 +11,15 @@ begin
 end
 $$;
 
--- Waktu hitungan fisik terakhir yang disetujui (stok awal atau opname); null bila belum ada.
+-- Waktu hitungan fisik terakhir (stok awal atau opname) yang disetujui ATAU masih menunggu persetujuan;
+-- null bila belum ada. Ajuan yang menunggu ikut dihitung: koreksinya nanti memakai saldo s.d. jam hitung,
+-- jadi perubahan sebelum jam itu yang dibuat sesudahnya akan terhitung dua kali.
 create function public._dihitung_terakhir(p_outlet uuid) returns timestamptz
 language sql stable security definer set search_path = '' as $$
   select max(t) from (
-    select dihitung_at as t from public.stok_awal where outlet_id = p_outlet and status = 'disetujui'
+    select dihitung_at as t from public.stok_awal where outlet_id = p_outlet and status in ('disetujui', 'diajukan')
     union all
-    select dihitung_at from public.opname where outlet_id = p_outlet and status = 'disetujui'
+    select dihitung_at from public.opname where outlet_id = p_outlet and status in ('disetujui', 'diajukan')
   ) x
 $$;
 

@@ -85,3 +85,27 @@ describe('putuskan opname', () => {
 		await expect(rpc(db, adminId, 'public.catat_barang_masuk($1::jsonb)', [JSON.stringify(p)])).rejects.toThrow(/sebelum stok dihitung/);
 	});
 });
+
+describe('review Tugas 3–4', () => {
+	it('selama opname menunggu, catatan rusak dari sebelum hitungan tidak bisa dibatalkan', async () => {
+		await setujuiStokAwal(db, kasirBL, adminId, 'BL', [['ori_dada', 20]], 3);
+		const r = { id: crypto.randomUUID(), outlet_id: await idOutlet(db, 'BL'), alasan: 'gosong', item: await isian(db, [['ori_dada', 5]]) };
+		await rpc(db, kasirBL, 'public.catat_rusak($1::jsonb)', [JSON.stringify(r)]);
+		await ajukan(kasirBL, [['ori_dada', 15]]);
+		await expect(rpc(db, adminId, 'public.batal_rusak($1, $2)', [r.id, 'salah catat'])).rejects.toThrow(/sebelum stok dihitung/);
+	});
+	it('pratinjau opname yang sudah disetujui memakai angka sistem tersimpan', async () => {
+		await setujuiStokAwal(db, kasirBL, adminId, 'BL', [['ori_dada', 20]], 3);
+		const id = await ajukan(kasirBL, [['ori_dada', 15]]);
+		await putuskan(adminId, id, true);
+		const p = await rpc<{ qty_sistem: number }[]>(db, adminId, `(select json_agg(x) from public.pratinjau_opname($1) x)`, [id]);
+		expect(p[0].qty_sistem).toBe(20);
+	});
+	it('kasir tidak bisa melihat pratinjau; kasir nonaktif tidak bisa mengajukan opname', async () => {
+		await setujuiStokAwal(db, kasirBL, adminId, 'BL', [['ori_dada', 20]], 3);
+		const id = await ajukan(kasirBL, [['ori_dada', 15]]);
+		await expect(rpc(db, kasirBL, `(select json_agg(x) from public.pratinjau_opname($1) x)`, [id])).rejects.toThrow(/Hanya admin/);
+		await db.query('update public.profiles set aktif = false where id = $1', [kasirTK]);
+		await expect(rpc(db, kasirTK, 'public.ajukan_opname($1, $2::jsonb)', [await idOutlet(db, 'TK'), '[]'])).rejects.toThrow(/tidak berhak/);
+	});
+});

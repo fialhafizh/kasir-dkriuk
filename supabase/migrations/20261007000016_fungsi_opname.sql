@@ -31,9 +31,12 @@ language plpgsql stable security definer set search_path = '' as $$
 begin
   perform public._wajib_admin_stok();
   return query
+  -- Yang sudah diputuskan: angka sistem tersimpan (saldo kini sudah memuat koreksinya sendiri).
   select i.bahan_id, i.qty_hitung::numeric,
-         coalesce((select sum(g.qty) from public.gerakan_stok g
-                   where g.outlet_id = o.outlet_id and g.bahan_id = i.bahan_id and g.waktu <= o.dihitung_at), 0)::numeric
+         case when o.status = 'diajukan' then
+           coalesce((select sum(g.qty) from public.gerakan_stok g
+                     where g.outlet_id = o.outlet_id and g.bahan_id = i.bahan_id and g.waktu <= o.dihitung_at), 0)
+         else coalesce(i.qty_sistem, 0) end::numeric
   from public.opname_item i
   join public.opname o on o.id = i.opname_id
   where i.opname_id = p_id;

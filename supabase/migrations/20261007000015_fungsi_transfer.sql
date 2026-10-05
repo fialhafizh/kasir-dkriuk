@@ -35,6 +35,10 @@ begin
   end if;
   perform pg_advisory_xact_lock(hashtextextended(v_id::text, 0));
   if exists (select 1 from public.transfer where id = v_id) then
+    -- Kiriman ulang hanya sah dari outlet pengirim yang sama.
+    if not exists (select 1 from public.transfer where id = v_id and dari_outlet_id = v_dari) then
+      raise exception 'Anda tidak berhak mengakses outlet ini' using errcode = '42501';
+    end if;
     return v_id;
   end if;
   if v_ke = v_dari then
@@ -109,7 +113,8 @@ begin
     select 1
     from (select bahan_id, qty from public.transfer_item where transfer_id = p_id) a
     full join (select x.bahan_id, x.qty from jsonb_to_recordset(p_item) as x (bahan_id uuid, qty numeric)) b on a.bahan_id = b.bahan_id
-    where a.bahan_id is null or b.bahan_id is null or abs(a.qty - b.qty) > 0.0001
+    -- Bandingkan dengan pembulatan yang sama seperti saat disimpan (4 desimal).
+    where a.bahan_id is null or b.bahan_id is null or a.qty <> round(b.qty, 4)
   ) then
     select nama into v_nama from public.outlets where id = t.dari_outlet_id;
     raise exception 'Ada perbedaan jumlah. Silakan hubungi outlet pengirim (%)', v_nama using errcode = '22023';
