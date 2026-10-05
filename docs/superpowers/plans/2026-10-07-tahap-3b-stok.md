@@ -125,7 +125,7 @@ async function transferLangsung(status: 'dikirim' | 'diterima'): Promise<string>
 	const id = crypto.randomUUID();
 	const [bl, tk] = [await idOutlet(db, 'BL'), await idOutlet(db, 'TK')];
 	await db.query(
-		`insert into public.transfer (id, dari_outlet_id, ke_outlet_id, status, diterima_at) values ($1, $2, $3, $4, case when $4 = 'diterima' then now() end)`,
+		`insert into public.transfer (id, dari_outlet_id, ke_outlet_id, status, diterima_at) values ($1, $2, $3, $4::public.status_transfer, case when $4::text = 'diterima' then now() end)`,
 		[id, bl, tk, status]
 	);
 	await db.query('insert into public.transfer_item (transfer_id, bahan_id, qty) values ($1, $2, 18)', [id, await idBahan(db, 'ori_dada')]);
@@ -421,6 +421,7 @@ describe('batal rusak', () => {
 	it('rusak yang terjadi sebelum stok dihitung tidak bisa dibatalkan', async () => {
 		const id = await rusak(kasirBL, [['ori_sayap', 3]]);
 		await db.query(`update public.rusak set waktu = now() - interval '2 hours' where id = $1`, [id]);
+		await db.query(`update public.gerakan_stok set waktu = now() - interval '2 hours' where rusak_id = $1`, [id]);
 		await setujuiStokAwal(db, kasirBL, adminId, 'BL', [['ori_sayap', 10]], 1);
 		await expect(batal(adminId, id)).rejects.toThrow(/sebelum stok dihitung/);
 		expect(await stok('ori_sayap')).toBe(10);
@@ -922,9 +923,9 @@ begin
   end if;
   update public.transfer set status = 'diterima', diterima_at = now(), diterima_oleh = auth.uid() where id = p_id;
   insert into public.gerakan_stok (outlet_id, bahan_id, qty, jenis, waktu, oleh, transfer_id)
-  select t.dari_outlet_id, i.bahan_id, -i.qty, 'transfer_keluar', now(), auth.uid(), p_id from public.transfer_item i where i.transfer_id = p_id
+  select t.dari_outlet_id, i.bahan_id, -i.qty, 'transfer_keluar'::public.jenis_gerakan, now(), auth.uid(), p_id from public.transfer_item i where i.transfer_id = p_id
   union all
-  select t.ke_outlet_id, i.bahan_id, i.qty, 'transfer_masuk', now(), auth.uid(), p_id from public.transfer_item i where i.transfer_id = p_id;
+  select t.ke_outlet_id, i.bahan_id, i.qty, 'transfer_masuk'::public.jenis_gerakan, now(), auth.uid(), p_id from public.transfer_item i where i.transfer_id = p_id;
 end
 $$;
 

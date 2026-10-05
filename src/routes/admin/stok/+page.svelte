@@ -92,6 +92,9 @@
 		<a href={href('/admin/stok/awal')} class="inline-flex min-h-12 items-center rounded-xl bg-surface-2 px-4 font-semibold"
 			>Stok awal</a
 		>
+		<a href={href('/admin/stok/opname')} class="inline-flex min-h-12 items-center rounded-xl bg-surface-2 px-4 font-semibold">Opname</a>
+		<a href={href('/admin/stok/rusak')} class="inline-flex min-h-12 items-center rounded-xl bg-surface-2 px-4 font-semibold">Rusak</a>
+		<a href={href('/admin/stok/transfer')} class="inline-flex min-h-12 items-center rounded-xl bg-surface-2 px-4 font-semibold">Transfer</a>
 	</div>
 </div>
 

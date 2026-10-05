@@ -2,15 +2,23 @@
 	import { untrack } from 'svelte';
 	import { beforeNavigate } from '$app/navigation';
 	import Button from '#lib/components/ui/Button.svelte';
-	import { kumpulkanIsian, teksDari, type Isian, type TeksIsian } from '#lib/stok/isian.ts';
+	import { kumpulkanIsian, kumpulkanIsianOpsional, teksDari, type Isian, type TeksIsian } from '#lib/stok/isian.ts';
 	import type { ItemHitung } from '#lib/stok/types.ts';
 
 	let {
 		isian,
 		awal = new Map(),
 		labelKirim,
+		opsional = false,
 		onkirim
-	}: { isian: Isian[]; awal?: ReadonlyMap<string, number>; labelKirim: string; onkirim: (item: ItemHitung[]) => Promise<void> } = $props();
+	}: {
+		isian: Isian[];
+		awal?: ReadonlyMap<string, number>;
+		labelKirim: string;
+		/** Rusak & transfer: hanya kotak yang diisi yang dikirim. Stok awal & opname: semua wajib. */
+		opsional?: boolean;
+		onkirim: (item: ItemHitung[]) => Promise<void>;
+	} = $props();
 
 	// Nilai awal diambil sekali; induk memakai {#key} bila sumbernya berganti.
 	let teks = $state<TeksIsian>(untrack(() => teksDari(isian, awal)));
@@ -28,10 +36,14 @@
 	async function kirim(e: SubmitEvent) {
 		e.preventDefault();
 		pesan = '';
-		const h = kumpulkanIsian(isian, teks);
+		const h = opsional ? kumpulkanIsianOpsional(isian, teks) : kumpulkanIsian(isian, teks);
 		galat = h.galat;
 		if (Object.keys(h.galat).length) {
 			pesan = 'Ada isian yang belum benar. Periksa yang ditandai merah.';
+			return;
+		}
+		if (opsional && h.item.length === 0) {
+			pesan = 'Isi minimal satu bahan.';
 			return;
 		}
 		mengirim = true;
@@ -53,6 +65,7 @@
 />
 
 <form class="grid gap-3" onsubmit={kirim} oninput={() => (kotor = true)} novalidate>
+	{#if opsional}<p class="text-sm text-muted">Isi hanya bahan yang ada; kosongkan sisanya.</p>{/if}
 	<ul class="grid gap-2">
 		{#each isian as f (f.bahan_id)}
 			<li class="grid gap-2 rounded-2xl border border-line bg-surface p-3 sm:grid-cols-[1fr_auto] sm:items-center">

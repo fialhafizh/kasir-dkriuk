@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { muatOutlets } from '#lib/master/api.ts';
 	import { href } from '#lib/nav.ts';
+	import { muatOpname, muatTransfer } from '#lib/stok/api-lanjut.ts';
 	import { muatDataStok, muatStok, muatStokAwal, petaStok } from '#lib/stok/api.ts';
 	import { hitungRingkasan, susunStok } from '#lib/stok/tampil.ts';
 
@@ -16,7 +17,14 @@
 
 	onMount(async () => {
 		try {
-			const [outlets, data, stok, awal] = await Promise.all([muatOutlets(), muatDataStok(), muatStok(), muatStokAwal()]);
+			const [outlets, data, stok, awal, opname, transfer] = await Promise.all([
+				muatOutlets(),
+				muatDataStok(),
+				muatStok(),
+				muatStokAwal(),
+				muatOpname(),
+				muatTransfer()
+			]);
 			baris = outlets
 				.filter((o) => o.aktif)
 				.map((o) => {
@@ -24,7 +32,11 @@
 					const menunggu = awal.some((a) => a.outlet_id === o.id && a.status === 'diajukan');
 					if (!sah) return { id: o.id, nama: o.nama, teks: menunggu ? 'Stok awal menunggu persetujuan' : 'Belum ada stok awal', bahaya: menunggu };
 					const r = hitungRingkasan(susunStok(data.bahan, data.satuan, data.isi, petaStok(stok, o.id)));
-					const teks = r.minus + r.menipis === 0 ? 'Semua aman' : `${r.menipis} menipis, ${r.minus} minus`;
+					const tambahan = [
+						opname.some((x) => x.outlet_id === o.id && x.status === 'diajukan') ? 'opname menunggu persetujuan' : '',
+						transfer.some((x) => x.ke_outlet_id === o.id && x.status === 'dikirim') ? 'kiriman belum diterima' : ''
+					].filter(Boolean);
+					const teks = [r.minus + r.menipis === 0 ? 'Semua aman' : `${r.menipis} menipis, ${r.minus} minus`, ...tambahan].join(' · ');
 					return { id: o.id, nama: o.nama, teks, bahaya: r.minus > 0 };
 				});
 		} catch (e) {

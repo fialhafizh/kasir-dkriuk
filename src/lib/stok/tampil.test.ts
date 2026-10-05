@@ -86,3 +86,20 @@ describe('review Tugas 4', () => {
 		expect(susun({ beras: -0.0033 }).find((x) => x.label === 'Beras')).toMatchObject({ teks: '-0,0033 kg', status: 'minus' });
 	});
 });
+
+import { ALASAN_RUSAK, LABEL_ALASAN } from './tampil';
+
+describe('label 3b', () => {
+	it('jenis gerakan & alasan rusak berlabel Indonesia', () => {
+		expect(LABEL_JENIS.transfer_masuk).toBe('Transfer masuk');
+		expect(LABEL_JENIS.opname).toBe('Opname');
+		expect(ALASAN_RUSAK.map((a) => LABEL_ALASAN[a])).toEqual([
+			'Sisa tidak laku (dibuang)',
+			'Dimakan/dibawa karyawan',
+			'Gosong',
+			'Basi',
+			'Jatuh/rusak',
+			'Lainnya'
+		]);
+	});
+});

@@ -90,6 +90,12 @@ try {
 } finally {
 	if (outletId) {
 		await svc.from('gerakan_stok').delete().eq('outlet_id', outletId);
+		const rs = ((await svc.from('rusak').select('id').eq('outlet_id', outletId)).data ?? []).map((x) => x.id);
+		if (rs.length) await svc.from('rusak_item').delete().in('rusak_id', rs);
+		await svc.from('rusak').delete().eq('outlet_id', outletId);
+		const op = ((await svc.from('opname').select('id').eq('outlet_id', outletId)).data ?? []).map((x) => x.id);
+		if (op.length) await svc.from('opname_item').delete().in('opname_id', op);
+		await svc.from('opname').delete().eq('outlet_id', outletId);
 		const sa = ((await svc.from('stok_awal').select('id').eq('outlet_id', outletId)).data ?? []).map((x) => x.id);
 		if (sa.length) await svc.from('stok_awal_item').delete().in('stok_awal_id', sa);
 		await svc.from('stok_awal').delete().eq('outlet_id', outletId);

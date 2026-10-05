@@ -81,3 +81,37 @@ describe('PitaMinus', () => {
 		expect(body).not.toContain('Stok minus');
 	});
 });
+
+describe('FormStokAwal opsional (rusak/transfer)', () => {
+	it('mode opsional memberi petunjuk "kosongkan yang tidak ada"', () => {
+		const { body } = render(FormStokAwal, {
+			props: {
+				isian: [{ bahan_id: 'd', label: 'Dada Ori', jenis: 'satu' as const, satuan: 'potong', desimal: false }],
+				labelKirim: 'Catat rusak',
+				opsional: true,
+				onkirim: async () => {}
+			}
+		});
+		expect(body).toContain('Isi hanya bahan yang');
+	});
+});
+
+import LangkahSisa from './LangkahSisa.svelte';
+
+describe('LangkahSisa', () => {
+	it('menampilkan pertanyaan wajib dengan pilihan Tidak ada / Ada', () => {
+		const { body } = render(LangkahSisa, { props: { outletId: 'o', shiftId: 's', onselesai: () => {} } });
+		expect(body).toContain('Ada sisa yang tidak terjual?');
+		expect(body).toContain('Tidak ada sisa');
+		expect(body).toContain('Ada sisa');
+	});
+});
+
+describe('DaftarStok tanpa angka (keputusan owner B: opname jatuh tempo)', () => {
+	it('angka disembunyikan, nama & tanda status tetap tampil', () => {
+		const { body } = render(DaftarStok, { props: { baris, tanpaAngka: true } });
+		expect(body).toContain('Ayam Ori');
+		expect(body).not.toContain('5 pack + 3 Sayap Ori');
+		expect(body).toContain('Disembunyikan sampai opname dikirim');
+	});
+});

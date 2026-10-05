@@ -24,6 +24,7 @@ SvelteKit 3 (Svelte 5) + Tailwind CSS 4, di-hosting statis (GitHub Pages, hash r
 | `node --env-file=.env.local scripts/seed-harga-beli.ts` | isi harga beli dari `data/harga-beli.local.json` (tidak di-commit) |
 | `node --env-file=.env.local scripts/uji-kasir.ts` | uji alur kasir di server (outlet & akun sementara, dibersihkan otomatis) |
 | `node --env-file=.env.local scripts/uji-stok.ts` | uji alur stok di server (outlet & akun sementara, dibersihkan otomatis) |
+| `node --env-file=.env.local scripts/uji-stok-3b.ts` | uji rusak, transfer, opname di server (outlet & akun sementara, dibersihkan otomatis) |
 
 ## Akun
 - Login memakai **username + password**. Di belakang layar username menjadi email `username@kasir-dkriuk.invalid` (domain yang tidak bisa didaftarkan siapa pun).

@@ -85,3 +85,13 @@ export function teksDari(isian: Isian[], qty: ReadonlyMap<string, number>): Teks
 	}
 	return hasil;
 }
+
+/** Rusak & transfer: hanya kotak yang diisi (> 0) yang dikirim; kosong/0 = tidak ada. */
+export function kumpulkanIsianOpsional(isian: Isian[], teks: TeksIsian): { item: ItemHitung[]; galat: Record<string, string> } {
+	const terisi = isian.filter((f) => {
+		const t = teks[f.bahan_id];
+		return t && (t.a.trim() !== '' || t.b.trim() !== '');
+	});
+	const h = kumpulkanIsian(terisi, teks);
+	return { item: h.item.filter((i) => i.qty > 0), galat: h.galat };
+}

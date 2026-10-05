@@ -1,7 +1,7 @@
 // Menyusun angka buku besar menjadi baris stok yang mudah dibaca kasir/admin (logika murni, teruji).
 import { formatQty } from '#lib/master/rupiah.ts';
 import type { Bahan, IsiSatuanBeli, SatuanBeli } from '#lib/master/types.ts';
-import type { BarisStok, JenisGerakan, StatusStok } from './types.ts';
+import type { AlasanRusak, BarisStok, JenisGerakan, StatusStok } from './types.ts';
 
 const EPS = 1e-9;
 // Sisa pembulatan resep 4 desimal (mis. 12 porsi × 0,0833 kg) di bawah 0,001 dianggap nol: tampilan & tanda sama.
@@ -13,7 +13,22 @@ export const LABEL_JENIS: Record<JenisGerakan, string> = {
 	masuk: 'Barang masuk',
 	masuk_batal: 'Batal barang masuk',
 	jual: 'Terjual',
-	jual_batal: 'Batal jual'
+	jual_batal: 'Batal jual',
+	rusak: 'Rusak/terbuang',
+	rusak_batal: 'Batal rusak',
+	transfer_keluar: 'Transfer keluar',
+	transfer_masuk: 'Transfer masuk',
+	opname: 'Opname'
+};
+
+export const ALASAN_RUSAK: AlasanRusak[] = ['sisa_tidak_laku', 'dimakan_karyawan', 'gosong', 'basi', 'jatuh_rusak', 'lainnya'];
+export const LABEL_ALASAN: Record<AlasanRusak, string> = {
+	sisa_tidak_laku: 'Sisa tidak laku (dibuang)',
+	dimakan_karyawan: 'Dimakan/dibawa karyawan',
+	gosong: 'Gosong',
+	basi: 'Basi',
+	jatuh_rusak: 'Jatuh/rusak',
+	lainnya: 'Lainnya'
 };
 
 /** Paling banyak 2 desimal, koma Indonesia; -0 ditampilkan 0. */

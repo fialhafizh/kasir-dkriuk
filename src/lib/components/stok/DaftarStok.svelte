@@ -4,9 +4,17 @@
 	let {
 		baris,
 		tanpaStatus = false,
+		tanpaAngka = false,
 		dipilih = null,
 		onpilih
-	}: { baris: BarisStok[]; tanpaStatus?: boolean; dipilih?: string | null; onpilih?: (b: BarisStok) => void } = $props();
+	}: {
+		baris: BarisStok[];
+		tanpaStatus?: boolean;
+		/** Opname jatuh tempo (keputusan owner): angka disembunyikan agar hitungan kasir tidak menyalin sistem. */
+		tanpaAngka?: boolean;
+		dipilih?: string | null;
+		onpilih?: (b: BarisStok) => void;
+	} = $props();
 
 	const LABEL: Record<StatusStok, string> = { aman: 'Aman', menipis: 'Menipis', minus: 'Minus' };
 	const WARNA: Record<StatusStok, string> = {
@@ -19,7 +27,7 @@
 {#snippet isi(b: BarisStok)}
 	<span class="min-w-0 flex-1">
 		<span class="block font-semibold">{b.label}</span>
-		<span class="tabular block text-sm text-muted">{b.teks}</span>
+		<span class="tabular block text-sm text-muted">{tanpaAngka ? 'Disembunyikan sampai opname dikirim' : b.teks}</span>
 	</span>
 	{#if !tanpaStatus}
 		<span class="shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold {WARNA[b.status]}">{LABEL[b.status]}</span>
