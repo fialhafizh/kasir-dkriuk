@@ -125,7 +125,7 @@ async function transferLangsung(status: 'dikirim' | 'diterima'): Promise<string>
 	const id = crypto.randomUUID();
 	const [bl, tk] = [await idOutlet(db, 'BL'), await idOutlet(db, 'TK')];
 	await db.query(
-		`insert into public.transfer (id, dari_outlet_id, ke_outlet_id, status, diterima_at) values ($1, $2, $3, $4, case when $4 = 'diterima' then now() end)`,
+		`insert into public.transfer (id, dari_outlet_id, ke_outlet_id, status, diterima_at) values ($1, $2, $3, $4::public.status_transfer, case when $4::text = 'diterima' then now() end)`,
 		[id, bl, tk, status]
 	);
 	await db.query('insert into public.transfer_item (transfer_id, bahan_id, qty) values ($1, $2, 18)', [id, await idBahan(db, 'ori_dada')]);
