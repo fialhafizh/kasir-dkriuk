@@ -61,13 +61,28 @@ begin
 end
 $$;
 
+-- Kejadian yang ditolak server lalu diabaikan kasir: tetap dilaporkan supaya admin bisa menelusuri.
+create table public.kejadian_diabaikan (
+  id uuid primary key,
+  outlet_id uuid not null references public.outlets (id) on delete restrict,
+  perangkat_id uuid references public.perangkat (id) on delete restrict,
+  jenis text not null check (length(jenis) <= 30),
+  data jsonb not null,
+  alasan_tolak text check (alasan_tolak is null or length(alasan_tolak) <= 500),
+  alasan text not null check (length(alasan) between 3 and 200),
+  oleh uuid references public.profiles (id) on delete restrict,
+  dibuat_at timestamptz not null default now()
+);
+
+alter table public.kejadian_diabaikan enable row level security;
 alter table public.perangkat enable row level security;
 alter table public.shift_perangkat enable row level security;
-revoke all on public.perangkat, public.shift_perangkat from anon, authenticated;
+revoke all on public.perangkat, public.shift_perangkat, public.kejadian_diabaikan from anon, authenticated;
 revoke all on sequence public.perangkat_kode_seq from anon, authenticated;
-grant select on public.perangkat, public.shift_perangkat to authenticated;
-grant all on public.perangkat, public.shift_perangkat to service_role;
+grant select on public.perangkat, public.shift_perangkat, public.kejadian_diabaikan to authenticated;
+grant all on public.perangkat, public.shift_perangkat, public.kejadian_diabaikan to service_role;
 grant usage, select on sequence public.perangkat_kode_seq to service_role;
 create policy perangkat_baca on public.perangkat for select to authenticated using ((select public.is_admin()));
+create policy kejadian_diabaikan_baca on public.kejadian_diabaikan for select to authenticated using ((select public.is_admin()));
 create policy shift_perangkat_baca on public.shift_perangkat for select to authenticated
   using (exists (select 1 from public.shift s where s.id = shift_id));

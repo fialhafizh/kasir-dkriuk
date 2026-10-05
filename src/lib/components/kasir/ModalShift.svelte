@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import { galatJaringan } from '#lib/auth/cache-profil.ts';
+	import { auth } from '#lib/auth/session.svelte.ts';
 	import { modalTerakhir } from '#lib/kasir/api.ts';
 	import { buatKejadianBuka } from '#lib/kasir/offline-kasir.ts';
 	import { tambahKejadian } from '#lib/offline/antrean.ts';
@@ -42,7 +43,7 @@
 		try {
 			// Buka toko masuk antrean (bisa tanpa internet); server menggabungkan bila perangkat lain sudah membuka.
 			const k = buatKejadianBuka(outlet.id, modal, new Date());
-			await tambahKejadian(dbKasir, k);
+			await tambahKejadian(dbKasir, { ...k, user_id: auth.profile?.id ?? null });
 			void sinkron.jalankan();
 			onbuka(k.shift_id!);
 		} catch (err) {

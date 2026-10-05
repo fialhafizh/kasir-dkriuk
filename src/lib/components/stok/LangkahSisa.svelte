@@ -1,8 +1,9 @@
 <script module lang="ts">
 	export const kunciSisa = (shiftId: string) => `dk-sisa-${shiftId}`;
-	export function sudahDijawab(shiftId: string): boolean {
+	/** Dijawab untuk salah satu id shift ini (id perangkat & id server bisa berbeda setelah digabung). */
+	export function sudahDijawab(...shiftIds: string[]): boolean {
 		try {
-			return sessionStorage.getItem(kunciSisa(shiftId)) === '1';
+			return shiftIds.some((id) => sessionStorage.getItem(kunciSisa(id)) === '1');
 		} catch {
 			return false;
 		}
@@ -14,6 +15,7 @@
 	import { muatBahan, muatMenu, muatResep } from '#lib/master/api.ts';
 	import { buatKejadianRusak } from '#lib/kasir/offline-kasir.ts';
 	import { galatJaringan } from '#lib/auth/cache-profil.ts';
+	import { auth } from '#lib/auth/session.svelte.ts';
 	import { tambahKejadian } from '#lib/offline/antrean.ts';
 	import { denganSalinan } from '#lib/offline/salinan.ts';
 	import { dbKasir, sinkron } from '#lib/offline/sinkron.svelte.ts';
@@ -73,7 +75,7 @@
 		menyimpan = true;
 		try {
 			// Lewat antrean: tetap tercatat walau tutup toko tanpa internet.
-			await tambahKejadian(dbKasir, { ...buatKejadianRusak(outletId, alasan, h.item, new Date()), id });
+			await tambahKejadian(dbKasir, { ...buatKejadianRusak(outletId, alasan, h.item, new Date()), id, user_id: auth.profile?.id ?? null });
 			void sinkron.jalankan();
 			tercatat = `Tercatat sebagai "${LABEL_ALASAN[alasan]}". Ada sisa dengan alasan lain? Isi lagi, atau lanjut.`;
 			id = crypto.randomUUID();

@@ -112,13 +112,14 @@ describe('buka & tutup toko offline', () => {
 		await buka(kasirBL, crypto.randomUUID(), P1, 0, "now() - interval '30 hours'");
 		await expect(buka(kasirBL, crypto.randomUUID(), P2)).rejects.toThrow(/Toko kemarin belum ditutup/);
 	});
-	it('tutup: idempoten per id kejadian; tutup kedua dicatat sebagai "sudah ditutup"; jam tutup = jam kejadian', async () => {
+	it('tutup: idempoten per id kejadian; tutup kedua dari perangkat pembuka ditolak; jam tutup = jam kejadian', async () => {
 		const a = await buka(kasirBL, crypto.randomUUID(), P1, 100000, "now() - interval '5 hours'");
 		const t = crypto.randomUUID();
 		const r1 = await tutup(kasirBL, t, a, 100000, "now() - interval '1 hour'");
 		const r2 = await tutup(kasirBL, t, a, 100000);
 		expect(r2).toEqual(r1);
-		expect(await tutup(kasirBL, crypto.randomUUID(), a, 5)).toMatchObject({ sudah_ditutup: true });
+		// Perangkat pembuka (id = id shift) menutup lagi dengan kejadian lain → ditolak; kasus perangkat kedua diuji terpisah.
+		await expect(tutup(kasirBL, crypto.randomUUID(), a, 5)).rejects.toThrow(/Shift sudah ditutup/);
 		const lama = (await db.query<{ ok: boolean }>(`select ditutup_at < now() - interval '30 minutes' as ok from public.shift where id = $1`, [a])).rows[0].ok;
 		expect(lama).toBe(true);
 	});
@@ -248,3 +249,25 @@ describe('review Tugas 1–3', () => {
 		expect(sp.uang_fisik).toBe(5000);
 	});
 });
+
+
+describe('review T4–T8: server', () => {
+	it('perangkat yang tidak pernah membuka shift itu tidak menimpa hitungan perangkat pembuka', async () => {
+		await daftar(kasirBL, P1);
+		const a = await buka(kasirBL, crypto.randomUUID(), P1, 0, "now() - interval '3 hours'");
+		await tutup(kasirBL, crypto.randomUUID(), a, 50000, "now() - interval '1 hour'");
+		await expect(tutup(kasirBL, crypto.randomUUID(), a, 9, "now() - interval '30 minutes'")).rejects.toThrow(/Shift sudah ditutup/);
+		const r = (await db.query<{ u: number | null }>('select uang_fisik as u from public.shift_perangkat where id = $1', [a])).rows[0];
+		expect(r.u).toBeNull();
+	});
+	it('kejadian yang diabaikan kasir dilaporkan ke server (sekali) dan hanya admin yang bisa membaca', async () => {
+		const id = crypto.randomUUID();
+		const p = { id, outlet_id: await idOutlet(db, 'BL'), jenis: 'jual', data: { total: 1 }, alasan_tolak: 'Shift sudah ditutup.', alasan: 'transaksi dobel' };
+		await rpc(db, kasirBL, 'public.lapor_kejadian_diabaikan($1::jsonb)', [JSON.stringify(p)]);
+		await rpc(db, kasirBL, 'public.lapor_kejadian_diabaikan($1::jsonb)', [JSON.stringify(p)]);
+		expect(await sebagai(db, kasirBL, async () => (await db.query('select * from public.kejadian_diabaikan')).rows)).toHaveLength(0);
+		expect(await sebagai(db, adminId, async () => (await db.query('select * from public.kejadian_diabaikan')).rows)).toHaveLength(1);
+		await expect(rpc(db, kasirBL, 'public.lapor_kejadian_diabaikan($1::jsonb)', [JSON.stringify({ ...p, id: crypto.randomUUID(), alasan: 'x' })])).rejects.toThrow(/Alasan/);
+	});
+});
+

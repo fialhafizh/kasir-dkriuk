@@ -15,16 +15,18 @@ export function pengirimSupabase(perangkatId: string): Pengirim {
 	return {
 		async kirim(k: Kejadian) {
 			const dasar = { ...k.data, outlet_id: k.outlet_id, waktu: k.waktu, perangkat_id: perangkatId };
+			// Koneksi menggantung tidak boleh menahan sinkron selamanya.
+			const batas = AbortSignal.timeout(15_000);
 			const panggil = () => {
 				switch (k.jenis) {
 					case 'buka_shift':
-						return supabase.rpc('buka_shift_offline', { p: { ...dasar, id: k.shift_id } });
+						return supabase.rpc('buka_shift_offline', { p: { ...dasar, id: k.shift_id } }).abortSignal(batas);
 					case 'jual':
-						return supabase.rpc('catat_penjualan_offline', { p: { ...dasar, id: k.id, shift_id: k.shift_id } });
+						return supabase.rpc('catat_penjualan_offline', { p: { ...dasar, id: k.id, shift_id: k.shift_id } }).abortSignal(batas);
 					case 'tutup_shift':
-						return supabase.rpc('tutup_shift_offline', { p: { ...dasar, id: k.id, shift_id: k.shift_id } });
+						return supabase.rpc('tutup_shift_offline', { p: { ...dasar, id: k.id, shift_id: k.shift_id } }).abortSignal(batas);
 					case 'rusak':
-						return supabase.rpc('catat_rusak_offline', { p: { ...dasar, id: k.id } });
+						return supabase.rpc('catat_rusak_offline', { p: { ...dasar, id: k.id } }).abortSignal(batas);
 				}
 			};
 			let res: { data: unknown; error: Galat | null; status?: number };
@@ -35,7 +37,8 @@ export function pengirimSupabase(perangkatId: string): Pengirim {
 			}
 			if (res.error) {
 				const g = { ...res.error, status: res.error.status ?? res.status };
-				if (galatJaringan(g) || sesiBermasalah(g)) throw new GalatKirim('Tidak bisa terhubung ke server.', true);
+				const habisWaktu = g.name === 'AbortError' || g.name === 'TimeoutError' || /abort/i.test(g.message ?? '');
+				if (habisWaktu || galatJaringan(g) || sesiBermasalah(g)) throw new GalatKirim('Tidak bisa terhubung ke server.', true);
 				throw new GalatKirim(pesanSinkron(g), false);
 			}
 			return res.data;

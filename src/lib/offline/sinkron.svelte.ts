@@ -1,4 +1,5 @@
 // Status sinkron untuk layar kasir & pemicunya (online kembali, berkala, layar terlihat, tombol).
+import { auth } from '#lib/auth/session.svelte.ts';
 import { supabase } from '#lib/supabase/client.ts';
 import { bersihkanTerkirim, hitungAntrean, kirimAntrean } from './antrean.ts';
 import { bukaDb } from './db.ts';
@@ -28,12 +29,14 @@ class SinkronState {
 		this.#berjalan ??= (async () => {
 			this.sedang = true;
 			try {
-				const r = await kirimAntrean(dbKasir, pengirimSupabase(this.#perangkat!));
+				const r = await kirimAntrean(dbKasir, pengirimSupabase(this.#perangkat!), auth.profile?.id ?? null);
 				if (r.berhenti === 'selesai') {
 					this.terakhir = new Date().toISOString();
 					await supabase.rpc('tandai_sinkron', { p_id: this.#perangkat });
 					await bersihkanTerkirim(dbKasir, new Date(Date.now() - 3 * 86_400_000));
 				}
+			} catch {
+				// Galat tak terduga (mis. penyimpanan): dicoba lagi pada pemicu berikutnya.
 			} finally {
 				this.sedang = false;
 				this.#berjalan = null;

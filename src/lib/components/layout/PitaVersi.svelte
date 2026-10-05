@@ -21,7 +21,7 @@
 		void navigator.storage?.persist?.();
 	});
 
-	const tertahan = $derived(sinkron.menunggu + sinkron.ditolak > 0);
+	const tertahan = $derived(sinkron.menunggu > 0);
 </script>
 
 {#if siap}

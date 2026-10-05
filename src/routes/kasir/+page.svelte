@@ -18,7 +18,7 @@
 	import { shiftKedaluwarsa, tanggalWib } from '#lib/kasir/waktu.ts';
 	import { formatAngka } from '#lib/master/rupiah.ts';
 	import { href } from '#lib/nav.ts';
-	import { tambahKejadian, ubahDataMenunggu } from '#lib/offline/antrean.ts';
+	import { tambahKejadian } from '#lib/offline/antrean.ts';
 	import { ambilUrutSementara, nomorSementara } from '#lib/offline/nomor.ts';
 	import { bacaPerangkat } from '#lib/offline/perangkat.ts';
 	import { denganSalinan } from '#lib/offline/salinan.ts';
@@ -82,18 +82,23 @@
 		const id = idTransaksi;
 		peringatan = '';
 		const r = buatKejadianJual({ id, outletId: o.id, shiftId: pos.shift!.id, metode, diterima, keranjang: kirim, waktu: new Date() });
-		await tambahKejadian(dbKasir, r.kejadian);
-		// Online: coba kirim langsung (paling lama 4 detik) supaya struk memakai nomor resmi.
-		await Promise.race([sinkron.jalankan(), new Promise((x) => setTimeout(x, 4000))]);
-		const k = await dbKasir.kejadian.where('id').equals(id).first();
-		const resmi = k?.status === 'terkirim' ? (k.hasil as { nomor: string; total: number; kembalian: number | null }) : null;
-		if (k?.status === 'ditolak') peringatan = `Belum tercatat di server: ${k.alasan} Cek menu Perlu perhatian.`;
-		let sementara: string | null = null;
-		if (!resmi) {
-			const p = bacaPerangkat(localStorage);
-			const no = nomorSementara(p.kode ?? 0, ambilUrutSementara(localStorage, tanggalWib(new Date())));
-			if (await ubahDataMenunggu(dbKasir, id, { nomor_sementara: no })) sementara = no;
+		// Nomor sementara ditetapkan SEBELUM masuk antrean supaya pasti ikut tersimpan di server
+		// (perangkat yang belum pernah terdaftar online: nomor menyusul, kode struk tetap tercetak).
+		const kodePerangkat = bacaPerangkat(localStorage).kode;
+		const noSementara = kodePerangkat ? nomorSementara(kodePerangkat, ambilUrutSementara(localStorage, tanggalWib(new Date()))) : null;
+		if (noSementara) r.kejadian.data.nomor_sementara = noSementara;
+		await tambahKejadian(dbKasir, { ...r.kejadian, user_id: auth.profile?.id ?? null });
+		let resmi = null as { nomor: string; total: number; kembalian: number | null } | null;
+		try {
+			// Online: coba kirim langsung (paling lama 4 detik) supaya struk memakai nomor resmi.
+			await Promise.race([sinkron.jalankan(), new Promise((x) => setTimeout(x, 4000))]);
+			const k = await dbKasir.kejadian.where('id').equals(id).first();
+			if (k?.status === 'terkirim') resmi = k.hasil as { nomor: string; total: number; kembalian: number | null };
+			if (k?.status === 'ditolak') peringatan = `Belum tercatat di server: ${k.alasan} Cek menu Perlu perhatian.`;
+		} catch {
+			// Transaksi sudah aman di antrean; struk tetap ditampilkan.
 		}
+		const sementara = resmi ? null : noSementara;
 		if (resmi && resmi.total !== r.total) peringatan = 'Harga menu baru saja diubah admin; total mengikuti harga terbaru.';
 		struk = {
 			outlet: { merek: o.merek, nama: o.nama, alamat: o.alamat, telepon: o.telepon },

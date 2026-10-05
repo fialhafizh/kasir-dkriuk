@@ -6,7 +6,8 @@
 	import { daftarPenjualanShift, ringkasanShift } from '#lib/kasir/api.ts';
 	import { buatKejadianTutup } from '#lib/kasir/offline-kasir.ts';
 	import { tambahKejadian } from '#lib/offline/antrean.ts';
-	import { gabungRiwayat, ringkasanLokal } from '#lib/offline/proyeksi.ts';
+	import { auth } from '#lib/auth/session.svelte.ts';
+	import { gabungRiwayat, idSatuShift, ringkasanLokal } from '#lib/offline/proyeksi.ts';
 	import { bacaSalinan, denganSalinan } from '#lib/offline/salinan.ts';
 	import { dbKasir, sinkron } from '#lib/offline/sinkron.svelte.ts';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
@@ -27,7 +28,10 @@
 		// Hanya dibaca ulang saat shift berganti (muat ulang shift yang sama tidak mengulang pertanyaan).
 		if (id && id !== sisaUntuk) {
 			sisaUntuk = id;
-			sisaSelesai = sudahDijawab(id);
+			void dbKasir.kejadian
+				.toArray()
+				.then((k) => (sisaSelesai = sudahDijawab(...idSatuShift(k, id))))
+				.catch(() => (sisaSelesai = sudahDijawab(id)));
 		}
 	});
 
@@ -69,8 +73,23 @@
 			return;
 		}
 		// Tutup toko masuk antrean (bisa tanpa internet); ringkasan resmi dihitung server saat sinkron.
-		const k = buatKejadianTutup(pos.shift.outlet_id, pos.shift.id, uang, catatan, new Date());
-		await tambahKejadian(dbKasir, k);
+		// Kirim dengan id shift milik perangkat ini (bila ia ikut membuka) supaya hitungan lacinya tercatat atas namanya.
+		let shiftKirim = pos.shift.id;
+		try {
+			const semua = await dbKasir.kejadian.toArray();
+			const ids = idSatuShift(semua, pos.shift.id);
+			const milik = semua.find((x) => x.jenis === 'buka_shift' && x.shift_id && ids.has(x.shift_id));
+			if (milik?.shift_id) shiftKirim = milik.shift_id;
+		} catch {
+			// pakai id shift yang ada
+		}
+		const k = buatKejadianTutup(pos.shift.outlet_id, shiftKirim, uang, catatan, new Date());
+		try {
+			await tambahKejadian(dbKasir, { ...k, user_id: auth.profile?.id ?? null });
+		} catch (e) {
+			pesan = `Gagal menyimpan di perangkat: ${(e as Error).message}`;
+			return;
+		}
 		hasil = { ...r!, uang_fisik: uang, selisih: uang - r!.cash_seharusnya, ditutup_at: k.waktu };
 		void sinkron.jalankan();
 		await pos.muatShift();

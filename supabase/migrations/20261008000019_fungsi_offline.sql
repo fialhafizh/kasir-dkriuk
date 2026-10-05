@@ -180,7 +180,8 @@ begin
   end if;
   if s.ditutup_at is not null and not s.tutup_tertunda then
     -- Sudah ditutup perangkat lain (shift gabungan): simpan hitungan laci perangkat ini sebagai catatan.
-    update public.shift_perangkat set uang_fisik = v_uang, ditutup_at = v_waktu, tutup_id = v_id where id = v_dev;
+    -- Hanya baris perangkat ini (bukan baris pembuka shift yang id-nya = id shift).
+    update public.shift_perangkat set uang_fisik = v_uang, ditutup_at = v_waktu, tutup_id = v_id where id = v_dev and v_dev <> s.id;
     if not found then
       raise exception 'Shift sudah ditutup' using errcode = '22023';
     end if;
@@ -363,6 +364,25 @@ begin
 end
 $$;
 
+create function public.lapor_kejadian_diabaikan(p jsonb) returns void
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_outlet uuid := (p ->> 'outlet_id')::uuid;
+  v_alasan text := trim(coalesce(p ->> 'alasan', ''));
+begin
+  perform public._cek_akses_outlet(v_outlet);
+  if length(v_alasan) < 3 or length(v_alasan) > 200 then
+    raise exception 'Alasan pembatalan wajib diisi (3–200 karakter)' using errcode = '22023';
+  end if;
+  insert into public.kejadian_diabaikan (id, outlet_id, perangkat_id, jenis, data, alasan_tolak, alasan, oleh)
+  values ((p ->> 'id')::uuid, v_outlet, public._perangkat_dikenal((p ->> 'perangkat_id')::uuid), left(coalesce(p ->> 'jenis', '-'), 30),
+    coalesce(p -> 'data', '{}'::jsonb), left(p ->> 'alasan_tolak', 500), v_alasan, auth.uid())
+  on conflict (id) do nothing;
+end
+$$;
+
+revoke execute on function public.lapor_kejadian_diabaikan(jsonb) from public, anon;
+grant execute on function public.lapor_kejadian_diabaikan(jsonb) to authenticated;
 revoke execute on function public.catat_penjualan_offline(jsonb) from public, anon;
 revoke execute on function public.catat_rusak_offline(jsonb) from public, anon;
 grant execute on function public.catat_penjualan_offline(jsonb) to authenticated;

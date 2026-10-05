@@ -17,7 +17,12 @@ export interface Pengirim {
 
 const TERTAHAN = 'Menunggu: buka toko untuk shift ini ditolak. Selesaikan itu dulu.';
 
-export async function tambahKejadian(db: DbKasir, k: Pick<Kejadian, 'id' | 'jenis' | 'outlet_id' | 'shift_id' | 'waktu' | 'data'>): Promise<void> {
+export async function tambahKejadian(
+	db: DbKasir,
+	k: Pick<Kejadian, 'id' | 'jenis' | 'outlet_id' | 'shift_id' | 'waktu' | 'data'> & { user_id?: string | null }
+): Promise<void> {
+	// Id yang sama sudah ada (mis. Bayar diulang setelah galat): sudah tercatat, bukan galat.
+	if (await db.kejadian.where('id').equals(k.id).count()) return;
 	await db.kejadian.add({ ...k, status: 'menunggu', alasan: null, percobaan: 0, hasil: null, terkirim_at: null });
 }
 
@@ -26,11 +31,18 @@ async function bukaDitolak(db: DbKasir, shiftId: string | null): Promise<boolean
 	return (await db.kejadian.where('shift_id').equals(shiftId).filter((x) => x.jenis === 'buka_shift' && x.status === 'ditolak').count()) > 0;
 }
 
-export async function kirimAntrean(db: DbKasir, pengirim: Pengirim): Promise<{ terkirim: number; ditolak: number; berhenti: 'selesai' | 'jaringan' }> {
+/** userId: bila diisi, hanya kejadian milik pengguna itu (atau tanpa pemilik) yang dikirim. */
+export async function kirimAntrean(
+	db: DbKasir,
+	pengirim: Pengirim,
+	userId?: string | null
+): Promise<{ terkirim: number; ditolak: number; berhenti: 'selesai' | 'jaringan' }> {
 	let terkirim = 0;
 	let ditolak = 0;
 	for (;;) {
-		const k = (await db.kejadian.where('status').equals('menunggu').sortBy('urut'))[0];
+		const k = (await db.kejadian.where('status').equals('menunggu').sortBy('urut')).find(
+			(x) => !userId || !x.user_id || x.user_id === userId
+		);
 		if (!k) return { terkirim, ditolak, berhenti: 'selesai' };
 		if (k.jenis !== 'buka_shift' && (await bukaDitolak(db, k.shift_id))) {
 			await db.kejadian.update(k.urut!, { status: 'ditolak', alasan: TERTAHAN });
@@ -72,6 +84,14 @@ export async function cobaLagi(db: DbKasir, id: string): Promise<void> {
 			.filter((x) => x.status === 'ditolak' && x.alasan === TERTAHAN)
 			.modify({ status: 'menunggu', alasan: null });
 	}
+}
+
+/** Kejadian ditolak yang diabaikan kasir (dengan alasan); dikembalikan untuk dilaporkan ke server. */
+export async function abaikan(db: DbKasir, id: string, alasan: string): Promise<Kejadian | null> {
+	const k = await db.kejadian.where('id').equals(id).first();
+	if (!k || k.status !== 'ditolak') return null;
+	await db.kejadian.update(k.urut!, { status: 'diabaikan', alasan: `${k.alasan ?? ''} | Diabaikan: ${alasan}` });
+	return { ...k, status: 'diabaikan' };
 }
 
 export async function hitungAntrean(db: DbKasir): Promise<{ menunggu: number; ditolak: number }> {

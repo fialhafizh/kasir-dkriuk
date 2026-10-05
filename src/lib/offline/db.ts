@@ -13,7 +13,9 @@ export interface Kejadian {
 	/** Jam kejadian di perangkat (ISO). */
 	waktu: string;
 	data: Record<string, unknown>;
-	status: 'menunggu' | 'ditolak' | 'terkirim';
+	status: 'menunggu' | 'ditolak' | 'terkirim' | 'diabaikan';
+	/** Pengguna yang mencatat; dikirim hanya saat pengguna itu yang masuk. */
+	user_id?: string | null;
 	alasan: string | null;
 	percobaan: number;
 	hasil: unknown;

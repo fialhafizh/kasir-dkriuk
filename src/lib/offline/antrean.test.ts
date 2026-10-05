@@ -82,3 +82,30 @@ describe('antrean kejadian', () => {
 		expect(await ubahDataMenunggu(db, 'a', { x: 1 })).toBe(false);
 	});
 });
+
+
+import { abaikan } from './antrean';
+
+describe('review T4–T8: antrean', () => {
+	it('hanya mengirim kejadian milik pengguna yang sedang masuk; milik orang lain menunggu', async () => {
+		await tambahKejadian(db, { ...k('a', 'jual'), user_id: 'u1' });
+		await tambahKejadian(db, { ...k('b', 'jual'), user_id: 'u2' });
+		const p = pengirim({});
+		await kirimAntrean(db, p, 'u2');
+		expect(p.dikirim).toEqual(['b']);
+		expect((await db.kejadian.where('id').equals('a').first())?.status).toBe('menunggu');
+	});
+	it('kejadian dengan id yang sudah ada tidak ditambah dua kali (tidak galat)', async () => {
+		await tambahKejadian(db, k('a', 'jual'));
+		await tambahKejadian(db, k('a', 'jual'));
+		expect(await db.kejadian.count()).toBe(1);
+	});
+	it('abaikan: kejadian ditolak keluar dari daftar dengan alasan', async () => {
+		await tambahKejadian(db, k('a', 'jual'));
+		await kirimAntrean(db, pengirim({ a: 'tolak' }));
+		const x = await abaikan(db, 'a', 'transaksi dobel');
+		expect(x?.status).toBe('diabaikan');
+		expect(await hitungAntrean(db)).toEqual({ menunggu: 0, ditolak: 0 });
+	});
+});
+

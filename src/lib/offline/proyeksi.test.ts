@@ -77,3 +77,17 @@ describe('shift digabung saat sinkron (id perangkat ≠ id shift server)', () =>
 		expect(gabungRiwayat([], [buka, jSrv], 'dev1').map((p) => p.id)).toEqual(['j2']);
 	});
 });
+
+
+describe('review T4–T8: proyeksi', () => {
+	it('buka yang DITOLAK tidak dipakai: shift server (mis. kemarin) tetap tampil supaya bisa ditutup', () => {
+		const k = [kej({ id: 'b', jenis: 'buka_shift', shift_id: 'dev', status: 'ditolak', alasan: 'Toko kemarin belum ditutup.' })];
+		expect(shiftLokal(serverShift, k, 'o')?.id).toBe('srv');
+	});
+	it('ringkasan menghitung penjualan terkirim yang belum ada di daftar server (salinan lama)', () => {
+		const t = kej({ id: 't', jenis: 'jual', status: 'terkirim', hasil: { nomor: 'BL-9', total: 4000 }, data: { metode: 'cash', total: 4000, item: [] } });
+		const r = ringkasanLokal(null, { ...serverShift, id: 's1' }, gabungRiwayat([], [t], 's1'));
+		expect(r).toMatchObject({ jumlah_transaksi: 1, cash_seharusnya: 104000 });
+	});
+});
+

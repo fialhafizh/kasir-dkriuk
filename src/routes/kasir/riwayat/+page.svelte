@@ -129,7 +129,7 @@
 								class="min-h-12 rounded-xl border border-line-strong bg-surface px-3 text-fg"
 							/>
 						</div>
-						<Konfirmasi label="Batalkan" konfirmasiLabel="Ya, batalkan" onkonfirmasi={() => batal(p)} />
+						{#if sinkron.online}<Konfirmasi label="Batalkan" konfirmasiLabel="Ya, batalkan" onkonfirmasi={() => batal(p)} />{/if}
 					</div>
 					{#if !sinkron.online}<p class="mt-1 text-xs text-muted">Batal butuh internet.</p>{/if}
 				{/if}
