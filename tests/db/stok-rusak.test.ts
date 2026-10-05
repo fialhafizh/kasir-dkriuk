@@ -91,3 +91,23 @@ describe('penjaga barang masuk (trigger, mencakup opname)', () => {
 		expect(await stok('box')).toBe(105);
 	});
 });
+
+describe('review Tugas 1–2', () => {
+	it('id rusak yang sudah dipakai outlet lain ditolak (bukan diam-diam dianggap berhasil)', async () => {
+		const id = await rusak(kasirBL, [['ori_dada', 1]]);
+		const p = { id, outlet_id: await idOutlet(db, 'TK'), alasan: 'gosong', item: await isian(db, [['ori_dada', 1]]) };
+		await expect(rpc(db, kasirTK, 'public.catat_rusak($1::jsonb)', [JSON.stringify(p)])).rejects.toThrow(/tidak berhak/);
+	});
+	it('kasir nonaktif tidak bisa mencatat rusak', async () => {
+		await db.query('update public.profiles set aktif = false where id = $1', [kasirBL]);
+		await expect(rusak(kasirBL, [['ori_dada', 1]])).rejects.toThrow(/tidak berhak/);
+	});
+	it('batal barang masuk yang tercatat sebelum opname disetujui ditolak (jalur UPDATE trigger)', async () => {
+		const bl = await idOutlet(db, 'BL');
+		const tanggal = (await db.query<{ t: string }>('select public.tanggal_wib(now())::text as t')).rows[0].t;
+		const p = { id: crypto.randomUUID(), outlet_id: bl, tanggal, item: [{ satuan_beli_id: await idSatuan(db, 'pack_box'), qty: 1, harga: 1 }] };
+		await rpc(db, adminId, 'public.catat_barang_masuk($1::jsonb)', [JSON.stringify(p)]);
+		await db.query(`insert into public.opname (outlet_id, status, dihitung_at, diputus_at) values ($1, 'disetujui', now() + interval '1 minute', now())`, [bl]);
+		await expect(rpc(db, adminId, 'public.batal_barang_masuk($1, $2)', [p.id, 'salah input'])).rejects.toThrow(/sebelum stok dihitung/);
+	});
+});

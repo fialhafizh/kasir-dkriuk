@@ -1,6 +1,9 @@
 -- Tahap 3b: kunci bersama per outlet, penjaga "sebelum dihitung" (stok awal ATAU opname), rusak/terbuang.
 
 -- Semua penulis yang memengaruhi hitungan stok satu outlet antre di kunci ini.
+-- Urutan kunci: kunci baris (FOR UPDATE) lebih dulu bila perlu, lalu kunci ini; dua outlet → urutan uuid.
+-- Pengecualian aman: terima_transfer mengunci baris transfer SESUDAH kunci ini — ubah/batal transfer
+-- hanya mengunci baris transfer dan tidak pernah meminta kunci ini, jadi tidak ada siklus.
 create function public._kunci_stok(p_outlet uuid) returns void
 language plpgsql security definer set search_path = '' as $$
 begin
@@ -135,6 +138,10 @@ begin
   perform public._kunci_stok(v_outlet);
   -- Simpan ditekan dua kali: id dibuat di perangkat.
   if exists (select 1 from public.rusak where id = v_id) then
+    -- Kiriman ulang hanya sah untuk outlet yang sama (id dipakai ulang oleh outlet lain = salah).
+    if not exists (select 1 from public.rusak where id = v_id and outlet_id = v_outlet) then
+      raise exception 'Anda tidak berhak mengakses outlet ini' using errcode = '42501';
+    end if;
     return v_id;
   end if;
   if v_alasan = 'lainnya' and (v_catatan is null or length(v_catatan) < 3) then

@@ -78,3 +78,17 @@ describe('aturan tabel', () => {
 		).rejects.toThrow(/gerakan_sumber_rusak/);
 	});
 });
+
+describe('review Tugas 1–2: hitung buta', () => {
+	it('transfer dibatalkan → isinya terlihat oleh outlet tujuan; rusak_item outlet lain tidak terlihat', async () => {
+		const id = crypto.randomUUID();
+		const [bl, tk] = [await idOutlet(db, 'BL'), await idOutlet(db, 'TK')];
+		await db.query(`insert into public.transfer (id, dari_outlet_id, ke_outlet_id, status, batal_at, batal_alasan) values ($1, $2, $3, 'dibatalkan', now(), 'x')`, [id, bl, tk]);
+		await db.query('insert into public.transfer_item (transfer_id, bahan_id, qty) values ($1, $2, 1)', [id, await idBahan(db, 'ori_dada')]);
+		expect(await baca(kasirTK, 'select * from public.transfer_item where transfer_id = $1', [id])).toHaveLength(1);
+		const r = crypto.randomUUID();
+		await db.query(`insert into public.rusak (id, outlet_id, alasan) values ($1, $2, 'gosong')`, [r, bl]);
+		await db.query('insert into public.rusak_item (rusak_id, bahan_id, qty) values ($1, $2, 1)', [r, await idBahan(db, 'ori_dada')]);
+		expect(await baca(kasirTK, 'select * from public.rusak_item')).toHaveLength(0);
+	});
+});
