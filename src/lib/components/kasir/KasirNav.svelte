@@ -5,8 +5,11 @@
 	const ITEM = [
 		{ path: '/kasir', label: 'Jualan' },
 		{ path: '/kasir/riwayat', label: 'Riwayat' },
+		{ path: '/kasir/stok', label: 'Stok' },
 		{ path: '/kasir/tutup', label: 'Tutup toko' }
 	] as const;
+
+	const sedang = (p: string) => (p === '/kasir' ? aktif === '/kasir' : aktif === p || aktif.startsWith(`${p}/`));
 </script>
 
 <nav
@@ -18,7 +21,7 @@
 			<li class="flex-1 lg:flex-none">
 				<a
 					href={href(i.path)}
-					aria-current={aktif === i.path ? 'page' : undefined}
+					aria-current={sedang(i.path) ? 'page' : undefined}
 					class="flex min-h-14 items-center justify-center border-t-3 border-transparent px-2 text-sm font-semibold text-muted hover:text-fg focus-visible:outline-3 focus-visible:outline-focus aria-[current=page]:border-brand aria-[current=page]:font-extrabold aria-[current=page]:text-brand lg:min-h-12 lg:justify-start lg:rounded-xl lg:border-t-0 lg:px-3 lg:aria-[current=page]:bg-surface-2"
 				>
 					{i.label}

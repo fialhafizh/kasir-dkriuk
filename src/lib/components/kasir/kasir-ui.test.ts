@@ -3,12 +3,10 @@ import { describe, expect, it } from 'vitest';
 import KasirNav from './KasirNav.svelte';
 
 describe('KasirNav', () => {
-	it('tiga tujuan kasir dengan halaman aktif ditandai', () => {
-		const { body } = render(KasirNav, { props: { aktif: '/kasir/riwayat' } });
-		expect(body).toContain('href="#/kasir"');
-		expect(body).toContain('href="#/kasir/riwayat"');
-		expect(body).toContain('href="#/kasir/tutup"');
-		expect(body).toMatch(/href="#\/kasir\/riwayat"[^>]*aria-current="page"/);
+	it('empat tujuan kasir dengan halaman aktif ditandai (termasuk sub-halaman Stok)', () => {
+		const { body } = render(KasirNav, { props: { aktif: '/kasir/stok/awal' } });
+		for (const p of ['/kasir', '/kasir/riwayat', '/kasir/stok', '/kasir/tutup']) expect(body).toContain(`href="#${p}"`);
+		expect(body).toMatch(/href="#\/kasir\/stok"[^>]*aria-current="page"/);
 		expect(body).not.toMatch(/href="#\/kasir"[^>]*aria-current="page"/);
 	});
 });
@@ -46,5 +44,18 @@ describe('RingkasanShift', () => {
 	it('selisih nol tertulis Pas; shift belum ditutup tanpa baris selisih', () => {
 		expect(render(RingkasanShift, { props: { r: { ...r, uang_fisik: 111000, selisih: 0 } } }).body).toContain('Pas');
 		expect(render(RingkasanShift, { props: { r: { ...r, uang_fisik: null, selisih: null } } }).body).not.toContain('Selisih');
+	});
+});
+
+import Keranjang from './Keranjang.svelte';
+
+describe('Keranjang', () => {
+	it('jumlah tampil di kotak yang bisa diketik (keyboard angka)', () => {
+		const { body } = render(Keranjang, {
+			props: { isi: [{ menu_id: 'n', nama: 'Nasi', harga: 5000, qty: 150 }], onubah: () => {}, onkosongkan: () => {} }
+		});
+		expect(body).toMatch(/<input[^>]*aria-label="Jumlah Nasi"/);
+		expect(body).toMatch(/<input[^>]*inputmode="numeric"/);
+		expect(body).toMatch(/<input[^>]*value="150"/);
 	});
 });

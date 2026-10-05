@@ -1,0 +1,84 @@
+import { describe, expect, it } from 'vitest';
+import type { HargaBeli, SatuanBeli } from '#lib/master/types.ts';
+import { hargaAwal, hargaOutlet, periksaBarangMasuk } from './masuk';
+
+const s = (id: string, harga_tetap = true): SatuanBeli => ({ id, kode: id, nama: id, ambang: null, harga_tetap, urutan: 0, aktif: true });
+const satuan = [s('ayam'), s('beras', false)];
+const harga: HargaBeli[] = [
+	{ outlet_id: 'bl', satuan_beli_id: 'ayam', harga: 40000, diubah_at: '' },
+	{ outlet_id: 'bl', satuan_beli_id: 'beras', harga: 12340, diubah_at: '' }
+];
+
+describe('periksaBarangMasuk', () => {
+	it('baris sah → item angka & total dibulatkan', () => {
+		const r = periksaBarangMasuk(
+			[
+				{ satuan_beli_id: 'ayam', qty: '2', harga: '40.000' },
+				{ satuan_beli_id: 'beras', qty: '1,5', harga: '12341' }
+			],
+			satuan
+		);
+		expect(r.galat).toEqual(['', '']);
+		expect(r.item).toEqual([
+			{ satuan_beli_id: 'ayam', qty: 2, harga: 40000 },
+			{ satuan_beli_id: 'beras', qty: 1.5, harga: 12341 }
+		]);
+		expect(r.total).toBe(80000 + 18512);
+	});
+	it('galat per baris: jumlah salah, harga berubah-ubah 0/kosong, harga bukan angka', () => {
+		expect(periksaBarangMasuk([{ satuan_beli_id: 'ayam', qty: '0', harga: '1' }], satuan).galat[0]).toMatch(/Jumlah/);
+		expect(periksaBarangMasuk([{ satuan_beli_id: 'beras', qty: '1', harga: '0' }], satuan).galat[0]).toMatch(/wajib/);
+		expect(periksaBarangMasuk([{ satuan_beli_id: 'beras', qty: '1', harga: '' }], satuan).galat[0]).toMatch(/wajib/);
+		expect(periksaBarangMasuk([{ satuan_beli_id: 'ayam', qty: '1', harga: 'abc' }], satuan).galat[0]).toMatch(/Harga tidak sah/);
+	});
+	it('barang ganda: kedua baris ditandai, tidak ada item terkirim', () => {
+		const r = periksaBarangMasuk(
+			[
+				{ satuan_beli_id: 'ayam', qty: '1', harga: '1' },
+				{ satuan_beli_id: 'ayam', qty: '2', harga: '1' }
+			],
+			satuan
+		);
+		expect(r.galat.every((g) => /sudah ada/.test(g))).toBe(true);
+		expect(r.item).toEqual([]);
+	});
+});
+
+describe('harga awal', () => {
+	it('harga tetap terisi dari harga outlet; harga berubah-ubah dikosongkan (acuan saja)', () => {
+		expect(hargaAwal(satuan[0], harga, 'bl')).toBe('40.000');
+		expect(hargaAwal(satuan[1], harga, 'bl')).toBe('');
+		expect(hargaAwal(satuan[0], harga, 'kp')).toBe('');
+		expect(hargaOutlet('beras', harga, 'bl')).toBe(12340);
+		expect(hargaOutlet('beras', harga, 'kp')).toBeNull();
+	});
+});
+
+describe('review Tugas 6', () => {
+	it('total pratinjau sama dengan pembulatan server (bukan pembulatan float)', () => {
+		const r = periksaBarangMasuk(
+			[
+				{ satuan_beli_id: 'ayam', qty: '0,009', harga: '1500' },
+				{ satuan_beli_id: 'beras', qty: '0,043', harga: '2500' }
+			],
+			satuan
+		);
+		expect(r.total).toBe(14 + 108);
+	});
+	it('harga tetap yang kosong (harga beli outlet belum diatur) → pesan jelas', () => {
+		expect(periksaBarangMasuk([{ satuan_beli_id: 'ayam', qty: '1', harga: '' }], satuan).galat[0]).toMatch(/Isi harga/);
+	});
+});
+
+import { peringatanStokAwal } from './masuk';
+
+describe('peringatanStokAwal (review akhir: barang datang sebelum dihitung)', () => {
+	const dihitung = '2026-10-06T03:00:00Z'; // 10:00 WIB
+	it('tanggal barang = tanggal stok awal dihitung → ingatkan jamnya', () => {
+		expect(peringatanStokAwal('2026-10-06', dihitung, 'Bukit Lama')).toMatch(/Bukit Lama.*10:00.*sebelum jam itu sudah termasuk hitungan/);
+	});
+	it('tanggal sesudahnya atau belum ada stok awal → tanpa peringatan', () => {
+		expect(peringatanStokAwal('2026-10-07', dihitung, 'Bukit Lama')).toBeNull();
+		expect(peringatanStokAwal('2026-10-06', null, 'Bukit Lama')).toBeNull();
+	});
+});

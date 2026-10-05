@@ -1,0 +1,58 @@
+// Validasi formulir barang masuk sebelum dikirim (server memeriksa lagi).
+import { formatWaktuWib, tanggalWib } from '#lib/kasir/waktu.ts';
+import { formatAngka, parseQty, parseRupiah } from '#lib/master/rupiah.ts';
+import type { HargaBeli, SatuanBeli } from '#lib/master/types.ts';
+import type { KirimBarangMasuk } from './types.ts';
+
+export interface BarisMasuk {
+	satuan_beli_id: string;
+	qty: string;
+	harga: string;
+}
+
+export function hargaOutlet(satuanId: string, hargaBeli: HargaBeli[], outletId: string): number | null {
+	return hargaBeli.find((h) => h.outlet_id === outletId && h.satuan_beli_id === satuanId)?.harga ?? null;
+}
+
+/** Harga tetap: diisi dari harga outlet. Harga berubah-ubah: kosong (wajib diketik tiap beli). */
+export function hargaAwal(s: SatuanBeli, hargaBeli: HargaBeli[], outletId: string): string {
+	const h = hargaOutlet(s.id, hargaBeli, outletId);
+	return s.harga_tetap && h !== null ? formatAngka(h) : '';
+}
+
+export function periksaBarangMasuk(
+	baris: BarisMasuk[],
+	satuan: SatuanBeli[]
+): { item: KirimBarangMasuk['item']; galat: string[]; total: number } {
+	const item: KirimBarangMasuk['item'] = [];
+	const galat = baris.map(() => '');
+	const hitung = new Map<string, number>();
+	for (const r of baris) hitung.set(r.satuan_beli_id, (hitung.get(r.satuan_beli_id) ?? 0) + 1);
+	let total = 0;
+	baris.forEach((r, i) => {
+		const s = satuan.find((x) => x.id === r.satuan_beli_id);
+		const qty = parseQty(r.qty, 3);
+		const harga = r.harga.trim() === '' ? null : parseRupiah(r.harga);
+		if (!s) galat[i] = 'Pilih barang.';
+		else if ((hitung.get(r.satuan_beli_id) ?? 0) > 1) galat[i] = 'Barang ini sudah ada di baris lain; gabungkan jumlahnya.';
+		else if (qty === null) galat[i] = 'Jumlah tidak sah (mis. 2 atau 1,5).';
+		else if (!s.harga_tetap && (harga === null || harga === 0)) galat[i] = 'Harga wajib diisi (harganya berubah-ubah).';
+		else if (harga === null) galat[i] = r.harga.trim() === '' ? 'Isi harga (harga beli outlet ini belum diatur).' : 'Harga tidak sah (mis. 40.000).';
+		else {
+			item.push({ satuan_beli_id: s.id, qty, harga });
+			// Sama dengan pembulatan numeric di server: qty paling banyak 3 desimal → hitung dalam perseribu.
+			total += Math.floor((Math.round(qty * 1000) * harga + 500) / 1000);
+		}
+	});
+	return { item, galat, total };
+}
+
+/**
+ * Barang yang datang pada hari stok awal dihitung, SEBELUM jam hitung, sudah termasuk hitungan kasir.
+ * Server hanya tahu jam input, jadi admin diingatkan (tanggal sebelum hari hitung ditolak server).
+ */
+export function peringatanStokAwal(tanggal: string, dihitungAt: string | null, namaOutlet: string): string | null {
+	if (!dihitungAt || tanggalWib(dihitungAt) !== tanggal) return null;
+	const jam = formatWaktuWib(dihitungAt).slice(-8, -3);
+	return `Stok awal ${namaOutlet} dihitung hari ini jam ${jam}. Barang yang datang sebelum jam itu sudah termasuk hitungan — jangan dicatat lagi.`;
+}

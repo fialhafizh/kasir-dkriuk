@@ -90,6 +90,7 @@ try {
 } finally {
 	// Bersihkan semua data uji (service role).
 	if (outletId) {
+		await svc.from('gerakan_stok').delete().eq('outlet_id', outletId);
 		const ids = ((await svc.from('penjualan').select('id').eq('outlet_id', outletId)).data ?? []).map((x) => x.id);
 		if (ids.length) await svc.from('penjualan_item').delete().in('penjualan_id', ids);
 		await svc.from('penjualan').delete().eq('outlet_id', outletId);

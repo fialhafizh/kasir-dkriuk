@@ -659,7 +659,7 @@ describe('barang masuk', () => {
 	it('memecah isi pack ke bahan dan menyimpan total & nama barang', async () => {
 		const p = await kiriman([
 			['pack_ayam_ori', 2, 40000],
-			['beras_kg', 1.5, 15000]
+			['beras_kg', 1.5, 12340]
 		]);
 		await masuk(adminId, p);
 		expect(await stok('ori_dada')).toBe(6);
@@ -668,7 +668,7 @@ describe('barang masuk', () => {
 		expect(await stok('ori_sayap')).toBe(4);
 		expect(await stok('beras')).toBeCloseTo(1.5, 4);
 		const bm = (await db.query<{ total: string; n: number }>('select total, (select count(*)::int from public.barang_masuk_item where barang_masuk_id = $1) as n from public.barang_masuk where id = $1', [p.id])).rows[0];
-		expect(Number(bm.total)).toBe(2 * 40000 + 22500);
+		expect(Number(bm.total)).toBe(2 * 40000 + 18510);
 		expect(bm.n).toBe(2);
 	});
 
@@ -2068,7 +2068,7 @@ const s = (id: string, harga_tetap = true): SatuanBeli => ({ id, kode: id, nama:
 const satuan = [s('ayam'), s('beras', false)];
 const harga: HargaBeli[] = [
 	{ outlet_id: 'bl', satuan_beli_id: 'ayam', harga: 40000, diubah_at: '' },
-	{ outlet_id: 'bl', satuan_beli_id: 'beras', harga: 15000, diubah_at: '' }
+	{ outlet_id: 'bl', satuan_beli_id: 'beras', harga: 12340, diubah_at: '' }
 ];
 
 describe('periksaBarangMasuk', () => {
@@ -2076,16 +2076,16 @@ describe('periksaBarangMasuk', () => {
 		const r = periksaBarangMasuk(
 			[
 				{ satuan_beli_id: 'ayam', qty: '2', harga: '40.000' },
-				{ satuan_beli_id: 'beras', qty: '1,5', harga: '15001' }
+				{ satuan_beli_id: 'beras', qty: '1,5', harga: '12341' }
 			],
 			satuan
 		);
 		expect(r.galat).toEqual(['', '']);
 		expect(r.item).toEqual([
 			{ satuan_beli_id: 'ayam', qty: 2, harga: 40000 },
-			{ satuan_beli_id: 'beras', qty: 1.5, harga: 15001 }
+			{ satuan_beli_id: 'beras', qty: 1.5, harga: 12341 }
 		]);
-		expect(r.total).toBe(80000 + 22502);
+		expect(r.total).toBe(80000 + 18512);
 	});
 	it('galat per baris: jumlah salah, harga berubah-ubah 0/kosong, harga bukan angka', () => {
 		expect(periksaBarangMasuk([{ satuan_beli_id: 'ayam', qty: '0', harga: '1' }], satuan).galat[0]).toMatch(/Jumlah/);
@@ -2111,7 +2111,7 @@ describe('harga awal', () => {
 		expect(hargaAwal(satuan[0], harga, 'bl')).toBe('40.000');
 		expect(hargaAwal(satuan[1], harga, 'bl')).toBe('');
 		expect(hargaAwal(satuan[0], harga, 'kp')).toBe('');
-		expect(hargaOutlet('beras', harga, 'bl')).toBe(15000);
+		expect(hargaOutlet('beras', harga, 'bl')).toBe(12340);
 		expect(hargaOutlet('beras', harga, 'kp')).toBeNull();
 	});
 });

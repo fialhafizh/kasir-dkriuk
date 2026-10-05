@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import RingkasanStok from '#lib/components/stok/RingkasanStok.svelte';
 	import { auth } from '#lib/auth/session.svelte.ts';
 	import { href } from '#lib/nav.ts';
 	import { supabase } from '#lib/supabase/client.ts';
@@ -15,6 +16,7 @@
 	});
 
 	const pintasan = [
+		{ path: '/admin/stok', judul: 'Stok', isi: 'Stok per outlet, barang masuk, stok awal.' },
 		{ path: '/admin/menu', judul: 'Menu & Harga', isi: 'Harga jual per outlet dan resep pemotongan stok.' },
 		{ path: '/admin/bahan', judul: 'Bahan', isi: 'Isi pack dan ambang stok menipis.' },
 		{ path: '/admin/harga-beli', judul: 'Harga Beli', isi: 'Harga beli bahan per outlet.' },
@@ -40,6 +42,8 @@
 		</li>
 	{/each}
 </ul>
+
+<RingkasanStok />
 
 {#if gagal}<p class="mt-6 text-danger" role="alert">{gagal}</p>{/if}
 
