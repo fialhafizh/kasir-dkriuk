@@ -1,4 +1,5 @@
 <script lang="ts">
+	import PitaVersi from './PitaVersi.svelte';
 	import type { Snippet } from 'svelte';
 	import { auth } from '#lib/auth/session.svelte.ts';
 	import Logo from '#lib/components/brand/Logo.svelte';
@@ -26,6 +27,7 @@
 </script>
 
 <div class="min-h-dvh bg-bg">
+	<PitaVersi />
 	<header
 		class="sticky top-0 z-20 flex items-center gap-3 border-b border-line bg-surface/95 px-4 pt-[env(safe-area-inset-top)] backdrop-blur"
 	>
