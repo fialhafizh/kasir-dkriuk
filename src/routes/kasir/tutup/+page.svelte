@@ -1,5 +1,6 @@
 <script lang="ts">
 	import RingkasanShift from '#lib/components/kasir/RingkasanShift.svelte';
+	import LangkahSisa, { sudahDijawab } from '#lib/components/stok/LangkahSisa.svelte';
 	import Konfirmasi from '#lib/components/ui/Konfirmasi.svelte';
 	import { ringkasanShift, tutupShift } from '#lib/kasir/api.ts';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
@@ -12,6 +13,12 @@
 	let teks = $state('');
 	let catatan = $state('');
 	let pesan = $state('');
+	// Langkah wajib "sisa tidak terjual" sekali per shift (diingat di tablet ini).
+	let sisaSelesai = $state(false);
+	$effect(() => {
+		const s = pos.shift;
+		if (s) sisaSelesai = sudahDijawab(s.id);
+	});
 
 	$effect(() => {
 		const s = pos.shift;
@@ -59,6 +66,8 @@
 	<button type="button" class="mt-3 min-h-12 rounded-xl bg-surface-2 px-4 font-semibold" onclick={() => pos.muatShift()}>Coba lagi</button>
 {:else if !pos.shift}
 	<p class="mt-2 text-muted">Tidak ada shift terbuka. Toko sudah ditutup.</p>
+{:else if !sisaSelesai}
+	<div class="mt-4"><LangkahSisa outletId={pos.shift.outlet_id} shiftId={pos.shift.id} onselesai={() => (sisaSelesai = true)} /></div>
 {:else if r}
 	<div class="mt-4 grid max-w-md gap-4">
 		<RingkasanShift {r} />

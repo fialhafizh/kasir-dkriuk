@@ -95,3 +95,14 @@ describe('FormStokAwal opsional (rusak/transfer)', () => {
 		expect(body).toContain('Isi hanya bahan yang');
 	});
 });
+
+import LangkahSisa from './LangkahSisa.svelte';
+
+describe('LangkahSisa', () => {
+	it('menampilkan pertanyaan wajib dengan pilihan Tidak ada / Ada', () => {
+		const { body } = render(LangkahSisa, { props: { outletId: 'o', shiftId: 's', onselesai: () => {} } });
+		expect(body).toContain('Ada sisa yang tidak terjual?');
+		expect(body).toContain('Tidak ada sisa');
+		expect(body).toContain('Ada sisa');
+	});
+});
