@@ -342,9 +342,12 @@ begin
   if p_id is null then
     raise exception 'Data perangkat tidak lengkap' using errcode = '22023';
   end if;
-  insert into public.perangkat (id, outlet_id, terakhir_oleh) values (p_id, p_outlet, auth.uid())
-  on conflict (id) do update set outlet_id = excluded.outlet_id, terakhir_oleh = excluded.terakhir_oleh
-  returning kode into v_kode;
+  -- Sudah terdaftar: perbarui saja (insert ... on conflict tetap memakan nomor kode).
+  update public.perangkat set outlet_id = p_outlet, terakhir_oleh = auth.uid() where id = p_id returning kode into v_kode;
+  if found then
+    return v_kode;
+  end if;
+  insert into public.perangkat (id, outlet_id, terakhir_oleh) values (p_id, p_outlet, auth.uid()) returning kode into v_kode;
   return v_kode;
 end
 $$;
