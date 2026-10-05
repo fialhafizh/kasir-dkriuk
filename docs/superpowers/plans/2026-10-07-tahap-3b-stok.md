@@ -421,6 +421,7 @@ describe('batal rusak', () => {
 	it('rusak yang terjadi sebelum stok dihitung tidak bisa dibatalkan', async () => {
 		const id = await rusak(kasirBL, [['ori_sayap', 3]]);
 		await db.query(`update public.rusak set waktu = now() - interval '2 hours' where id = $1`, [id]);
+		await db.query(`update public.gerakan_stok set waktu = now() - interval '2 hours' where rusak_id = $1`, [id]);
 		await setujuiStokAwal(db, kasirBL, adminId, 'BL', [['ori_sayap', 10]], 1);
 		await expect(batal(adminId, id)).rejects.toThrow(/sebelum stok dihitung/);
 		expect(await stok('ori_sayap')).toBe(10);
