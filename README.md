@@ -25,6 +25,7 @@ SvelteKit 3 (Svelte 5) + Tailwind CSS 4, di-hosting statis (GitHub Pages, hash r
 | `node --env-file=.env.local scripts/uji-kasir.ts` | uji alur kasir di server (outlet & akun sementara, dibersihkan otomatis) |
 | `node --env-file=.env.local scripts/uji-stok.ts` | uji alur stok di server (outlet & akun sementara, dibersihkan otomatis) |
 | `node --env-file=.env.local scripts/uji-stok-3b.ts` | uji rusak, transfer, opname di server (outlet & akun sementara, dibersihkan otomatis) |
+| `node --env-file=.env.local scripts/uji-offline.ts` | uji fungsi offline di server (perangkat, gabung shift, jual telat, kode struk) |
 
 ## Akun
 - Login memakai **username + password**. Di belakang layar username menjadi email `username@kasir-dkriuk.invalid` (domain yang tidak bisa didaftarkan siapa pun).
@@ -41,3 +42,7 @@ SvelteKit 3 (Svelte 5) + Tailwind CSS 4, di-hosting statis (GitHub Pages, hash r
 ## Dokumen
 - Rancangan: `docs/superpowers/specs/2026-10-04-kasir-dkriuk-design.md`
 - Rencana per tahap: `docs/superpowers/plans/`
+
+## Alamat aplikasi
+
+https://daffialhafizh.github.io/kasir-dkriuk/ — dipasang otomatis oleh GitHub Actions (`.github/workflows/pages.yml`) setiap ada perubahan di `main`. Variabel repo yang dibutuhkan: `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_ANON_KEY`. Build lokal dengan base path di Git Bash Windows: `MSYS_NO_PATHCONV=1 BASE_PATH=/kasir-dkriuk npm run build`.
