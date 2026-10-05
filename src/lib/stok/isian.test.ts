@@ -83,3 +83,21 @@ describe('kumpulkanIsian & teksDari', () => {
 		expect(t.cup).toEqual({ a: '', b: '' });
 	});
 });
+
+import { kumpulkanIsianOpsional } from './isian';
+
+describe('kumpulkanIsianOpsional (rusak, transfer)', () => {
+	const f = bentukIsian(bahan, satuan, isi);
+	it('kotak kosong & 0 dilewati; pack + lepas dikonversi', () => {
+		expect(kumpulkanIsianOpsional(f, { dada: { a: '3', b: '' }, kemasan: { a: '1', b: '20' }, beras: { a: '0', b: '' } })).toEqual({
+			item: [
+				{ bahan_id: 'dada', qty: 3 },
+				{ bahan_id: 'kemasan', qty: 120 }
+			],
+			galat: {}
+		});
+	});
+	it('isian salah tetap diberi galat', () => {
+		expect(kumpulkanIsianOpsional(f, { dada: { a: '1,5', b: '' } }).galat).toHaveProperty('dada');
+	});
+});
