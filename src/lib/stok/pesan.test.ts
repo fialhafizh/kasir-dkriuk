@@ -7,7 +7,8 @@ const MIGRASI = [
 	'20261006000011_fungsi_stok.sql',
 	'20261007000014_fungsi_rusak.sql',
 	'20261007000015_fungsi_transfer.sql',
-	'20261007000016_fungsi_opname.sql'
+	'20261007000016_fungsi_opname.sql',
+	'20261007000017_perbaikan_3b.sql'
 ];
 const resmi = MIGRASI.flatMap((f) => {
 	const sql = readFileSync(join(import.meta.dirname, '../../../supabase/migrations', f), 'utf8');

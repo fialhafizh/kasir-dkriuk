@@ -49,6 +49,15 @@
 		await putuskanOpname(a.id, true, item, null);
 		await muat();
 	}
+	async function setujuiApaAdanya(a: Opname) {
+		pesanBaris[a.id] = '';
+		try {
+			await putuskanOpname(a.id, true, null, null);
+			await muat();
+		} catch (e) {
+			pesanBaris[a.id] = (e as Error).message;
+		}
+	}
 	async function tolak(a: Opname) {
 		pesanBaris[a.id] = '';
 		try {
@@ -91,6 +100,9 @@
 						{/each}
 					</tbody>
 				</table>
+			</div>
+			<div class="flex flex-wrap items-center gap-2">
+				<Konfirmasi label="Setujui sesuai hitungan" konfirmasiLabel="Ya, setujui" variant="primary" onkonfirmasi={() => setujuiApaAdanya(a)} />
 			</div>
 			<details>
 				<summary class="min-h-12 cursor-pointer py-3 font-semibold">Betulkan angka lalu setujui</summary>

@@ -109,3 +109,17 @@ describe('review Tugas 3–4', () => {
 		await expect(rpc(db, kasirTK, 'public.ajukan_opname($1, $2::jsonb)', [await idOutlet(db, 'TK'), '[]'])).rejects.toThrow(/tidak berhak/);
 	});
 });
+
+describe('review akhir 3b', () => {
+	it('pesan saat terhalang hitungan yang MENUNGGU menyebut jalan keluarnya', async () => {
+		await setujuiStokAwal(db, kasirBL, adminId, 'BL', [['ori_dada', 20]], 72);
+		const r = { id: crypto.randomUUID(), outlet_id: await idOutlet(db, 'BL'), alasan: 'gosong', item: await isian(db, [['ori_dada', 5]]) };
+		await rpc(db, kasirBL, 'public.catat_rusak($1::jsonb)', [JSON.stringify(r)]);
+		await ajukan(kasirBL, [['ori_dada', 15]]);
+		await expect(rpc(db, adminId, 'public.batal_rusak($1, $2)', [r.id, 'salah catat'])).rejects.toThrow(/menunggu persetujuan\. Tolak hitungan itu dulu/);
+		const tanggal = (await db.query<{ t: string }>('select (public.tanggal_wib(now()) - 1)::text as t')).rows[0].t;
+		const sb = (await db.query<{ id: string }>(`select id from public.satuan_beli where kode = 'pack_box'`)).rows[0].id;
+		const p = { id: crypto.randomUUID(), outlet_id: await idOutlet(db, 'BL'), tanggal, item: [{ satuan_beli_id: sb, qty: 1, harga: 1 }] };
+		await expect(rpc(db, adminId, 'public.catat_barang_masuk($1::jsonb)', [JSON.stringify(p)])).rejects.toThrow(/menunggu persetujuan\. Tolak hitungan itu dulu/);
+	});
+});
