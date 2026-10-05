@@ -106,3 +106,12 @@ describe('LangkahSisa', () => {
 		expect(body).toContain('Ada sisa');
 	});
 });
+
+describe('DaftarStok tanpa angka (keputusan owner B: opname jatuh tempo)', () => {
+	it('angka disembunyikan, nama & tanda status tetap tampil', () => {
+		const { body } = render(DaftarStok, { props: { baris, tanpaAngka: true } });
+		expect(body).toContain('Ayam Ori');
+		expect(body).not.toContain('5 pack + 3 Sayap Ori');
+		expect(body).toContain('Disembunyikan sampai opname dikirim');
+	});
+});

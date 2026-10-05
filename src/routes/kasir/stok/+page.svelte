@@ -103,5 +103,5 @@
 			>Terima kiriman ({masukMenunggu})</a
 		>
 	{/if}
-	<div class="mt-4"><DaftarStok {baris} tanpaStatus={!disetujui} /></div>
+	<div class="mt-4"><DaftarStok {baris} tanpaStatus={!disetujui} tanpaAngka={ingatOpname} /></div>
 {/if}

@@ -20,7 +20,7 @@ Status: **belum dicoba**. Jalankan `npm run dev`, buka di Chrome. Butuh stok awa
 - [ ] Admin → Stok → **Transfer** menampilkan semuanya
 
 ## Opname
-- [ ] Hari Minggu (atau setelahnya bila belum opname minggu ini): tab Stok kasir menampilkan "Waktunya opname mingguan"
+- [ ] Hari Minggu (atau setelahnya bila belum opname minggu ini): tab Stok kasir menampilkan "Waktunya opname mingguan" dan **angka stok disembunyikan** sampai opname dikirim
 - [ ] Opname saat masih ada kiriman menunggu → ditolak "Selesaikan kiriman/penerimaan dulu"
 - [ ] Isi semua bahan → Kirim → Admin → Stok → **Opname** → tabel hitungan / sistem / selisih, selisih besar merah ⚠
 - [ ] Setujui → stok = hitungan
