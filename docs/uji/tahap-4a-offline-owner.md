@@ -15,7 +15,7 @@ Status: **belum dicoba**. Alamat: https://daffialhafizh.github.io/kasir-dkriuk/
 - [ ] Keluar saat masih ada data belum terkirim → ditolak dengan pesan
 
 ## Dua perangkat
-- [ ] Tablet & HP sama-sama offline, sama-sama buka toko & jualan → online → di admin/riwayat penjualan keduanya ada di **satu shift**
+- [ ] Tablet & HP sama-sama offline, sama-sama buka toko & jualan → online → login admin → **Kasir** → pilih outlet → **Riwayat**: penjualan dari kedua perangkat ada di **satu shift**
 
 ## Printer (dari Tahap 2)
 - [ ] Sambungkan printer OKAY 58B dari aplikasi terpasang → struk tercetak; RawBT sebagai cadangan
