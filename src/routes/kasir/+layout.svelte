@@ -11,6 +11,7 @@
 	import { bacaPerangkat, simpanKode } from '#lib/offline/perangkat.ts';
 	import { sinkron } from '#lib/offline/sinkron.svelte.ts';
 	import { supabase } from '#lib/supabase/client.ts';
+	import { muatStokKasir } from '#lib/stok/kasir-lokal.ts';
 
 	let { children } = $props();
 
@@ -24,6 +25,13 @@
 		void auth.offline;
 		void sinkron.terakhir;
 		if (pos.outlet) void pos.muatShift();
+	});
+
+	// Setelah sinkron selesai & online: perbarui salinan data stok supaya halaman Stok siap dibuka tanpa internet.
+	$effect(() => {
+		const o = pos.outlet;
+		if (!sinkron.terakhir || !o || auth.offline) return;
+		void muatStokKasir(o.id).catch(() => {});
 	});
 
 	// Daftarkan perangkat (saat online) supaya punya kode untuk nomor struk sementara.

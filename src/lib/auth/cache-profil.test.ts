@@ -71,7 +71,8 @@ describe('Tahap 4b: galat dari pemuat data', () => {
 		const { pesanErrorData } = await import('#lib/master/pesan.ts');
 		const putus = pesanErrorData({ message: 'TypeError: Failed to fetch', code: '' })!;
 		expect(galatJaringan(new Error(putus))).toBe(true);
-		expect(galatJaringan(new Error(pesanErrorData({ message: 'x', status: 503 })!))).toBe(true);
+		// Pesan umum "Terjadi kesalahan di server" juga untuk galat 4xx yang tidak dikenal: bukan sementara.
+		expect(galatJaringan(new Error(pesanErrorData({ code: 'PGRST202', message: 'x', status: 404 })!))).toBe(false);
 		expect(galatJaringan(new Error(pesanErrorData({ code: '42501', message: 'x' })!))).toBe(false);
 	});
 });

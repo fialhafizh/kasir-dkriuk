@@ -117,7 +117,8 @@ function terapkanBatal(baris: PenjualanLokal[], kejadian: Kejadian[]) {
 	for (const k of batal) {
 		const p = per.get(String(k.data.penjualan_id ?? ''));
 		if (!p) continue;
-		if (k.status === 'ditolak') {
+		// Transaksinya sendiri ditolak server: batal tetap berlaku di perangkat (uang sudah dikembalikan).
+		if (k.status === 'ditolak' && p.status_kirim !== 'ditolak') {
 			if (!p.void_at) {
 				p.batal_kirim = 'ditolak';
 				p.alasan_batal_ditolak = k.alasan;
@@ -134,13 +135,20 @@ function terapkanBatal(baris: PenjualanLokal[], kejadian: Kejadian[]) {
 
 const METODE: Metode[] = ['cash', 'qris', 'gofood', 'grabfood', 'shopeefood'];
 
-/** Ringkasan untuk Tutup toko: ringkasan server (bila ada) + penjualan yang belum ada di server. */
-export function ringkasanLokal(dasar: Ringkasan | null, shift: Shift, lokal: PenjualanLokal[]): Ringkasan {
-	const per = Object.fromEntries(METODE.map((m) => [m, { ...(dasar?.per_metode[m] ?? { jumlah: 0, total: 0 }) }])) as Ringkasan['per_metode'];
-	let jumlah = dasar?.jumlah_transaksi ?? 0;
-	let total = dasar?.total ?? 0;
-	let cash = (dasar?.cash_seharusnya ?? shift.modal) - shift.modal;
-	let jumlahVoid = dasar?.jumlah_void ?? 0;
+/**
+ * Ringkasan untuk Tutup toko. Bila daftar penjualan server tersedia (adaDaftar), angka dihitung seluruhnya dari
+ * daftar itu + antrean perangkat — satu sumber, jadi salinan ringkasan & riwayat yang berbeda jam tidak membuat
+ * transaksi hilang/terhitung dua kali. Tanpa daftar: ringkasan server + yang belum ada di server.
+ */
+export function ringkasanLokal(dasar: Ringkasan | null, shift: Shift, lokal: PenjualanLokal[], adaDaftar = true): Ringkasan {
+	const pakaiDasar = !adaDaftar && !!dasar;
+	const per = Object.fromEntries(
+		METODE.map((m) => [m, { ...(pakaiDasar ? dasar!.per_metode[m] : { jumlah: 0, total: 0 }) }])
+	) as Ringkasan['per_metode'];
+	let jumlah = pakaiDasar ? dasar!.jumlah_transaksi : 0;
+	let total = pakaiDasar ? dasar!.total : 0;
+	let cash = pakaiDasar ? dasar!.cash_seharusnya - shift.modal : 0;
+	let jumlahVoid = pakaiDasar ? dasar!.jumlah_void : 0;
 	let jumlahDitolak = 0;
 	let totalDitolak = 0;
 	const tambah = (p: PenjualanLokal, arah: 1 | -1) => {
@@ -151,7 +159,7 @@ export function ringkasanLokal(dasar: Ringkasan | null, shift: Shift, lokal: Pen
 		if (p.metode === 'cash') cash += arah * p.total;
 	};
 	for (const p of lokal) {
-		if (p.status_kirim === 'server') {
+		if (p.status_kirim === 'server' && pakaiDasar) {
 			// Sudah dihitung di ringkasan server, tetapi batalnya baru ada di antrean.
 			if (p.batal_lokal) {
 				tambah(p, -1);

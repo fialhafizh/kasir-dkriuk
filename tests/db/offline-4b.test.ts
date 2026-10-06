@@ -239,3 +239,16 @@ describe('review server 4b: transfer vs hitungan fisik', () => {
 		expect(r.batal_setelah_tutup).toBe(0);
 	});
 });
+
+describe('ubah kiriman offline', () => {
+	const ubah = async (oleh: string, id: string, item: [string, number][]) =>
+		rpc(db, oleh, 'public.ubah_transfer_offline($1::jsonb)', [JSON.stringify({ transfer_id: id, item: await isian(db, item), catatan: null, waktu: await jam('now()') })]);
+	it('mengubah isi; kiriman ulang setelah diterima dengan isi sama = sukses; isi beda ditolak', async () => {
+		const id = await kirimOffline([['ori_dada', 4]]);
+		await ubah(kasirBL, id, [['ori_dada', 5]]);
+		await terimaOffline(kasirTK, id, [['ori_dada', 5]]);
+		await ubah(kasirBL, id, [['ori_dada', 5]]);
+		await expect(ubah(kasirBL, id, [['ori_dada', 6]])).rejects.toThrow(/sudah diterima atau dibatalkan/);
+		await expect(ubah(kasirTK, id, [['ori_dada', 5]])).rejects.toThrow(/Transfer tidak ditemukan/);
+	});
+});

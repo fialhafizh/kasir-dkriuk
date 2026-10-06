@@ -222,6 +222,27 @@ begin
 end
 $$;
 
+-- Ubah kiriman. Kiriman ulang setelah jawaban hilang (lalu penerima sudah menerima) = selesai bila isinya sama.
+create function public.ubah_transfer_offline(p jsonb) returns void
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_id uuid := (p ->> 'transfer_id')::uuid;
+begin
+  if exists (select 1 from public.transfer t where t.id = v_id and t.status <> 'dikirim'
+             and (public.is_admin() or coalesce(public.my_outlet_id() = t.dari_outlet_id, false)))
+     and jsonb_typeof(p -> 'item') = 'array'
+     and not exists (
+       select 1
+       from (select bahan_id, qty from public.transfer_item where transfer_id = v_id) a
+       full join (select x.bahan_id, x.qty from jsonb_to_recordset(p -> 'item') as x (bahan_id uuid, qty numeric)) b on a.bahan_id = b.bahan_id
+       where a.bahan_id is null or b.bahan_id is null or a.qty <> round(b.qty, 4)) then
+    return;
+  end if;
+  perform public.ubah_transfer(v_id, p -> 'item', p ->> 'catatan');
+  update public.transfer set diubah_at = public._waktu_perangkat((p ->> 'waktu')::timestamptz) where id = v_id;
+end
+$$;
+
 -- Opname yang dihitung di perangkat: berlaku pada jam kasir menghitung.
 create function public.ajukan_opname_offline(p jsonb) returns uuid
 language plpgsql security definer set search_path = '' as $$
@@ -300,11 +321,13 @@ revoke execute on function public.void_penjualan_offline(jsonb) from public, ano
 revoke execute on function public.terima_transfer_offline(jsonb) from public, anon;
 revoke execute on function public.kirim_transfer_offline(jsonb) from public, anon;
 revoke execute on function public.batal_transfer_offline(jsonb) from public, anon;
+revoke execute on function public.ubah_transfer_offline(jsonb) from public, anon;
 revoke execute on function public.ajukan_opname_offline(jsonb) from public, anon;
 revoke execute on function public.ajukan_stok_awal_offline(jsonb) from public, anon;
 grant execute on function public.void_penjualan_offline(jsonb) to authenticated;
 grant execute on function public.terima_transfer_offline(jsonb) to authenticated;
 grant execute on function public.kirim_transfer_offline(jsonb) to authenticated;
 grant execute on function public.batal_transfer_offline(jsonb) to authenticated;
+grant execute on function public.ubah_transfer_offline(jsonb) to authenticated;
 grant execute on function public.ajukan_opname_offline(jsonb) to authenticated;
 grant execute on function public.ajukan_stok_awal_offline(jsonb) to authenticated;

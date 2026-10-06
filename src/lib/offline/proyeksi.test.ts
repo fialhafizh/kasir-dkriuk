@@ -173,3 +173,19 @@ describe('shiftLokal dengan salinan lama (4b)', () => {
 		expect(shiftLokal(null, [b], 'o', '2026-10-08T09:00:00Z')?.id).toBe('srv2');
 	});
 });
+
+describe('review 4b: ringkasan satu sumber', () => {
+	it('daftar server lebih baru dari salinan ringkasan → transaksi di daftar tetap terhitung sekali', () => {
+		const lama = { ...dasar, jumlah_transaksi: 1, total: 10000, cash_seharusnya: 110000, per_metode: { ...dasar.per_metode, cash: { jumlah: 1, total: 10000 } } };
+		const rows = gabungRiwayat([jualSrv('a', 10000), jualSrv('x', 4321)], [jualKej('x', 4321, 'terkirim')], 'srv');
+		expect(ringkasanLokal(lama, serverShift, rows)).toMatchObject({ jumlah_transaksi: 2, total: 14321, cash_seharusnya: 114321 });
+	});
+	it('tanpa daftar server (belum pernah tersimpan) → ringkasan server + antrean', () => {
+		const rows = gabungRiwayat([], [jualKej('j', 5000)], 'srv');
+		expect(ringkasanLokal(dasar, serverShift, rows, false)).toMatchObject({ jumlah_transaksi: 3, total: 35000, cash_seharusnya: 135000 });
+	});
+	it('batal atas transaksi yang ditolak server → tetap dianggap batal (uang sudah dikembalikan)', () => {
+		const rows = gabungRiwayat([], [jualKej('j', 5000, 'ditolak'), batalKej('b', 'j', 'ditolak')], 'srv');
+		expect(ringkasanLokal(null, serverShift, rows)).toMatchObject({ total: 0, jumlah_void: 1, jumlah_ditolak: 0 });
+	});
+});

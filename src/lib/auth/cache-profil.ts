@@ -40,6 +40,7 @@ export function galatJaringan(e: { message?: string; status?: number; name?: str
 	if (e.name === 'AuthRetryableFetchError' || e.status === 0) return true;
 	if (e.status !== undefined && e.status >= 500) return true;
 	// Pemuat data mengubah galat jaringan/server menjadi pesan Indonesia (pesanErrorData) sebelum dilempar.
-	if (/^(Tidak bisa terhubung ke server|Terjadi kesalahan di server)/.test(e.message ?? '')) return true;
+	// Hanya pesan putus koneksi: "Terjadi kesalahan di server" juga dipakai untuk galat lain yang bukan sementara.
+	if (/^Tidak bisa terhubung ke server/.test(e.message ?? '')) return true;
 	return /failed to fetch|networkerror|load failed/i.test(e.message ?? '');
 }

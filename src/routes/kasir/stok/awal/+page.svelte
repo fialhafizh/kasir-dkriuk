@@ -1,47 +1,24 @@
 <script lang="ts">
 	import FormStokAwal from '#lib/components/stok/FormStokAwal.svelte';
+	import PitaSalinan from '#lib/components/stok/PitaSalinan.svelte';
+	import { antrekan } from '#lib/kasir/antre.ts';
+	import { buatKejadianHitung } from '#lib/kasir/offline-kasir.ts';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
 	import { href } from '#lib/nav.ts';
-	import { ajukanStokAwal, muatDataStok, muatStokAwal, type DataStok } from '#lib/stok/api.ts';
 	import { bentukIsian } from '#lib/stok/isian.ts';
-	import type { ItemHitung, StokAwal } from '#lib/stok/types.ts';
+	import { stokKasir } from '#lib/stok/stok-kasir.svelte.ts';
+	import type { ItemHitung } from '#lib/stok/types.ts';
 
-	let data = $state<DataStok | null>(null);
-	let awal = $state<StokAwal[]>([]);
-	let status = $state<'memuat' | 'siap' | 'gagal'>('memuat');
-	let pesan = $state('');
+	const st = stokKasir();
 	let terkirim = $state(false);
-	let ulang = $state(0);
+	const idHitung = crypto.randomUUID();
 
-	$effect(() => {
-		const o = pos.outlet;
-		if (!o) return;
-		let batal = false;
-		void ulang;
-		terkirim = false;
-		status = 'memuat';
-		Promise.all([muatDataStok(), muatStokAwal(o.id)])
-			.then(([d, a]) => {
-				if (batal) return;
-				data = d;
-				awal = a;
-				status = 'siap';
-			})
-			.catch((e) => {
-				if (batal) return;
-				pesan = (e as Error).message;
-				status = 'gagal';
-			});
-		return () => {
-			batal = true;
-		};
-	});
-
-	const isian = $derived(data ? bentukIsian(data.bahan, data.satuan, data.isi) : []);
-	const bisa = $derived(!awal.some((a) => a.status === 'diajukan' || a.status === 'disetujui'));
+	const v = $derived(st.nilai);
+	const isian = $derived(v ? bentukIsian(v.data.bahan, v.data.satuan, v.data.isi) : []);
+	const bisa = $derived(!(v?.awal ?? []).some((a) => a.status === 'diajukan' || a.status === 'disetujui'));
 
 	async function kirim(item: ItemHitung[]) {
-		await ajukanStokAwal(pos.outlet!.id, item);
+		await antrekan(buatKejadianHitung('stok_awal', pos.outlet!.id, item, new Date(), idHitung));
 		terkirim = true;
 	}
 </script>
@@ -55,16 +32,17 @@
 	memotong stok otomatis.
 </p>
 
-{#if status === 'memuat'}
-	<p class="mt-4 text-muted" role="status">Memuat…</p>
-{:else if status === 'gagal'}
-	<p class="mt-4 text-danger" role="alert">{pesan}</p>
-	<button type="button" class="mt-3 min-h-12 rounded-xl bg-surface-2 px-4 font-semibold" onclick={() => ulang++}>Coba lagi</button>
-{:else if terkirim}
-	<p class="mt-4 rounded-xl bg-surface-2 p-4 font-semibold text-ok" role="status">Terkirim. Menunggu persetujuan admin.</p>
+{#if terkirim}
+	<p class="mt-4 rounded-xl bg-surface-2 p-4 font-semibold text-ok" role="status">Tercatat dan dikirim ke admin (otomatis saat online). Menunggu persetujuan admin.</p>
 	<a href={href('/kasir/stok')} class="mt-3 inline-flex min-h-12 items-center rounded-xl bg-surface-2 px-4 font-semibold">Kembali ke Stok</a>
+{:else if st.status === 'memuat'}
+	<p class="mt-4 text-muted" role="status">Memuat…</p>
+{:else if st.status === 'gagal'}
+	<p class="mt-4 text-danger" role="alert">{st.pesan}</p>
+	<button type="button" class="mt-3 min-h-12 rounded-xl bg-surface-2 px-4 font-semibold" onclick={() => st.ulang++}>Coba lagi</button>
 {:else if !bisa}
 	<p class="mt-4 rounded-xl bg-surface-2 p-4">Stok awal outlet ini sudah dikirim atau sudah disetujui.</p>
 {:else}
+	<PitaSalinan salinanAt={v?.salinanAt ?? null} belumTerkirim={0} />
 	<div class="mt-4"><FormStokAwal {isian} labelKirim="Kirim ke admin" onkirim={kirim} /></div>
 {/if}

@@ -8,7 +8,8 @@ import { pesanSinkron } from './pesan.ts';
 type Galat = { code?: string; message?: string; status?: number; name?: string };
 
 function sesiBermasalah(e: Galat): boolean {
-	return e.status === 401 || e.code === 'PGRST301' || e.code === 'PGRST303' || (e.status ?? 0) >= 500;
+	// PGRST202: fungsi belum ada di server (aplikasi lebih baru dari database) → tunggu, jangan ditolak.
+	return e.status === 401 || e.code === 'PGRST301' || e.code === 'PGRST303' || e.code === 'PGRST202' || (e.status ?? 0) >= 500;
 }
 
 export function pengirimSupabase(perangkatId: string): Pengirim {
@@ -31,11 +32,8 @@ export function pengirimSupabase(perangkatId: string): Pengirim {
 						return supabase.rpc('void_penjualan_offline', { p: dasar }).abortSignal(batas);
 					case 'kirim_transfer':
 						return supabase.rpc('kirim_transfer_offline', { p: { ...dasar, id: k.id, dari_outlet_id: k.outlet_id } }).abortSignal(batas);
-					case 'ubah_transfer': {
-						// Menerapkan ulang isi yang sama aman, jadi fungsi online dipakai apa adanya.
-						const d = k.data as { transfer_id: string; item: unknown; catatan: string | null };
-						return supabase.rpc('ubah_transfer', { p_id: d.transfer_id, p_item: d.item, p_catatan: d.catatan }).abortSignal(batas);
-					}
+					case 'ubah_transfer':
+						return supabase.rpc('ubah_transfer_offline', { p: dasar }).abortSignal(batas);
 					case 'batal_transfer':
 						return supabase.rpc('batal_transfer_offline', { p: dasar }).abortSignal(batas);
 					case 'terima_transfer':

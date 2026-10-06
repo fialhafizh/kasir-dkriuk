@@ -56,7 +56,7 @@
 				coba(`riwayat:${s.id}`, () => daftarPenjualanShift(s.id)),
 				dbKasir.kejadian.toArray()
 			]);
-			if (!batal) r = ringkasanLokal(dasar, s, gabungRiwayat(server ?? [], kejadian, s.id));
+			if (!batal) r = ringkasanLokal(dasar, s, gabungRiwayat(server ?? [], kejadian, s.id), server !== null);
 		})();
 		return () => {
 			batal = true;

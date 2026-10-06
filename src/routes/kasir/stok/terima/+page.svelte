@@ -1,47 +1,31 @@
 <script lang="ts">
 	import FormStokAwal from '#lib/components/stok/FormStokAwal.svelte';
+	import PitaSalinan from '#lib/components/stok/PitaSalinan.svelte';
+	import { antrekan } from '#lib/kasir/antre.ts';
+	import { buatKejadianTerima } from '#lib/kasir/offline-kasir.ts';
 	import { formatWaktuWib } from '#lib/kasir/waktu.ts';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
-	import { muatOutlets } from '#lib/master/api.ts';
 	import { href } from '#lib/nav.ts';
-	import { muatTransfer, terimaTransfer } from '#lib/stok/api-lanjut.ts';
-	import { muatDataStok, type DataStok } from '#lib/stok/api.ts';
 	import { bentukIsian } from '#lib/stok/isian.ts';
+	import { stokKasir } from '#lib/stok/stok-kasir.svelte.ts';
 	import type { ItemHitung, Transfer } from '#lib/stok/types.ts';
-	import type { Outlet } from '#lib/types/db.ts';
 
-	let data = $state<DataStok | null>(null);
-	let outlets = $state<Outlet[]>([]);
-	let masuk = $state<Transfer[]>([]);
+	const st = stokKasir();
 	let dipilih = $state<Transfer | null>(null);
-	let pesan = $state('');
 	let tercatat = $state('');
 
-	async function muat() {
-		const o = pos.outlet!;
-		pesan = '';
-		try {
-			const [d, os, t] = await Promise.all([muatDataStok(), muatOutlets(), muatTransfer(o.id)]);
-			data = d;
-			outlets = os;
-			masuk = t.filter((x) => x.ke_outlet_id === o.id && x.status === 'dikirim');
-		} catch (e) {
-			pesan = (e as Error).message;
-		}
-	}
-	$effect(() => {
-		if (pos.outlet) void muat();
-	});
-
+	const data = $derived(st.nilai?.data ?? null);
+	const outlets = $derived(st.nilai?.outlets ?? []);
+	const masuk = $derived((st.nilai?.transfer ?? []).filter((x) => x.ke_outlet_id === pos.outlet?.id && x.status === 'dikirim'));
 	const isian = $derived(data ? bentukIsian(data.bahan, data.satuan, data.isi) : []);
 	const namaOutlet = (oid: string) => outlets.find((o) => o.id === oid)?.nama ?? '';
 
+	// Dicocokkan dengan kiriman di server saat sinkron; bila beda → Perlu perhatian ("Ada perbedaan jumlah…").
 	async function terima(item: ItemHitung[]) {
 		const t = dipilih!;
-		await terimaTransfer(t.id, item);
-		tercatat = `Kiriman dari ${namaOutlet(t.dari_outlet_id)} diterima. Stok sudah bertambah.`;
+		await antrekan(buatKejadianTerima(pos.outlet!.id, t.id, item, new Date()));
+		tercatat = `Tercatat terima dari ${namaOutlet(t.dari_outlet_id)}. Jumlah dicocokkan dengan pengirim saat sinkron; bila beda, muncul di Perlu perhatian.`;
 		dipilih = null;
-		await muat();
 	}
 </script>
 
@@ -50,12 +34,13 @@
 <a href={href('/kasir/stok')} class="text-sm text-brand underline">← Stok</a>
 <h1 class="mt-1 font-display text-2xl">Terima kiriman</h1>
 
-{#if pesan}
-	<p class="mt-4 text-danger" role="alert">{pesan}</p>
-	<button type="button" class="mt-3 min-h-12 rounded-xl bg-surface-2 px-4 font-semibold" onclick={muat}>Coba lagi</button>
+{#if st.status === 'gagal'}
+	<p class="mt-4 text-danger" role="alert">{st.pesan}</p>
+	<button type="button" class="mt-3 min-h-12 rounded-xl bg-surface-2 px-4 font-semibold" onclick={() => st.ulang++}>Coba lagi</button>
 {:else if !data}
 	<p class="mt-4 text-muted" role="status">Memuat…</p>
 {:else}
+	<PitaSalinan salinanAt={st.nilai?.salinanAt ?? null} belumTerkirim={0} />
 	{#if tercatat}<p class="mt-4 rounded-xl bg-surface-2 p-3 font-semibold text-ok" role="status">{tercatat}</p>{/if}
 	{#if dipilih}
 		<section class="mt-4 grid gap-3" aria-label="Konfirmasi kiriman">
