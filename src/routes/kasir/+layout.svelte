@@ -8,8 +8,9 @@
 	import { onMount } from 'svelte';
 	import PenandaSinkron from '#lib/components/kasir/PenandaSinkron.svelte';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
+	import { hitungMilikLain } from '#lib/offline/antrean.ts';
 	import { bacaPerangkat, simpanKode } from '#lib/offline/perangkat.ts';
-	import { sinkron } from '#lib/offline/sinkron.svelte.ts';
+	import { dbKasir, sinkron } from '#lib/offline/sinkron.svelte.ts';
 	import { supabase } from '#lib/supabase/client.ts';
 	import { muatStokKasir } from '#lib/stok/kasir-lokal.ts';
 
@@ -25,6 +26,17 @@
 		void auth.offline;
 		void sinkron.terakhir;
 		if (pos.outlet) void pos.muatShift();
+	});
+
+	// Antrean milik akun lain (mis. kasir berganti akun di perangkat ini) tidak dikirim atas nama akun ini.
+	let milikLain = $state(0);
+	$effect(() => {
+		const id = auth.profile?.id ?? null;
+		void sinkron.menunggu;
+		void sinkron.ditolak;
+		hitungMilikLain(dbKasir, id)
+			.then((n) => (milikLain = n))
+			.catch(() => {});
 	});
 
 	// Setelah sinkron selesai & online: perbarui salinan data stok supaya halaman Stok siap dibuka tanpa internet.
@@ -55,6 +67,11 @@
 				>Coba sambung lagi</button
 			>
 		</div>
+	{/if}
+	{#if milikLain}
+		<p class="mb-4 rounded-xl bg-surface-2 px-4 py-2 text-sm font-semibold text-warn" role="status">
+			Ada {milikLain} data belum terkirim milik akun lain di perangkat ini. Minta akun itu masuk di perangkat ini untuk mengirimnya.
+		</p>
 	{/if}
 	{#if auth.profile?.role === 'admin'}<div class="mb-4"><PilihOutlet /></div>{/if}
 	{#if !pos.outlet}

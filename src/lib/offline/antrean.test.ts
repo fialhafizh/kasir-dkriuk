@@ -1,6 +1,6 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { cobaLagi, GalatKirim, hitungAntrean, kirimAntrean, tambahKejadian, ubahDataMenunggu, type Pengirim } from './antrean';
+import { bersihkanTerkirim, cobaLagi, GalatKirim, hitungAntrean, hitungMilikLain, kirimAntrean, tambahKejadian, ubahDataMenunggu, type Pengirim } from './antrean';
 import { bukaDb, type DbKasir, type Kejadian } from './db';
 
 let db: DbKasir;
@@ -127,5 +127,35 @@ describe('kejadian 4b di antrean', () => {
 		expect(await kirimAntrean(db, p2)).toMatchObject({ terkirim: 1, ditolak: 1 });
 		expect(p2.dikirim).toEqual(['b2', 'op']);
 		expect((await db.kejadian.where('id').equals('bj2').first())?.status).toBe('ditolak');
+	});
+});
+
+describe('pengerasan 4b', () => {
+	const lama = '2026-10-01T00:00:00Z';
+	const terkirim = (id: string, jenis: Kejadian['jenis'], shift: string | null, terkirim_at = lama, hasil: unknown = null) =>
+		db.kejadian.add({ ...k(id, jenis, shift), status: 'terkirim', alasan: null, percobaan: 0, hasil, terkirim_at });
+	const ada = async () => (await db.kejadian.toArray()).map((x) => x.id).sort();
+
+	it('bersihkan: shift tanpa tutup di perangkat disimpan; shift yang ditutup & kejadian tanpa shift dihapus', async () => {
+		await terkirim('j-buka', 'jual', 'sBuka');
+		await terkirim('b-tutup', 'buka_shift', 'dev', lama, 'srv');
+		await terkirim('j-tutup', 'jual', 'srv');
+		await terkirim('t-tutup', 'tutup_shift', 'dev');
+		await terkirim('r', 'rusak', null);
+		await terkirim('baru', 'rusak', null, '2026-10-07T00:00:00Z');
+		await bersihkanTerkirim(db, new Date('2026-10-05T00:00:00Z'));
+		expect(await ada()).toEqual(['baru', 'j-buka']);
+	});
+	it('bersihkan: lewat 14 hari dihapus walau shift tidak ditutup di perangkat ini', async () => {
+		await terkirim('j', 'jual', 'sLain', '2026-09-15T00:00:00Z');
+		await bersihkanTerkirim(db, new Date('2026-10-05T00:00:00Z'));
+		expect(await ada()).toEqual([]);
+	});
+	it('hitungMilikLain: menunggu/ditolak milik akun lain saja', async () => {
+		await tambahKejadian(db, { ...k('a', 'jual'), user_id: 'u1' });
+		await tambahKejadian(db, { ...k('b', 'jual'), user_id: 'u2' });
+		await tambahKejadian(db, { ...k('c', 'jual'), user_id: null });
+		expect(await hitungMilikLain(db, 'u1')).toBe(1);
+		expect(await hitungMilikLain(db, null)).toBe(2);
 	});
 });

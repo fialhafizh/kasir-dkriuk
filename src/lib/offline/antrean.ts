@@ -109,10 +109,36 @@ export async function ubahDataMenunggu(db: DbKasir, id: string, patch: Record<st
 	return true;
 }
 
+/**
+ * Hapus kejadian terkirim yang lama. Kejadian shift yang belum punya tutup toko di perangkat ini disimpan
+ * (shift yang belum ditutup lintas hari tetap bisa ditampilkan/diringkas dari antrean). `sebelum` biasanya 3 hari lalu.
+ */
 export async function bersihkanTerkirim(db: DbKasir, sebelum: Date): Promise<void> {
+	const semua = await db.kejadian.toArray();
+	const ditutup = new Set<string>();
+	for (const k of semua) {
+		if (k.jenis !== 'tutup_shift' || !k.shift_id || k.status === 'ditolak') continue;
+		ditutup.add(k.shift_id);
+		// Shift gabungan: id perangkat & id server berarti shift yang sama.
+		for (const b of semua) {
+			if (b.jenis === 'buka_shift' && typeof b.hasil === 'string' && (b.shift_id === k.shift_id || b.hasil === k.shift_id)) {
+				ditutup.add(b.shift_id!);
+				ditutup.add(b.hasil);
+			}
+		}
+	}
 	await db.kejadian
 		.where('status')
 		.equals('terkirim')
-		.filter((x) => !!x.terkirim_at && new Date(x.terkirim_at) < sebelum)
+		// Batas mutlak 14 hari: shift yang ditutup perangkat lain (tanpa tutup di sini) tidak menumpuk selamanya.
+		.filter((x) => {
+			if (!x.terkirim_at || new Date(x.terkirim_at) >= sebelum) return false;
+			return !x.shift_id || ditutup.has(x.shift_id) || new Date(x.terkirim_at).getTime() < sebelum.getTime() - 11 * 86_400_000;
+		})
 		.delete();
+}
+
+/** Kejadian belum terkirim/ditolak milik akun lain di perangkat ini (tidak akan dikirim atas nama akun ini). */
+export async function hitungMilikLain(db: DbKasir, userId: string | null): Promise<number> {
+	return db.kejadian.filter((k) => (k.status === 'menunggu' || k.status === 'ditolak') && !!k.user_id && k.user_id !== userId).count();
 }

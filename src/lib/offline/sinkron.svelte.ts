@@ -29,12 +29,10 @@ class SinkronState {
 		this.#berjalan ??= (async () => {
 			this.sedang = true;
 			try {
-				const r = await kirimAntrean(dbKasir, pengirimSupabase(this.#perangkat!), auth.profile?.id ?? null);
-				if (r.berhenti === 'selesai') {
-					this.terakhir = new Date().toISOString();
-					await supabase.rpc('tandai_sinkron', { p_id: this.#perangkat });
-					await bersihkanTerkirim(dbKasir, new Date(Date.now() - 3 * 86_400_000));
-				}
+				// Dua tab aplikasi tidak boleh mengirim antrean yang sama bersamaan.
+				const locks = typeof navigator === 'undefined' ? undefined : navigator.locks;
+				if (locks) await locks.request('dk-sinkron', { ifAvailable: true }, async (kunci) => (kunci ? this.#kirim() : undefined));
+				else await this.#kirim();
 			} catch {
 				// Galat tak terduga (mis. penyimpanan): dicoba lagi pada pemicu berikutnya.
 			} finally {
@@ -44,6 +42,15 @@ class SinkronState {
 			}
 		})();
 		return this.#berjalan;
+	}
+
+	async #kirim() {
+		const r = await kirimAntrean(dbKasir, pengirimSupabase(this.#perangkat!), auth.profile?.id ?? null);
+		if (r.berhenti === 'selesai') {
+			this.terakhir = new Date().toISOString();
+			await supabase.rpc('tandai_sinkron', { p_id: this.#perangkat });
+			await bersihkanTerkirim(dbKasir, new Date(Date.now() - 3 * 86_400_000));
+		}
 	}
 
 	mulai(perangkatId: string) {
