@@ -65,3 +65,13 @@ describe('review Tugas 1 Tahap 2: galat sementara', () => {
 		expect(galatJaringan({ message: 'NetworkError when attempting to fetch resource.' })).toBe(true);
 	});
 });
+
+describe('Tahap 4b: galat dari pemuat data', () => {
+	it('pesan Indonesia untuk putus koneksi / gangguan server dikenali (salinan perangkat dipakai)', async () => {
+		const { pesanErrorData } = await import('#lib/master/pesan.ts');
+		const putus = pesanErrorData({ message: 'TypeError: Failed to fetch', code: '' })!;
+		expect(galatJaringan(new Error(putus))).toBe(true);
+		expect(galatJaringan(new Error(pesanErrorData({ message: 'x', status: 503 })!))).toBe(true);
+		expect(galatJaringan(new Error(pesanErrorData({ code: '42501', message: 'x' })!))).toBe(false);
+	});
+});
