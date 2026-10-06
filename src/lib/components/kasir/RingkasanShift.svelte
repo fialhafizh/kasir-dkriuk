@@ -26,7 +26,9 @@
 			<dd class="text-right">Rp{formatAngka(r.per_metode[m.kode].total)}</dd>
 		{/each}
 		<dt class="font-bold">Total penjualan</dt><dd class="text-right font-bold">Rp{formatAngka(r.total)}</dd>
-		<dt class="pt-2">Modal kembalian</dt><dd class="pt-2 text-right">Rp{formatAngka(r.modal)}</dd>
+		<dt class="pt-2">Uang laci saat buka</dt><dd class="pt-2 text-right">Rp{formatAngka(r.modal)}</dd>
+		{#if r.pengeluaran_laci}<dt>Pengeluaran dari laci</dt><dd class="text-right">−Rp{formatAngka(r.pengeluaran_laci)}</dd>{/if}
+		{#if r.setoran}<dt>Setoran ke owner</dt><dd class="text-right">−Rp{formatAngka(r.setoran)}</dd>{/if}
 		<dt class="font-semibold">Cash seharusnya di laci</dt><dd class="text-right font-semibold">Rp{formatAngka(r.cash_seharusnya)}</dd>
 		{#if r.uang_fisik !== null && r.selisih !== null}
 			<dt>Uang dihitung</dt><dd class="text-right">Rp{formatAngka(r.uang_fisik)}</dd>

@@ -6,6 +6,7 @@
 		{ path: '/kasir', label: 'Jualan' },
 		{ path: '/kasir/riwayat', label: 'Riwayat' },
 		{ path: '/kasir/stok', label: 'Stok' },
+		{ path: '/kasir/kas', label: 'Kas' },
 		{ path: '/kasir/tutup', label: 'Tutup toko' }
 	] as const;
 

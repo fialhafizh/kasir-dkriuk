@@ -13,6 +13,9 @@
 	import { dbKasir, sinkron } from '#lib/offline/sinkron.svelte.ts';
 	import { supabase } from '#lib/supabase/client.ts';
 	import { muatStokKasir } from '#lib/stok/kasir-lokal.ts';
+	import { muatKategori } from '#lib/kas/api.ts';
+	import { saldoLaciPerangkat } from '#lib/kas/laci.ts';
+	import { denganSalinan } from '#lib/offline/salinan.ts';
 
 	let { children } = $props();
 
@@ -44,6 +47,9 @@
 		const o = pos.outlet;
 		if (!sinkron.versi || !o || auth.offline) return;
 		void muatStokKasir(o.id).catch(() => {});
+		// Saldo laci & kategori pengeluaran juga disimpan untuk dipakai tanpa internet.
+		void saldoLaciPerangkat(o.id).catch(() => {});
+		void denganSalinan(dbKasir, 'kategori', muatKategori, () => false).catch(() => {});
 	});
 
 	// Daftarkan perangkat (saat online) supaya punya kode untuk nomor struk sementara.

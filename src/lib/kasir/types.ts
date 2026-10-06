@@ -62,6 +62,9 @@ export interface Ringkasan {
 	jual_setelah_tutup?: number;
 	batal_setelah_tutup?: number;
 	dibuka_lagi_setelah?: string | null;
+	/** Tahap 5a: pengeluaran laci & setoran selama shift. */
+	pengeluaran_laci?: number;
+	setoran?: number;
 	/** Hanya di ringkasan perangkat: transaksi yang ditolak server (tetap dihitung). */
 	jumlah_ditolak?: number;
 	total_ditolak?: number;
