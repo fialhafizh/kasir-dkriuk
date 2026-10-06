@@ -4,14 +4,9 @@
 	import { bacaPerangkat } from '#lib/offline/perangkat.ts';
 	import { supabase } from '#lib/supabase/client.ts';
 	import type { Kejadian } from '#lib/offline/db.ts';
+	import { LABEL_KEJADIAN } from '#lib/offline/label.ts';
 	import { dbKasir, sinkron } from '#lib/offline/sinkron.svelte.ts';
 
-	const LABEL: Record<Kejadian['jenis'], string> = {
-		buka_shift: 'Buka toko',
-		jual: 'Jualan',
-		tutup_shift: 'Tutup toko',
-		rusak: 'Rusak/sisa'
-	};
 
 	let daftar = $state<Kejadian[]>([]);
 	let alasan = $state<Record<string, string>>({});
@@ -52,10 +47,12 @@
 	}
 
 	const ringkas = (k: Kejadian) => {
-		const d = k.data as { kode_struk?: string; nomor_sementara?: string; total?: number; modal?: number; uang_fisik?: number };
+		const d = k.data as { kode_struk?: string; nomor_sementara?: string; total?: number; modal?: number; uang_fisik?: number; alasan?: string; item?: unknown[] };
 		if (k.jenis === 'jual') return [d.nomor_sementara, d.kode_struk && `kode ${d.kode_struk}`, d.total !== undefined && `Rp${d.total}`].filter(Boolean).join(' · ');
 		if (k.jenis === 'buka_shift') return `modal Rp${d.modal ?? 0}`;
 		if (k.jenis === 'tutup_shift') return `uang laci Rp${d.uang_fisik ?? 0}`;
+		if (k.jenis === 'batal_jual' || k.jenis === 'batal_transfer') return d.alasan ? `alasan: ${d.alasan}` : '';
+		if (Array.isArray(d.item)) return `${d.item.length} bahan`;
 		return '';
 	};
 </script>
@@ -75,7 +72,7 @@
 		{#each daftar as k (k.id)}
 			<li class="rounded-2xl border-2 border-danger bg-surface p-3">
 				<p class="flex flex-wrap justify-between gap-2">
-					<span class="font-semibold">{LABEL[k.jenis]}</span>
+					<span class="font-semibold">{LABEL_KEJADIAN[k.jenis]}</span>
 					<span class="text-sm text-muted">{formatWaktuWib(k.waktu)}</span>
 				</p>
 				{#if ringkas(k)}<p class="text-sm text-muted">{ringkas(k)}</p>{/if}

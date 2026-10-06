@@ -109,3 +109,23 @@ describe('review T4–T8: antrean', () => {
 	});
 });
 
+
+describe('kejadian 4b di antrean', () => {
+	it('jual lalu batalnya dikirim berurutan; batal di shift yang buka-nya ditolak ikut tertahan', async () => {
+		await tambahKejadian(db, k('j', 'jual'));
+		await tambahKejadian(db, k('bj', 'batal_jual'));
+		await tambahKejadian(db, k('kt', 'kirim_transfer', null));
+		const p = pengirim({});
+		await kirimAntrean(db, p);
+		expect(p.dikirim).toEqual(['j', 'bj', 'kt']);
+
+		await tambahKejadian(db, k('b2', 'buka_shift', 's2'));
+		await tambahKejadian(db, k('bj2', 'batal_jual', 's2'));
+		await tambahKejadian(db, k('op', 'opname', null));
+		const p2 = pengirim({ b2: 'tolak' });
+		// ditolak = yang dikirim lalu ditolak; batal yang tertahan tidak dikirim sama sekali.
+		expect(await kirimAntrean(db, p2)).toMatchObject({ terkirim: 1, ditolak: 1 });
+		expect(p2.dikirim).toEqual(['b2', 'op']);
+		expect((await db.kejadian.where('id').equals('bj2').first())?.status).toBe('ditolak');
+	});
+});

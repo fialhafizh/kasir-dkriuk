@@ -27,12 +27,34 @@ export function pengirimSupabase(perangkatId: string): Pengirim {
 						return supabase.rpc('tutup_shift_offline', { p: { ...dasar, id: k.id, shift_id: k.shift_id } }).abortSignal(batas);
 					case 'rusak':
 						return supabase.rpc('catat_rusak_offline', { p: { ...dasar, id: k.id } }).abortSignal(batas);
+					case 'batal_jual':
+						return supabase.rpc('void_penjualan_offline', { p: dasar }).abortSignal(batas);
+					case 'kirim_transfer':
+						return supabase.rpc('kirim_transfer_offline', { p: { ...dasar, id: k.id, dari_outlet_id: k.outlet_id } }).abortSignal(batas);
+					case 'ubah_transfer': {
+						// Menerapkan ulang isi yang sama aman, jadi fungsi online dipakai apa adanya.
+						const d = k.data as { transfer_id: string; item: unknown; catatan: string | null };
+						return supabase.rpc('ubah_transfer', { p_id: d.transfer_id, p_item: d.item, p_catatan: d.catatan }).abortSignal(batas);
+					}
+					case 'batal_transfer':
+						return supabase.rpc('batal_transfer_offline', { p: dasar }).abortSignal(batas);
+					case 'terima_transfer':
+						return supabase.rpc('terima_transfer_offline', { p: dasar }).abortSignal(batas);
+					case 'opname':
+						return supabase.rpc('ajukan_opname_offline', { p: { ...dasar, id: k.id } }).abortSignal(batas);
+					case 'stok_awal':
+						return supabase.rpc('ajukan_stok_awal_offline', { p: { ...dasar, id: k.id } }).abortSignal(batas);
+					default: {
+						const tidakDikenal: never = k.jenis;
+						throw new GalatKirim(`Jenis kejadian tidak dikenal: ${String(tidakDikenal)}`, false);
+					}
 				}
 			};
 			let res: { data: unknown; error: Galat | null; status?: number };
 			try {
 				res = (await panggil()) as typeof res;
 			} catch (e) {
+				if (e instanceof GalatKirim) throw e;
 				throw new GalatKirim((e as Error).message, true);
 			}
 			if (res.error) {
