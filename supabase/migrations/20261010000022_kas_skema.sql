@@ -26,7 +26,7 @@ insert into public.kategori_pengeluaran (nama, untuk_kasir, wajib_keterangan, ur
   ('Token listrik', true, false, 20),
   ('Air', true, false, 30),
   ('Lain-lain', true, true, 40),
-  ('Belanja bahan', false, false, 50),
+  ('Belanja bahan di luar Barang masuk', false, true, 50),
   ('Perbaikan & peralatan', false, false, 60),
   ('Lain-lain admin', false, true, 70);
 

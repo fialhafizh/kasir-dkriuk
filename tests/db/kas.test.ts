@@ -100,9 +100,12 @@ describe('buku kas laci', () => {
 });
 
 describe('pengeluaran', () => {
-	it('mengurangi laci; kategori admin ditolak untuk kasir; Lain-lain wajib keterangan; kirim ulang sekali', async () => {
+	it('mengurangi laci; kategori tak dikenal ditolak; Lain-lain wajib keterangan; kirim ulang sekali', async () => {
 		await buka(120, 100000);
-		await expect(pengeluaran(60, 5000, 'Belanja bahan')).rejects.toThrow(/Kategori pengeluaran tidak dikenal/);
+		// Dari antrean: kategori apa pun yang ada diterima (uang sudah keluar laci); layar kasir hanya menawarkan kategori kasir.
+		await expect(rpc(db, kasirBL, 'public.catat_pengeluaran_offline($1::jsonb)', [
+			JSON.stringify({ id: crypto.randomUUID(), outlet_id: await BL(), kategori_id: crypto.randomUUID(), jumlah: 1, waktu: await jam(60) })
+		])).rejects.toThrow(/Kategori pengeluaran tidak dikenal/);
 		await expect(pengeluaran(60, 5000, 'Lain-lain')).rejects.toThrow(/Keterangan wajib/);
 		const id = crypto.randomUUID();
 		await pengeluaran(60, 7000, 'Lain-lain', 'beli sabun', kasirBL, id);
@@ -243,5 +246,13 @@ describe('review server 5a', () => {
 		const r = await rpc<{ awal_at: string; jangkar_at: string }>(db, kasirBL, 'public.saldo_laci($1)', [await BL()]);
 		expect(await nilai<boolean>('select $1::timestamptz < $2::timestamptz as v', [r.awal_at, r.jangkar_at])).toBe(true);
 		expect(await nilai<boolean>(`select $1::timestamptz < now() - interval '50 minutes' as v`, [r.jangkar_at])).toBe(true);
+	});
+	it('pengeluaran dari antrean tetap diterima walau kategorinya sudah dinonaktifkan admin', async () => {
+		await buka(120, 100000);
+		await db.query(`update public.kategori_pengeluaran set aktif = false where nama = 'Gas'`);
+		await pengeluaran(60, 25000);
+		expect(await saldo()).toBe(75000);
+		const p = { id: crypto.randomUUID(), outlet_id: await BL(), sumber: 'luar', kategori_id: await kategori('Gas'), jumlah: 1000 };
+		await expect(rpc(db, adminId, 'public.catat_pengeluaran_admin($1::jsonb)', [JSON.stringify(p)])).rejects.toThrow(/nonaktif/);
 	});
 });

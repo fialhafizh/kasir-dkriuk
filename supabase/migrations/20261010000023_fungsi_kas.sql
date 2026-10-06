@@ -241,7 +241,7 @@ end
 $$;
 
 -- Isi pengeluaran (dipakai kasir & admin). Mengembalikan true bila id sudah ada (kiriman ulang).
-create function public._simpan_pengeluaran(p jsonb, p_sumber text, p_waktu timestamptz) returns boolean
+create function public._simpan_pengeluaran(p jsonb, p_sumber text, p_waktu timestamptz, p_dari_antrean boolean) returns boolean
 language plpgsql security definer set search_path = '' as $$
 declare
   v_outlet uuid := (p ->> 'outlet_id')::uuid;
@@ -261,8 +261,10 @@ begin
     end if;
     return true;
   end if;
-  select * into k from public.kategori_pengeluaran where id = v_kategori and aktif;
-  if not found or (not k.untuk_kasir and not public.is_admin()) then
+  select * into k from public.kategori_pengeluaran where id = v_kategori;
+  -- Dari antrean perangkat: uangnya sudah keluar dari laci; kategori yang dinonaktifkan / dijadikan khusus admin
+  -- sebelum kiriman ini sampai tetap diterima (kalau ditolak, laci kasir terlihat kurang padahal tidak).
+  if not found or (not p_dari_antrean and (not k.aktif or (not k.untuk_kasir and not public.is_admin()))) then
     raise exception 'Kategori pengeluaran tidak dikenal atau nonaktif' using errcode = '22023';
   end if;
   if v_jumlah is null or v_jumlah < 1 or v_jumlah > 100000000 then
@@ -285,7 +287,7 @@ create function public.catat_pengeluaran_offline(p jsonb) returns uuid
 language plpgsql security definer set search_path = '' as $$
 begin
   perform public._cek_akses_outlet((p ->> 'outlet_id')::uuid);
-  perform public._simpan_pengeluaran(p, 'laci', public._waktu_perangkat((p ->> 'waktu')::timestamptz));
+  perform public._simpan_pengeluaran(p, 'laci', public._waktu_perangkat((p ->> 'waktu')::timestamptz), true);
   return (p ->> 'id')::uuid;
 end
 $$;
@@ -309,7 +311,7 @@ begin
   end if;
   -- Dari laci: uang keluar sekarang (tanggal lampau tidak boleh menyelip sebelum hitungan laci).
   perform public._simpan_pengeluaran(p, v_sumber,
-    case when v_tanggal is null or v_sumber = 'laci' then now() else (v_tanggal::text || ' 12:00:00+07')::timestamptz end);
+    case when v_tanggal is null or v_sumber = 'laci' then now() else (v_tanggal::text || ' 12:00:00+07')::timestamptz end, false);
   return (p ->> 'id')::uuid;
 end
 $$;
@@ -574,7 +576,7 @@ end
 $$;
 
 revoke execute on function public._wajib_admin_keuangan() from public, anon, authenticated;
-revoke execute on function public._simpan_pengeluaran(jsonb, text, timestamptz) from public, anon, authenticated;
+revoke execute on function public._simpan_pengeluaran(jsonb, text, timestamptz, boolean) from public, anon, authenticated;
 revoke execute on function public.catat_pengeluaran_offline(jsonb) from public, anon;
 revoke execute on function public.catat_pengeluaran_admin(jsonb) from public, anon;
 revoke execute on function public.batal_pengeluaran(uuid, text) from public, anon;

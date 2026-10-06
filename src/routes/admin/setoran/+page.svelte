@@ -70,7 +70,7 @@
 <h1 class="font-display text-3xl">Setoran</h1>
 <p class="mt-1 max-w-prose text-sm text-muted">
 	Setoran yang dicatat kasir (uang laci sudah berkurang). Tekan Terima setelah uang ada di tanganmu. Bila jumlahnya beda, ketik jumlah
-	sebenarnya dan catatannya. Batal hanya untuk setoran yang tidak jadi diserahkan (uang kembali di laci).
+	sebenarnya dan catatannya. Batal hanya untuk setoran yang tidak jadi diserahkan (koreksi catatan: uangnya dianggap tidak pernah keluar dari laci).
 </p>
 
 {#if status === 'memuat'}

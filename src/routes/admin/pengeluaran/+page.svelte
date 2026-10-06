@@ -164,8 +164,8 @@
 
 <h1 class="font-display text-3xl">Pengeluaran</h1>
 <p class="mt-1 max-w-prose text-sm text-muted">
-	Semua pengeluaran: dari laci (kasir/admin), di luar laci (dibayar owner), dan belanja bahan dari Barang masuk. Batal pengeluaran = koreksi
-	catatan (dianggap tidak pernah ada).
+	Semua pengeluaran: dari laci (kasir/admin), di luar laci (dibayar owner), dan belanja bahan dari Barang masuk (otomatis — jangan dicatat
+	lagi di sini). Batal pengeluaran = koreksi catatan (dianggap tidak pernah ada).
 </p>
 
 <form class="mt-4 grid max-w-2xl gap-3 rounded-2xl border border-line bg-surface p-4 sm:grid-cols-2" onsubmit={catat} novalidate>

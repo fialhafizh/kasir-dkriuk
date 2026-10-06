@@ -13,7 +13,7 @@ Status: **belum dicoba**.
 
 ## Admin
 - [ ] **Setoran**: setoran kasir tampil "Belum diterima" → Terima (jumlah sama) → pindah ke riwayat; coba satu dengan jumlah beda + catatan → tampil selisih
-- [ ] **Pengeluaran**: daftar laci + belanja bahan (dari Barang masuk); catat pengeluaran di luar laci (mis. perbaikan); tambah kategori baru & jadikan "Dipakai kasir"; batalkan pengeluaran yang salah → laci & selisih shift terkoreksi
+- [ ] **Pengeluaran**: daftar laci + belanja bahan (dari Barang masuk); catat pengeluaran di luar laci (mis. perbaikan); tambah kategori baru & jadikan "Dipakai kasir"; batalkan pengeluaran yang salah → selisih shift itu terkoreksi (uang laci sekarang hanya berubah bila belum ada tutup toko sesudah pengeluaran itu)
 - [ ] **Kas harian**: per outlet & semua outlet; penjualan per kanal, pengeluaran, setoran, uang laci awal → akhir, selisih per hari
 - [ ] **Penjualan**: cari transaksi dengan kode struk; batalkan transaksi dari hari kemarin (koreksi) → Kas harian hari itu & selisih shift-nya berubah
 

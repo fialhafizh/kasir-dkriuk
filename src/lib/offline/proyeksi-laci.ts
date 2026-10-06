@@ -66,7 +66,7 @@ export function kasAntrean(kejadian: Kejadian[], outletId: string, sejak: string
 	let pengeluaran = 0;
 	let setoran = 0;
 	for (const k of kejadian) {
-		if (k.outlet_id !== outletId || !berlaku(k, disimpanAt) || k.waktu <= sejak) continue;
+		if (k.outlet_id !== outletId || !berlaku(k, disimpanAt) || Date.parse(k.waktu) <= Date.parse(sejak)) continue;
 		if (k.jenis === 'pengeluaran') pengeluaran += angka(k.data.jumlah);
 		if (k.jenis === 'setoran') setoran += angka(k.data.jumlah);
 	}

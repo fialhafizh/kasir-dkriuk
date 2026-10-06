@@ -66,7 +66,7 @@
 			r = {
 				...dasarR,
 				// Shift yang dibuka sebelum uang laci awal (sebelum 5a) memakai rumus lama, sama dengan server.
-				cash_seharusnya: laci?.adaAwal && (!laci.awalAt || s.dibuka_at >= laci.awalAt) ? laci.saldo : dasarR.cash_seharusnya,
+				cash_seharusnya: laci?.adaAwal && (!laci.awalAt || Date.parse(s.dibuka_at) >= Date.parse(laci.awalAt)) ? laci.saldo : dasarR.cash_seharusnya,
 				pengeluaran_laci: (dasar?.pengeluaran_laci ?? 0) + antre.pengeluaran,
 				setoran: (dasar?.setoran ?? 0) + antre.setoran
 			};
