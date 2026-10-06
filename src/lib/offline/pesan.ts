@@ -1,3 +1,4 @@
+import { pesanKas } from '#lib/kas/pesan.ts';
 import { pesanKasir } from '#lib/kasir/pesan.ts';
 import { pesanStok } from '#lib/stok/pesan.ts';
 
@@ -10,6 +11,8 @@ type Galat = { code?: string; message?: string; status?: number; name?: string }
 export function pesanSinkron(err: Galat): string {
 	const msg = err?.message ?? '';
 	if ((err?.code === '22023' || err?.code === '42501') && PESAN_OFFLINE.test(msg)) return msg.endsWith('.') ? msg : `${msg}.`;
+	const kas = pesanKas(err);
+	if (kas && kas !== 'Isian tidak sah.' && kas !== pesanKasir(err)) return kas;
 	const k = pesanKasir(err);
 	if (k && k !== 'Isian tidak sah.') return k;
 	return pesanStok(err) ?? 'Terjadi kesalahan.';
