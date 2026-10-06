@@ -59,11 +59,12 @@ export function statusSinkron(terakhir: string | null, sekarang: Date): 'baru' |
 
 /** Ringkasan isi kejadian untuk admin (nomor, kode struk, total, alasan, jumlah bahan). */
 export function ringkasData(jenis: string, data: Record<string, unknown>): string {
-	const d = data as { nomor_sementara?: string; kode_struk?: string; total?: number; modal?: number; uang_fisik?: number; alasan?: string; item?: unknown[] };
+	const d = data as { nomor_sementara?: string; kode_struk?: string; total?: number; modal?: number; uang_fisik?: number; alasan?: string; item?: unknown[]; jumlah?: number };
 	const bagian: (string | false | undefined)[] = [];
 	if (jenis === 'jual') bagian.push(d.nomor_sementara, d.kode_struk && `kode ${d.kode_struk}`, typeof d.total === 'number' && `Rp${formatAngka(d.total)}`);
 	else if (jenis === 'buka_shift') bagian.push(`modal Rp${formatAngka(Number(d.modal ?? 0))}`);
 	else if (jenis === 'tutup_shift') bagian.push(`uang laci Rp${formatAngka(Number(d.uang_fisik ?? 0))}`);
+	else if (jenis === 'pengeluaran' || jenis === 'setoran') bagian.push(`Rp${formatAngka(Number(d.jumlah ?? 0))}`);
 	else {
 		if (Array.isArray(d.item)) bagian.push(`${d.item.length} bahan`);
 		if (d.alasan) bagian.push(`alasan: ${d.alasan}`);

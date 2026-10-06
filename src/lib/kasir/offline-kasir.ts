@@ -40,9 +40,17 @@ export function buatKejadianJual(a: {
 	};
 }
 
-export function buatKejadianBuka(outletId: string, modal: number, waktu: Date): KejadianBaru {
+/** modal = uang laci saat buka (perkiraan perangkat); laciAwal diisi hanya saat outlet belum punya uang laci awal. */
+export function buatKejadianBuka(outletId: string, modal: number, waktu: Date, laciAwal?: number): KejadianBaru {
 	const shiftId = crypto.randomUUID();
-	return { id: crypto.randomUUID(), jenis: 'buka_shift', outlet_id: outletId, shift_id: shiftId, waktu: waktu.toISOString(), data: { shift_id: shiftId, modal } };
+	return {
+		id: crypto.randomUUID(),
+		jenis: 'buka_shift',
+		outlet_id: outletId,
+		shift_id: shiftId,
+		waktu: waktu.toISOString(),
+		data: { shift_id: shiftId, modal: Math.max(0, modal), ...(laciAwal !== undefined ? { laci_awal: laciAwal } : {}) }
+	};
 }
 
 export function buatKejadianTutup(outletId: string, shiftId: string, uang: number, catatan: string, waktu: Date): KejadianBaru {
@@ -61,15 +69,42 @@ export function buatKejadianRusak(outletId: string, alasan: AlasanRusak, item: I
 }
 
 /** Batal transaksi; shift_id = shift penjualan supaya ikut tertahan bila buka toko-nya ditolak. */
-export function buatKejadianBatal(outletId: string, shiftId: string | null, penjualanId: string, alasan: string, waktu: Date): KejadianBaru {
+/** penjualan (metode & total) ikut disimpan supaya saldo laci di perangkat bisa dikurangi sebelum sinkron. */
+export function buatKejadianBatal(
+	outletId: string,
+	shiftId: string | null,
+	penjualanId: string,
+	alasan: string,
+	waktu: Date,
+	penjualan?: { metode: Metode; total: number }
+): KejadianBaru {
 	return {
 		id: crypto.randomUUID(),
 		jenis: 'batal_jual',
 		outlet_id: outletId,
 		shift_id: shiftId,
 		waktu: waktu.toISOString(),
-		data: { penjualan_id: penjualanId, alasan: alasan.trim() }
+		data: { penjualan_id: penjualanId, alasan: alasan.trim(), ...(penjualan ? { metode: penjualan.metode, total: penjualan.total } : {}) }
 	};
+}
+
+/** Pengeluaran kecil dari laci (kategori kasir). */
+export function buatKejadianPengeluaran(outletId: string, a: { kategoriId: string; jumlah: number; keterangan?: string }, waktu: Date): KejadianBaru {
+	const ket = a.keterangan?.trim();
+	return {
+		id: crypto.randomUUID(),
+		jenis: 'pengeluaran',
+		outlet_id: outletId,
+		shift_id: null,
+		waktu: waktu.toISOString(),
+		data: { kategori_id: a.kategoriId, jumlah: a.jumlah, ...(ket ? { keterangan: ket } : {}) }
+	};
+}
+
+/** Setoran ke owner (uang keluar dari laci). */
+export function buatKejadianSetoran(outletId: string, jumlah: number, catatan: string, waktu: Date): KejadianBaru {
+	const c = catatan.trim();
+	return { id: crypto.randomUUID(), jenis: 'setoran', outlet_id: outletId, shift_id: null, waktu: waktu.toISOString(), data: { jumlah, ...(c ? { catatan: c } : {}) } };
 }
 
 /** Kirim ke outlet lain: id kejadian = id transfer (kiriman ulang aman). */

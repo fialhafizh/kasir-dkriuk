@@ -23,3 +23,10 @@ describe('ringkasData', () => {
 		expect(ringkasData('lain', {})).toBe('');
 	});
 });
+
+describe('ringkasData 5a', () => {
+	it('pengeluaran & setoran menampilkan nominal', () => {
+		expect(ringkasData('setoran', { jumlah: 2500000 })).toBe('Rp2.500.000');
+		expect(ringkasData('pengeluaran', { jumlah: 25000, kategori_id: 'x' })).toBe('Rp25.000');
+	});
+});
