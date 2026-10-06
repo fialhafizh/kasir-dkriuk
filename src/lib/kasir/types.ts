@@ -57,6 +57,14 @@ export interface Ringkasan {
 	cash_seharusnya: number;
 	uang_fisik: number | null;
 	selisih: number | null;
+	/** Catatan shift dari server (Tahap 4). */
+	digabung?: boolean;
+	jual_setelah_tutup?: number;
+	batal_setelah_tutup?: number;
+	dibuka_lagi_setelah?: string | null;
+	/** Hanya di ringkasan perangkat: transaksi yang ditolak server (tetap dihitung). */
+	jumlah_ditolak?: number;
+	total_ditolak?: number;
 }
 
 export interface HasilJual {

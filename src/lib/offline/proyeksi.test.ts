@@ -91,3 +91,85 @@ describe('review T4–T8: proyeksi', () => {
 	});
 });
 
+
+const jualSrv = (id: string, total: number, metode: 'cash' | 'qris' = 'cash') => ({
+	id,
+	nomor: `BL-1-${id}`,
+	waktu: '2026-10-08T02:00:00Z',
+	metode,
+	total,
+	diterima: null,
+	kembalian: null,
+	void_at: null,
+	void_alasan: null,
+	item: []
+});
+const jualKej = (id: string, total: number, status: Kejadian['status'] = 'menunggu') =>
+	kej({ id, jenis: 'jual', status, shift_id: 'srv', data: { metode: 'cash', total, item: [], kode_struk: 'ABCDEF' } });
+const batalKej = (id: string, penjualanId: string, status: Kejadian['status'] = 'menunggu') =>
+	kej({ id, jenis: 'batal_jual', status, shift_id: 'srv', data: { penjualan_id: penjualanId, alasan: 'salah' }, alasan: status === 'ditolak' ? 'Ditolak.' : null });
+const dasar = {
+	shift_id: 'srv',
+	outlet_id: 'o',
+	modal: 100000,
+	dibuka_at: '2026-10-08T00:00:00Z',
+	ditutup_at: null,
+	jumlah_transaksi: 2,
+	jumlah_void: 0,
+	total: 30000,
+	per_metode: {
+		cash: { jumlah: 2, total: 30000 },
+		qris: { jumlah: 0, total: 0 },
+		gofood: { jumlah: 0, total: 0 },
+		grabfood: { jumlah: 0, total: 0 },
+		shopeefood: { jumlah: 0, total: 0 }
+	},
+	cash_seharusnya: 130000,
+	uang_fisik: null,
+	selisih: null
+};
+
+describe('batal dari antrean (4b)', () => {
+	it('batal menunggu atas transaksi server → tampil dibatalkan & keluar dari ringkasan', () => {
+		const rows = gabungRiwayat([jualSrv('a', 10000), jualSrv('b', 20000)], [batalKej('x', 'a')], 'srv');
+		const a = rows.find((p) => p.id === 'a')!;
+		expect(a).toMatchObject({ void_alasan: 'salah', batal_lokal: true, batal_kirim: 'menunggu' });
+		const r = ringkasanLokal(dasar, serverShift, rows);
+		expect(r).toMatchObject({ jumlah_transaksi: 1, jumlah_void: 1, total: 20000, cash_seharusnya: 120000 });
+		expect(r.per_metode.cash).toEqual({ jumlah: 1, total: 20000 });
+	});
+	it('batal atas jual yang masih di antrean → tidak dihitung, void +1', () => {
+		const rows = gabungRiwayat([], [jualKej('j', 5000), batalKej('x', 'j')], 'srv');
+		expect(ringkasanLokal(null, serverShift, rows)).toMatchObject({ jumlah_transaksi: 0, jumlah_void: 1, total: 0, cash_seharusnya: 100000 });
+	});
+	it('batal ditolak server → transaksi tetap berlaku, ditandai', () => {
+		const rows = gabungRiwayat([jualSrv('a', 10000)], [batalKej('x', 'a', 'ditolak')], 'srv');
+		expect(rows[0]).toMatchObject({ void_at: null, batal_kirim: 'ditolak', alasan_batal_ditolak: 'Ditolak.' });
+		expect(ringkasanLokal({ ...dasar, jumlah_transaksi: 1, total: 10000, cash_seharusnya: 110000, per_metode: { ...dasar.per_metode, cash: { jumlah: 1, total: 10000 } } }, serverShift, rows)).toMatchObject({ jumlah_void: 0, total: 10000 });
+	});
+	it('batal terkirim tapi data server sudah mencatat batalnya → tidak dikurangi dua kali', () => {
+		const rows = gabungRiwayat([{ ...jualSrv('a', 10000), void_at: '2026-10-08T03:00:00Z', void_alasan: 'salah' }], [batalKej('x', 'a', 'terkirim')], 'srv');
+		expect(rows[0].batal_lokal).toBe(false);
+		const d = { ...dasar, jumlah_transaksi: 0, jumlah_void: 1, total: 0, cash_seharusnya: 100000, per_metode: { ...dasar.per_metode, cash: { jumlah: 0, total: 0 } } };
+		expect(ringkasanLokal(d, serverShift, rows)).toMatchObject({ jumlah_void: 1, total: 0 });
+	});
+	it('jual ditolak server tetap dihitung tetapi dilaporkan terpisah', () => {
+		const rows = gabungRiwayat([], [jualKej('j', 7000, 'ditolak')], 'srv');
+		expect(ringkasanLokal(null, serverShift, rows)).toMatchObject({ total: 7000, jumlah_ditolak: 1, total_ditolak: 7000 });
+	});
+});
+
+describe('shiftLokal dengan salinan lama (4b)', () => {
+	const t = (terkirim_at: string) => kej({ id: 't', jenis: 'tutup_shift', shift_id: 'srv', status: 'terkirim', terkirim_at });
+	it('tutup terkirim SESUDAH salinan diambil → shift sudah tutup', () => {
+		expect(shiftLokal(serverShift, [t('2026-10-08T10:00:00Z')], 'o', '2026-10-08T09:00:00Z')).toBeNull();
+	});
+	it('tutup terkirim SEBELUM salinan diambil, atau data server baru → data server dipakai', () => {
+		expect(shiftLokal(serverShift, [t('2026-10-08T08:00:00Z')], 'o', '2026-10-08T09:00:00Z')).toEqual(serverShift);
+		expect(shiftLokal(serverShift, [t('2026-10-08T10:00:00Z')], 'o')).toEqual(serverShift);
+	});
+	it('buka terkirim sesudah salinan → id shift dari server (bisa hasil penggabungan)', () => {
+		const b = kej({ id: 'b', jenis: 'buka_shift', shift_id: 'dev', status: 'terkirim', terkirim_at: '2026-10-08T10:00:00Z', hasil: 'srv2', data: { modal: 5 } });
+		expect(shiftLokal(null, [b], 'o', '2026-10-08T09:00:00Z')?.id).toBe('srv2');
+	});
+});
