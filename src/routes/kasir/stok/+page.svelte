@@ -1,50 +1,20 @@
 <script lang="ts">
 	import DaftarStok from '#lib/components/stok/DaftarStok.svelte';
+	import PitaSalinan from '#lib/components/stok/PitaSalinan.svelte';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
 	import { href } from '#lib/nav.ts';
-	import { muatDataStok, muatStok, muatStokAwal, petaStok, type DataStok } from '#lib/stok/api.ts';
-	import { susunStok } from '#lib/stok/tampil.ts';
-	import type { StokAwal } from '#lib/stok/types.ts';
-	import { muatOpname, muatTransfer } from '#lib/stok/api-lanjut.ts';
 	import { perluOpname } from '#lib/stok/opname.ts';
-	import type { Opname, Transfer } from '#lib/stok/types.ts';
+	import { stokKasir } from '#lib/stok/stok-kasir.svelte.ts';
+	import { susunStok } from '#lib/stok/tampil.ts';
 
-	let data = $state<DataStok | null>(null);
-	let stok = $state<Map<string, number>>(new Map());
-	let awal = $state<StokAwal[]>([]);
-	let status = $state<'memuat' | 'siap' | 'gagal'>('memuat');
-	let pesan = $state('');
-	let ulang = $state(0);
-	let transfer = $state<Transfer[]>([]);
-	let opname = $state<Opname[]>([]);
-
-	$effect(() => {
-		const o = pos.outlet;
-		void ulang;
-		if (!o) return;
-		let batal = false;
-		status = 'memuat';
-		Promise.all([muatDataStok(), muatStok(o.id), muatStokAwal(o.id), muatTransfer(o.id), muatOpname(o.id)])
-			.then(([d, s, a, t, op]) => {
-				if (batal) return;
-				data = d;
-				stok = petaStok(s, o.id);
-				awal = a;
-				transfer = t;
-				opname = op;
-				status = 'siap';
-			})
-			.catch((e) => {
-				if (batal) return;
-				pesan = (e as Error).message;
-				status = 'gagal';
-			});
-		return () => {
-			batal = true;
-		};
-	});
-
-	const baris = $derived(data ? susunStok(data.bahan, data.satuan, data.isi, stok) : []);
+	const st = stokKasir();
+	const status = $derived(st.status);
+	const pesan = $derived(st.pesan);
+	const v = $derived(st.nilai);
+	const awal = $derived(v?.awal ?? []);
+	const transfer = $derived(v?.transfer ?? []);
+	const opname = $derived(v?.opname ?? []);
+	const baris = $derived(v ? susunStok(v.data.bahan, v.data.satuan, v.data.isi, v.stok) : []);
 	const disetujui = $derived(awal.some((a) => a.status === 'disetujui'));
 	const menunggu = $derived(awal.some((a) => a.status === 'diajukan'));
 	const masukMenunggu = $derived(transfer.filter((t) => t.ke_outlet_id === pos.outlet?.id && t.status === 'dikirim').length);
@@ -62,8 +32,9 @@
 	<p class="mt-4 text-muted" role="status">Memuat…</p>
 {:else if status === 'gagal'}
 	<p class="mt-4 text-danger" role="alert">{pesan}</p>
-	<button type="button" class="mt-3 min-h-12 rounded-xl bg-surface-2 px-4 font-semibold" onclick={() => ulang++}>Coba lagi</button>
+	<button type="button" class="mt-3 min-h-12 rounded-xl bg-surface-2 px-4 font-semibold" onclick={() => st.ulang++}>Coba lagi</button>
 {:else}
+	<PitaSalinan salinanAt={v?.salinanAt ?? null} belumTerkirim={v?.belumTerkirim ?? 0} />
 	{#if !disetujui}
 		<div class="mt-4 rounded-2xl border-2 border-warn bg-surface p-4">
 			{#if menunggu}

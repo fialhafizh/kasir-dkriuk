@@ -2,10 +2,12 @@
 	import Konfirmasi from '#lib/components/ui/Konfirmasi.svelte';
 	import { galatJaringan } from '#lib/auth/cache-profil.ts';
 	import { auth } from '#lib/auth/session.svelte.ts';
-	import { daftarPenjualanShift, voidPenjualan } from '#lib/kasir/api.ts';
+	import { daftarPenjualanShift } from '#lib/kasir/api.ts';
 	import { labelMetode } from '#lib/kasir/bayar.ts';
 	import { dataStrukRiwayat } from '#lib/kasir/cetak.ts';
 	import { encodeStruk, urlRawBT } from '#lib/kasir/escpos.ts';
+	import { antrekan } from '#lib/kasir/antre.ts';
+	import { buatKejadianBatal } from '#lib/kasir/offline-kasir.ts';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
 	import { printer } from '#lib/kasir/printer.svelte.ts';
 	import { barisStruk } from '#lib/kasir/struk.ts';
@@ -24,9 +26,12 @@
 	let pesanBaris = $state<Record<string, string>>({});
 	const perangkatIni = typeof localStorage === 'undefined' ? null : bacaPerangkat(localStorage).id;
 
+	// Jawaban muat yang lebih lama tidak boleh menimpa yang lebih baru.
+	let gen = 0;
 	async function muat() {
 		const s = pos.shift;
 		if (!s) return;
+		const g = ++gen;
 		try {
 			let server = null;
 			try {
@@ -34,26 +39,35 @@
 			} catch {
 				server = await bacaSalinan<typeof daftar>(dbKasir, `riwayat:${s.id}`);
 			}
-			daftar = gabungRiwayat(server ?? [], await dbKasir.kejadian.toArray(), s.id);
+			const d = gabungRiwayat(server ?? [], await dbKasir.kejadian.toArray(), s.id);
+			if (g !== gen) return;
+			daftar = d;
 			status = 'siap';
 		} catch (e) {
+			if (g !== gen) return;
 			pesan = (e as Error).message;
 			status = 'gagal';
 		}
 	}
 	$effect(() => {
-		void sinkron.terakhir;
+		void sinkron.versi;
 		void sinkron.menunggu;
 		if (pos.shift) void muat();
 	});
 
 	const tampil = $derived(daftar.filter((p) => cocokCari(p, cari)));
 
+	// Batal masuk antrean (bisa tanpa internet); server memeriksa ulang saat sinkron.
 	async function batal(p: PenjualanLokal) {
 		pesanBaris[p.id] = '';
+		const a = (alasan[p.id] ?? '').trim();
+		if (a.length < 3) {
+			pesanBaris[p.id] = 'Alasan pembatalan wajib diisi (3–200 karakter).';
+			return;
+		}
 		try {
-			await voidPenjualan(p.id, alasan[p.id] ?? '');
-			await muat();
+			// Daftar dimuat ulang otomatis saat jumlah antrean berubah.
+			await antrekan(buatKejadianBatal(pos.outlet!.id, pos.shift?.id ?? null, p.id, a, new Date()));
 		} catch (e) {
 			pesanBaris[p.id] = (e as Error).message;
 		}
@@ -113,10 +127,11 @@
 				</p>
 				{#if p.status_kirim === 'menunggu'}<p class="mt-1 text-sm font-semibold text-warn">Belum terkirim</p>{/if}
 				{#if p.status_kirim === 'ditolak'}<p class="mt-1 text-sm font-semibold text-danger">Ditolak server: {p.alasan}</p>{/if}
-				{#if p.status_kirim === 'menunggu' || p.status_kirim === 'ditolak' || p.status_kirim === 'terkirim'}
-					<!-- Batal hanya untuk transaksi yang sudah ada di daftar server (butuh internet, Tahap 4b). -->
-				{:else if p.void_at}
-					<p class="mt-1 text-sm font-semibold text-danger">Dibatalkan: {p.void_alasan}</p>
+				{#if p.batal_kirim === 'ditolak'}<p class="mt-1 text-sm font-semibold text-danger">Batal ditolak server: {p.alasan_batal_ditolak} Cek menu Perlu perhatian.</p>{/if}
+				{#if p.void_at}
+					<p class="mt-1 text-sm font-semibold text-danger">Dibatalkan: {p.void_alasan}{p.batal_kirim === 'menunggu' ? ' (belum terkirim)' : ''}</p>
+				{:else if p.status_kirim === 'ditolak' || p.batal_kirim === 'ditolak'}
+					<!-- Transaksi ditolak diselesaikan di Perlu perhatian; batal yang ditolak juga. -->
 				{:else}
 					<div class="mt-2 flex flex-wrap items-end gap-2">
 						<div class="grid min-w-0 flex-1 gap-1">
@@ -129,9 +144,8 @@
 								class="min-h-12 rounded-xl border border-line-strong bg-surface px-3 text-fg"
 							/>
 						</div>
-						{#if sinkron.online}<Konfirmasi label="Batalkan" konfirmasiLabel="Ya, batalkan" onkonfirmasi={() => batal(p)} />{/if}
+						<Konfirmasi label="Batalkan" konfirmasiLabel="Ya, batalkan" onkonfirmasi={() => batal(p)} />
 					</div>
-					{#if !sinkron.online}<p class="mt-1 text-xs text-muted">Batal butuh internet.</p>{/if}
 				{/if}
 				<div class="mt-2 flex flex-wrap gap-2">
 					{#if printer.status === 'siap'}

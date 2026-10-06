@@ -28,8 +28,13 @@ self.addEventListener('fetch', (e) => {
 	const url = new URL(req.url);
 	if (req.method !== 'GET' || url.origin !== self.location.origin) return;
 	if (req.mode === 'navigate') {
-		// Halaman: coba jaringan, bila gagal pakai index.html tersimpan (hash router).
-		e.respondWith(fetch(req).catch(async () => (await caches.match(BASE + 'index.html')) ?? Response.error()));
+		// Halaman: coba jaringan paling lama 4 detik (sinyal lemah), bila gagal pakai index.html tersimpan (hash router).
+		// Belum ada salinan (kunjungan pertama): tetap tunggu jaringan.
+		const jaringan = fetch(req);
+		const batas = new Promise<Response>((_, tolak) => setTimeout(() => tolak(new Error('lama')), 4000));
+		e.respondWith(
+			Promise.race([jaringan, batas]).catch(async () => (await caches.match(BASE + 'index.html')) ?? jaringan.catch(() => Response.error()))
+		);
 		return;
 	}
 	e.respondWith(caches.match(req).then((r) => r ?? fetch(req)));

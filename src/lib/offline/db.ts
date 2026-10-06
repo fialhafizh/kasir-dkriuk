@@ -1,7 +1,18 @@
 // Penyimpanan di perangkat (IndexedDB): salinan data server & antrean kejadian kasir.
 import Dexie, { type Table } from 'dexie';
 
-export type JenisKejadian = 'buka_shift' | 'jual' | 'tutup_shift' | 'rusak';
+export type JenisKejadian =
+	| 'buka_shift'
+	| 'jual'
+	| 'tutup_shift'
+	| 'rusak'
+	| 'batal_jual'
+	| 'kirim_transfer'
+	| 'ubah_transfer'
+	| 'batal_transfer'
+	| 'terima_transfer'
+	| 'opname'
+	| 'stok_awal';
 
 export interface Kejadian {
 	urut?: number;

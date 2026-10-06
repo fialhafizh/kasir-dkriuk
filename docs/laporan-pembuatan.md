@@ -18,7 +18,7 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 | 3a | Stok dasar: potong otomatis dari penjualan, barang masuk, stok awal, tanda Aman/Menipis/Minus | Selesai, di main — uji owner menunggu |
 | 3b | Stok lanjutan: rusak/terbuang & sisa harian, transfer antar outlet, opname mingguan | Selesai, di main — uji owner menunggu |
 | 4a | Offline: buka toko, jualan + struk, sisa, tutup toko tanpa internet; aplikasi online & bisa dipasang ke layar utama | Selesai — uji owner menunggu |
-| 4b | Offline: batal, rusak, transfer, opname; halaman admin Perangkat & kejadian diabaikan | Berikutnya |
+| 4b | Offline: batal, rusak, transfer, opname, stok awal; halaman admin Perangkat & kejadian diabaikan | Selesai di cabang (review akhir lulus, database server diperbarui, uji server lulus) — menunggu persetujuan gabung; uji owner menunggu |
 | 5 | Keuangan: pengeluaran, setoran, kas harian, gaji, sewa, laba-rugi | Belum |
 | 6 | Telegram: struk, ringkasan shift & harian, peringatan | Belum |
 | 7 | Dashboard & analisis (termasuk modal tepung, terbuang, susut) | Belum |
@@ -74,11 +74,24 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - Aplikasi bisa dibuka offline walau login sudah lama; **Keluar** ditolak selama masih ada data belum terkirim.
 - Kode struk 6 huruf/angka bisa sama untuk dua transaksi berbeda (jarang); pencarian akan menampilkan keduanya beserta jam & outlet.
 
+### Tahap 4b — yang sudah jadi & keputusan (9 Okt 2026)
+- **Semua pekerjaan kasir kini bisa tanpa internet**: batal transaksi, catat rusak, kirim/ubah/batal kiriman, terima kiriman, opname, stok awal. Data tersimpan di HP/tablet dan terkirim otomatis berurutan saat online; kirim ulang aman (tidak dobel).
+- **Batal offline** memakai jam batal di perangkat. Batal yang jamnya sebelum stok dihitung (stok awal/opname) yang sudah disetujui tidak mengembalikan stok, karena hitungan fisik sudah mencerminkannya. Batal yang jamnya sebelum tutup toko tetap diterima walau baru sampai setelah toko ditutup; ringkasan diberi tanda "… pembatalan masuk setelah tutup toko". Batal sesudah jam tutup tetap hanya admin. *Catatan:* kasir secara teknis bisa mengirim batal "berjam mundur" untuk shift yang sudah ditutup; jejaknya selalu terlihat admin lewat tanda itu.
+- **Batal yang sudah dibatalkan perangkat lain** dianggap berhasil (tidak masuk Perlu perhatian).
+- **Transfer di buku stok**: barang keluar dari outlet pengirim dicatat pada **jam dikirim** (saat fisiknya pergi), masuk ke tujuan pada jam diterima; dibatalkan = keluar lalu kembali pada jam batal. Dengan begitu opname yang dihitung saat barang masih di jalan tetap benar. Terima kiriman offline: jumlah dicocokkan saat sinkron; bila beda masuk **Perlu perhatian** ("Ada perbedaan jumlah…"), kasir menghitung ulang lewat halaman Terima.
+- **Opname & stok awal offline** berlaku pada jam kasir menghitung. Opname yang jamnya lebih lama dari hitungan terakhir ditolak (hitung ulang).
+- **Angka stok di HP** = stok server terakhir + data yang belum terkirim (jualan menurut resep, rusak, terima); ditandai "Angka perkiraan" selama ada antrean. Halaman Stok perlu dibuka sekali saat online di tiap perangkat; setelah itu diperbarui otomatis tiap sinkron.
+- **Tutup toko** tetap menghitung transaksi yang ditolak server (uangnya ada di laci) tetapi menampilkannya terpisah dengan peringatan.
+- Perbaikan 4a yang ditemukan saat 4b: salinan data (menu, shift) kini benar-benar dipakai saat internet putus.
+- Pengerasan: dua tab aplikasi tidak mengirim bersamaan; data terkirim lama dibersihkan tanpa menghapus shift yang belum ditutup; peringatan bila ada data belum terkirim milik akun lain; halaman terbuka cepat walau sinyal lemah.
+- **Admin → Perangkat**: daftar HP/tablet kasir (kode, outlet, pengguna terakhir, jam sinkron; kuning bila > 24 jam) dan daftar **kejadian yang diabaikan kasir** beserta alasannya.
+
 ## Catatan penting untuk tahap berikutnya
 
 - **Tahap 5 (keuangan)**: pengeluaran laci & setor langsung mengurangi uang laci; tutup toko = modal + jual cash − void − pengeluaran laci − setoran; barang masuk dibayar dari bank, bukan laci; pembelian yang terlambat dicatat di belakang opname perlu jalur pengeluaran tanpa efek stok.
-- **Tahap 7 (dashboard)**: terbuang dihitung dari catatan rusak yang tidak dibatalkan; susut dari selisih opname; analisis modal tepung memakai rumus campuran 50:50 menurut berat.
+- **Tahap 7 (dashboard)**: terbuang dihitung dari catatan rusak yang tidak dibatalkan; susut dari selisih opname; analisis modal tepung memakai rumus campuran 50:50 menurut berat. Gerakan transfer keluar bertanggal jam kirim (bukan jam diterima); transfer yang dibatalkan punya pasangan keluar + kembali.
 
 ## Riwayat data uji di server
 
 - 5 Okt 2026: satu transaksi uji owner (BL-261004-001) dan shift ujinya dihapus atas permintaan owner; server bersih sebelum pemakaian.
+- 9 Okt 2026: database server diperbarui untuk Tahap 4b (migrasi 0020–0021); semua uji server (kasir, stok 3a/3b, offline 4a/4b) lulus memakai outlet & akun sementara yang sudah dihapus; server kembali bersih (3 outlet, 4 akun, 0 transaksi).

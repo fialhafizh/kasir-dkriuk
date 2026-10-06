@@ -52,14 +52,14 @@ class PosState {
 		this.status = 'memuat';
 		try {
 			// Shift dari server (salinan bila offline) lalu disesuaikan dengan buka/tutup di antrean perangkat.
-			const { nilai } = await denganSalinan(dbKasir, `shift:${o.id}`, () => shiftTerbuka(o.id), (e) => galatJaringan(e as { message?: string }));
+			const { nilai, disimpanAt } = await denganSalinan(dbKasir, `shift:${o.id}`, () => shiftTerbuka(o.id), (e) => galatJaringan(e as { message?: string }));
 			let kejadian: Kejadian[] = [];
 			try {
 				kejadian = await dbKasir.kejadian.toArray();
 			} catch {
 				// Penyimpanan perangkat tidak tersedia: pakai data server saja.
 			}
-			const s = shiftLokal(nilai, kejadian, o.id);
+			const s = shiftLokal(nilai, kejadian, o.id, disimpanAt);
 			if (gen !== this.#gen) return;
 			this.shift = s;
 			this.pesan = '';

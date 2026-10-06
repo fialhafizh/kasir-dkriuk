@@ -8,7 +8,8 @@ import { pesanSinkron } from './pesan.ts';
 type Galat = { code?: string; message?: string; status?: number; name?: string };
 
 function sesiBermasalah(e: Galat): boolean {
-	return e.status === 401 || e.code === 'PGRST301' || e.code === 'PGRST303' || (e.status ?? 0) >= 500;
+	// PGRST202: fungsi belum ada di server (aplikasi lebih baru dari database) → tunggu, jangan ditolak.
+	return e.status === 401 || e.code === 'PGRST301' || e.code === 'PGRST303' || e.code === 'PGRST202' || (e.status ?? 0) >= 500;
 }
 
 export function pengirimSupabase(perangkatId: string): Pengirim {
@@ -27,12 +28,31 @@ export function pengirimSupabase(perangkatId: string): Pengirim {
 						return supabase.rpc('tutup_shift_offline', { p: { ...dasar, id: k.id, shift_id: k.shift_id } }).abortSignal(batas);
 					case 'rusak':
 						return supabase.rpc('catat_rusak_offline', { p: { ...dasar, id: k.id } }).abortSignal(batas);
+					case 'batal_jual':
+						return supabase.rpc('void_penjualan_offline', { p: dasar }).abortSignal(batas);
+					case 'kirim_transfer':
+						return supabase.rpc('kirim_transfer_offline', { p: { ...dasar, id: k.id, dari_outlet_id: k.outlet_id } }).abortSignal(batas);
+					case 'ubah_transfer':
+						return supabase.rpc('ubah_transfer_offline', { p: dasar }).abortSignal(batas);
+					case 'batal_transfer':
+						return supabase.rpc('batal_transfer_offline', { p: dasar }).abortSignal(batas);
+					case 'terima_transfer':
+						return supabase.rpc('terima_transfer_offline', { p: dasar }).abortSignal(batas);
+					case 'opname':
+						return supabase.rpc('ajukan_opname_offline', { p: { ...dasar, id: k.id } }).abortSignal(batas);
+					case 'stok_awal':
+						return supabase.rpc('ajukan_stok_awal_offline', { p: { ...dasar, id: k.id } }).abortSignal(batas);
+					default: {
+						const tidakDikenal: never = k.jenis;
+						throw new GalatKirim(`Jenis kejadian tidak dikenal: ${String(tidakDikenal)}`, false);
+					}
 				}
 			};
 			let res: { data: unknown; error: Galat | null; status?: number };
 			try {
 				res = (await panggil()) as typeof res;
 			} catch (e) {
+				if (e instanceof GalatKirim) throw e;
 				throw new GalatKirim((e as Error).message, true);
 			}
 			if (res.error) {

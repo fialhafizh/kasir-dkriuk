@@ -5,6 +5,8 @@
 	import ThemeToggle from '#lib/components/theme/ThemeToggle.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import TextField from '#lib/components/ui/TextField.svelte';
+	import { hitungAntrean } from '#lib/offline/antrean.ts';
+	import { dbKasir } from '#lib/offline/sinkron.svelte.ts';
 
 	let username = $state('');
 	let password = $state('');
@@ -28,6 +30,14 @@
 		// Berhasil: tombol tetap memutar sampai profil termuat dan halaman berpindah.
 		if (errUmum) memproses = false;
 	}
+
+	// Data kasir yang belum terkirim hanya dikirim saat akun yang mencatatnya masuk lagi.
+	let belumTerkirim = $state(0);
+	$effect(() => {
+		hitungAntrean(dbKasir)
+			.then((h) => (belumTerkirim = h.menunggu + h.ditolak))
+			.catch(() => {});
+	});
 
 	// Profil gagal dimuat setelah password diterima: aktifkan lagi tombolnya.
 	$effect(() => {
@@ -59,6 +69,13 @@
 			{#if auth.notice}
 				<p class="mb-4 rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-sm font-semibold text-danger" role="alert">
 					{auth.notice}
+				</p>
+			{/if}
+
+			{#if belumTerkirim}
+				<p class="mb-4 rounded-xl bg-surface-2 px-4 py-3 text-sm font-semibold text-warn" role="status">
+					Perangkat ini masih menyimpan {belumTerkirim} data kasir yang belum terkirim. Masuk dengan akun yang mencatatnya supaya
+					data itu terkirim.
 				</p>
 			{/if}
 

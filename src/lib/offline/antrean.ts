@@ -16,6 +16,14 @@ export interface Pengirim {
 }
 
 const TERTAHAN = 'Menunggu: buka toko untuk shift ini ditolak. Selesaikan itu dulu.';
+const TERTAHAN_JUAL = 'Menunggu: transaksi yang dibatalkan ditolak server. Selesaikan transaksinya dulu.';
+
+/** Batal atas transaksi yang ditolak server tidak dikirim (server belum punya transaksinya). */
+async function jualDitolak(db: DbKasir, k: Kejadian): Promise<boolean> {
+	if (k.jenis !== 'batal_jual') return false;
+	const j = await db.kejadian.where('id').equals(String(k.data.penjualan_id ?? '')).first();
+	return j?.jenis === 'jual' && j.status === 'ditolak';
+}
 
 export async function tambahKejadian(
 	db: DbKasir,
@@ -49,6 +57,11 @@ export async function kirimAntrean(
 			ditolak++;
 			continue;
 		}
+		if (await jualDitolak(db, k)) {
+			await db.kejadian.update(k.urut!, { status: 'ditolak', alasan: TERTAHAN_JUAL });
+			ditolak++;
+			continue;
+		}
 		try {
 			const hasil = await pengirim.kirim(k);
 			await db.kejadian.update(k.urut!, { status: 'terkirim', hasil, terkirim_at: new Date().toISOString(), alasan: null });
@@ -77,6 +90,13 @@ export async function cobaLagi(db: DbKasir, id: string): Promise<void> {
 	const k = await db.kejadian.where('id').equals(id).first();
 	if (!k || k.status !== 'ditolak') return;
 	await db.kejadian.update(k.urut!, { status: 'menunggu', alasan: null });
+	if (k.jenis === 'jual') {
+		await db.kejadian
+			.where('jenis')
+			.equals('batal_jual')
+			.filter((x) => x.status === 'ditolak' && x.alasan === TERTAHAN_JUAL && x.data.penjualan_id === k.id)
+			.modify({ status: 'menunggu', alasan: null });
+	}
 	if (k.jenis === 'buka_shift' && k.shift_id) {
 		await db.kejadian
 			.where('shift_id')
@@ -94,10 +114,12 @@ export async function abaikan(db: DbKasir, id: string, alasan: string): Promise<
 	return { ...k, status: 'diabaikan' };
 }
 
-export async function hitungAntrean(db: DbKasir): Promise<{ menunggu: number; ditolak: number }> {
+/** userId diisi: hanya kejadian akun itu (atau tanpa pemilik) — milik akun lain tidak dikirim olehnya. */
+export async function hitungAntrean(db: DbKasir, userId?: string | null): Promise<{ menunggu: number; ditolak: number }> {
+	const milik = (k: Kejadian) => userId === undefined || !k.user_id || k.user_id === userId;
 	return {
-		menunggu: await db.kejadian.where('status').equals('menunggu').count(),
-		ditolak: await db.kejadian.where('status').equals('ditolak').count()
+		menunggu: await db.kejadian.where('status').equals('menunggu').filter(milik).count(),
+		ditolak: await db.kejadian.where('status').equals('ditolak').filter(milik).count()
 	};
 }
 
@@ -109,10 +131,37 @@ export async function ubahDataMenunggu(db: DbKasir, id: string, patch: Record<st
 	return true;
 }
 
+/**
+ * Hapus kejadian terkirim yang lama. Kejadian shift yang belum punya tutup toko di perangkat ini disimpan
+ * (shift yang belum ditutup lintas hari tetap bisa ditampilkan/diringkas dari antrean). `sebelum` biasanya 3 hari lalu.
+ */
 export async function bersihkanTerkirim(db: DbKasir, sebelum: Date): Promise<void> {
+	const semua = await db.kejadian.toArray();
+	const ditutup = new Set<string>();
+	for (const k of semua) {
+		// Hanya tutup yang benar-benar sampai di server (yang menunggu/diabaikan belum menutup shift).
+		if (k.jenis !== 'tutup_shift' || !k.shift_id || k.status !== 'terkirim') continue;
+		ditutup.add(k.shift_id);
+		// Shift gabungan: id perangkat & id server berarti shift yang sama.
+		for (const b of semua) {
+			if (b.jenis === 'buka_shift' && typeof b.hasil === 'string' && (b.shift_id === k.shift_id || b.hasil === k.shift_id)) {
+				ditutup.add(b.shift_id!);
+				ditutup.add(b.hasil);
+			}
+		}
+	}
 	await db.kejadian
 		.where('status')
 		.equals('terkirim')
-		.filter((x) => !!x.terkirim_at && new Date(x.terkirim_at) < sebelum)
+		// Batas mutlak 14 hari: shift yang ditutup perangkat lain (tanpa tutup di sini) tidak menumpuk selamanya.
+		.filter((x) => {
+			if (!x.terkirim_at || new Date(x.terkirim_at) >= sebelum) return false;
+			return !x.shift_id || ditutup.has(x.shift_id) || new Date(x.terkirim_at).getTime() < sebelum.getTime() - 11 * 86_400_000;
+		})
 		.delete();
+}
+
+/** Kejadian belum terkirim/ditolak milik akun lain di perangkat ini (tidak akan dikirim atas nama akun ini). */
+export async function hitungMilikLain(db: DbKasir, userId: string | null): Promise<number> {
+	return db.kejadian.filter((k) => (k.status === 'menunggu' || k.status === 'ditolak') && !!k.user_id && k.user_id !== userId).count();
 }

@@ -1,74 +1,69 @@
 <script lang="ts">
 	import FormStokAwal from '#lib/components/stok/FormStokAwal.svelte';
+	import PitaSalinan from '#lib/components/stok/PitaSalinan.svelte';
 	import Konfirmasi from '#lib/components/ui/Konfirmasi.svelte';
+	import { antrekan } from '#lib/kasir/antre.ts';
+	import { buatKejadianBatalTransfer, buatKejadianKirim, buatKejadianUbah } from '#lib/kasir/offline-kasir.ts';
 	import { formatWaktuWib } from '#lib/kasir/waktu.ts';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
-	import { muatOutlets } from '#lib/master/api.ts';
 	import { href } from '#lib/nav.ts';
-	import { batalTransfer, kirimTransfer, muatTransfer, ubahTransfer } from '#lib/stok/api-lanjut.ts';
-	import { muatDataStok, type DataStok } from '#lib/stok/api.ts';
 	import { bentukIsian } from '#lib/stok/isian.ts';
+	import { stokKasir } from '#lib/stok/stok-kasir.svelte.ts';
 	import { angkaStok } from '#lib/stok/tampil.ts';
 	import type { ItemHitung, Transfer } from '#lib/stok/types.ts';
-	import type { Outlet } from '#lib/types/db.ts';
 
-	let data = $state<DataStok | null>(null);
-	let outlets = $state<Outlet[]>([]);
-	let keluar = $state<Transfer[]>([]);
-	let pesan = $state('');
+	const st = stokKasir();
 	let tujuan = $state('');
 	let catatan = $state('');
 	let diubah = $state<Transfer | null>(null);
+	// id kiriman per formulir: kirim dua kali dari formulir yang sama tidak menggandakan.
 	let id = $state(crypto.randomUUID());
 	let tercatat = $state('');
 	let alasan = $state<Record<string, string>>({});
 	let pesanBaris = $state<Record<string, string>>({});
 
-	async function muat() {
-		const o = pos.outlet!;
-		pesan = '';
-		try {
-			const [d, os, t] = await Promise.all([muatDataStok(), muatOutlets(), muatTransfer(o.id)]);
-			data = d;
-			outlets = os;
-			keluar = t.filter((x) => x.dari_outlet_id === o.id && x.status === 'dikirim');
-		} catch (e) {
-			pesan = (e as Error).message;
-		}
-	}
-	$effect(() => {
-		if (pos.outlet) void muat();
-	});
-
+	const data = $derived(st.nilai?.data ?? null);
+	const outlets = $derived(st.nilai?.outlets ?? []);
+	const keluar = $derived((st.nilai?.transfer ?? []).filter((x) => x.dari_outlet_id === pos.outlet?.id && x.status === 'dikirim'));
 	const isian = $derived(data ? bentukIsian(data.bahan, data.satuan, data.isi) : []);
 	const lain = $derived(outlets.filter((o) => o.aktif && o.id !== pos.outlet?.id));
 	const namaOutlet = (oid: string) => outlets.find((o) => o.id === oid)?.nama ?? '';
 	const namaBahan = (bid: string) => data?.bahan.find((b) => b.id === bid)?.nama ?? '';
 
 	async function kirim(item: ItemHitung[]) {
+		const o = pos.outlet!.id;
 		if (diubah) {
-			await ubahTransfer(diubah.id, item, catatan.trim() || null);
+			await antrekan(buatKejadianUbah(o, diubah.id, item, catatan.trim() || null, new Date()));
 			tercatat = `Kiriman ke ${namaOutlet(diubah.ke_outlet_id)} diubah.`;
 			diubah = null;
 		} else {
 			if (!tujuan) throw new Error('Pilih outlet tujuan.');
-			await kirimTransfer({ id, dari_outlet_id: pos.outlet!.id, ke_outlet_id: tujuan, ...(catatan.trim() ? { catatan: catatan.trim() } : {}), item });
-			tercatat = `Terkirim ke ${namaOutlet(tujuan)}. Menunggu outlet tujuan mengonfirmasi.`;
+			await antrekan(buatKejadianKirim(o, { id, keOutletId: tujuan, item, catatan }, new Date()));
+			tercatat = `Tercatat kirim ke ${namaOutlet(tujuan)}. Menunggu outlet tujuan mengonfirmasi.`;
 			id = crypto.randomUUID();
 		}
 		catatan = '';
-		await muat();
 	}
 
 	async function batal(t: Transfer) {
 		pesanBaris[t.id] = '';
+		const a = (alasan[t.id] ?? '').trim();
+		if (a.length < 3) {
+			pesanBaris[t.id] = 'Alasan pembatalan wajib diisi (3–200 karakter).';
+			return;
+		}
 		try {
-			await batalTransfer(t.id, alasan[t.id] ?? '');
-			await muat();
+			await antrekan(buatKejadianBatalTransfer(pos.outlet!.id, t.id, a, new Date()));
+			if (diubah?.id === t.id) diubah = null;
 		} catch (e) {
 			pesanBaris[t.id] = (e as Error).message;
 		}
 	}
+
+	// Kiriman yang sedang diubah sudah diterima/dibatalkan: tutup formulir ubah.
+	$effect(() => {
+		if (diubah && st.nilai && !keluar.some((t) => t.id === diubah!.id)) diubah = null;
+	});
 </script>
 
 <svelte:head><title>Kirim ke Outlet Lain · Kasir D'Kriuk</title></svelte:head>
@@ -76,18 +71,19 @@
 <a href={href('/kasir/stok')} class="text-sm text-brand underline">← Stok</a>
 <h1 class="mt-1 font-display text-2xl">Kirim ke outlet lain</h1>
 
-{#if pesan}
-	<p class="mt-4 text-danger" role="alert">{pesan}</p>
-	<button type="button" class="mt-3 min-h-12 rounded-xl bg-surface-2 px-4 font-semibold" onclick={muat}>Coba lagi</button>
+{#if st.status === 'gagal'}
+	<p class="mt-4 text-danger" role="alert">{st.pesan}</p>
+	<button type="button" class="mt-3 min-h-12 rounded-xl bg-surface-2 px-4 font-semibold" onclick={() => st.ulang++}>Coba lagi</button>
 {:else if !data}
 	<p class="mt-4 text-muted" role="status">Memuat…</p>
 {:else}
+	<PitaSalinan salinanAt={st.nilai?.salinanAt ?? null} belumTerkirim={0} />
 	{#if keluar.length}
 		<section class="mt-4 grid gap-2" aria-label="Kiriman menunggu">
 			<h2 class="font-display text-xl">Menunggu diterima</h2>
 			{#each keluar as t (t.id)}
 				<div class="rounded-2xl border border-line bg-surface p-3">
-					<p class="font-semibold">Ke {namaOutlet(t.ke_outlet_id)} · {formatWaktuWib(t.dikirim_at)}</p>
+					<p class="font-semibold">Ke {namaOutlet(t.ke_outlet_id)} · {formatWaktuWib(t.dikirim_at)}{t.lokal ? ' · belum terkirim' : ''}</p>
 					<p class="text-sm text-muted">{t.item.map((i) => `${angkaStok(i.qty)} ${namaBahan(i.bahan_id)}`).join(', ')}</p>
 					<div class="mt-2 flex flex-wrap items-center gap-2">
 						<button type="button" class="min-h-12 rounded-xl bg-surface-2 px-4 font-semibold" onclick={() => ((diubah = t), (catatan = t.catatan ?? ''))}>Ubah</button>

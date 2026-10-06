@@ -17,7 +17,7 @@
 		pesanKeluar = '';
 		const { hitungAntrean } = await import('#lib/offline/antrean.ts');
 		const { dbKasir } = await import('#lib/offline/sinkron.svelte.ts');
-		const h = await hitungAntrean(dbKasir);
+		const h = await hitungAntrean(dbKasir, auth.profile?.id ?? null);
 		if (h.menunggu + h.ditolak > 0) {
 			pesanKeluar = `Sinkronkan dulu: ada ${h.menunggu + h.ditolak} data yang belum terkirim.`;
 			return;

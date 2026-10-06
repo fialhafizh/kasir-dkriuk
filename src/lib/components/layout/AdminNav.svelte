@@ -9,7 +9,8 @@
 		{ path: '/admin/bahan', label: 'Bahan' },
 		{ path: '/admin/menu', label: 'Menu' },
 		{ path: '/admin/harga-beli', label: 'Harga Beli' },
-		{ path: '/admin/akun', label: 'Akun' }
+		{ path: '/admin/akun', label: 'Akun' },
+		{ path: '/admin/perangkat', label: 'Perangkat' }
 	] as const;
 
 	const sedang = (p: string) => (p === '/admin' ? aktif === '/admin' : aktif === p || aktif.startsWith(`${p}/`));
