@@ -237,4 +237,11 @@ describe('review server 5a', () => {
 		await expect(rpc(db, kasirBL, 'public.simpan_kategori($1::jsonb)', [JSON.stringify({ nama: 'Sabun' })])).rejects.toThrow(/Hanya admin/);
 		await rpc(db, adminId, 'public.simpan_kategori($1::jsonb)', [JSON.stringify({ nama: 'Sabun', untuk_kasir: true })]);
 	});
+	it('saldo_laci memberi jam uang laci awal & jangkar terakhir', async () => {
+		const s = await buka(120, 100000);
+		await tutup(s, 60, 100000);
+		const r = await rpc<{ awal_at: string; jangkar_at: string }>(db, kasirBL, 'public.saldo_laci($1)', [await BL()]);
+		expect(await nilai<boolean>('select $1::timestamptz < $2::timestamptz as v', [r.awal_at, r.jangkar_at])).toBe(true);
+		expect(await nilai<boolean>(`select $1::timestamptz < now() - interval '50 minutes' as v`, [r.jangkar_at])).toBe(true);
+	});
 });

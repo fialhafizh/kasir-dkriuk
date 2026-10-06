@@ -5,6 +5,10 @@ import { belumTercermin } from './proyeksi.ts';
 export interface LaciServer {
 	saldo: number;
 	ada_awal: boolean;
+	/** Jam uang laci awal (shift yang dibuka sebelum ini memakai rumus lama). */
+	awal_at?: string | null;
+	/** Jam hitungan laci terakhir di server: kejadian yang jamnya ≤ ini sudah termasuk uang yang dihitung. */
+	jangkar_at?: string | null;
 }
 
 /**
@@ -20,7 +24,12 @@ const angka = (v: unknown) => Number(v ?? 0) || 0;
 export function saldoLaciLokal(server: LaciServer | null, kejadian: Kejadian[], outletId: string, disimpanAt: string | null): { saldo: number; adaAwal: boolean } {
 	let saldo = server?.saldo ?? 0;
 	let adaAwal = server?.ada_awal ?? false;
-	const milik = kejadian.filter((k) => k.outlet_id === outletId && berlaku(k, disimpanAt)).sort((a, b) => (a.urut ?? 0) - (b.urut ?? 0));
+	const jangkar = server?.jangkar_at ? Date.parse(server.jangkar_at) : null;
+	const milik = kejadian
+		// Sama dengan rumus server: yang jamnya ≤ hitungan laci terakhir sudah termasuk uang yang dihitung
+		// (mis. pengeluaran yang ditolak hari Senin tidak dikurangkan lagi setelah tutup toko Senin).
+		.filter((k) => k.outlet_id === outletId && berlaku(k, disimpanAt) && (jangkar === null || Date.parse(k.waktu) > jangkar))
+		.sort((a, b) => (a.urut ?? 0) - (b.urut ?? 0));
 	const jualDiAntrean = new Set(milik.filter((k) => k.jenis === 'jual').map((k) => k.id));
 	const dibatalkan = new Set(milik.filter((k) => k.jenis === 'batal_jual').map((k) => String(k.data.penjualan_id ?? '')));
 	for (const k of milik) {

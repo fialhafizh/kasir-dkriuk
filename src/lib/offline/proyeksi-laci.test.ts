@@ -59,6 +59,17 @@ describe('saldoLaciLokal', () => {
 	});
 });
 
+describe('review 5a: jangkar server', () => {
+	it('kejadian (termasuk yang ditolak) berjam ≤ hitungan laci terakhir di server tidak dihitung lagi', () => {
+		const ks = [
+			kej({ id: 'g', jenis: 'pengeluaran', status: 'ditolak', waktu: '2026-10-08T03:00:00Z', data: { jumlah: 50000 } }),
+			jual('j', 10000, 'cash', { waktu: '2026-10-08T04:00:00Z' }),
+			kej({ id: 's', jenis: 'setoran', waktu: '2026-10-09T02:00:00Z', data: { jumlah: 1000 } })
+		];
+		expect(saldoLaciLokal({ saldo: 200000, ada_awal: true, jangkar_at: '2026-10-08T10:00:00Z' }, ks, 'o', null).saldo).toBe(199000);
+	});
+});
+
 describe('kasAntrean', () => {
 	it('pengeluaran & setoran sejak buka shift', () => {
 		const ks = [

@@ -8,6 +8,8 @@ import { muatSaldoLaci } from './api.ts';
 export interface SaldoLaci {
 	saldo: number;
 	adaAwal: boolean;
+	/** Jam uang laci awal di server (null bila belum ada / hanya di antrean). */
+	awalAt: string | null;
 	dariSalinan: boolean;
 }
 
@@ -25,5 +27,5 @@ export async function saldoLaciPerangkat(outletId: string): Promise<SaldoLaci | 
 		return null;
 	}
 	const kejadian = await dbKasir.kejadian.toArray().catch(() => []);
-	return { ...saldoLaciLokal(server, kejadian, outletId, disimpanAt), dariSalinan };
+	return { ...saldoLaciLokal(server, kejadian, outletId, disimpanAt), awalAt: server?.awal_at ?? null, dariSalinan };
 }

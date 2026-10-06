@@ -31,6 +31,7 @@
 	let nominal = $state('');
 	let keterangan = $state('');
 	let pesanKeluar = $state('');
+	let memprosesKeluar = $state(false);
 	let tercatatKeluar = $state('');
 
 	let setor = $state('');
@@ -120,11 +121,20 @@
 		if (!kat) return void (pesanKeluar = 'Pilih jenis pengeluaran.');
 		if (n === null || n < 1) return void (pesanKeluar = 'Isi nominal, mis. 25.000.');
 		if (kat.wajib_keterangan && keterangan.trim().length < 3) return void (pesanKeluar = 'Keterangan wajib diisi untuk jenis ini.');
-		await antrekan(buatKejadianPengeluaran(pos.outlet!.id, { kategoriId: kat.id, jumlah: n, keterangan }, new Date()));
-		tercatatKeluar = `Tercatat: ${kat.nama} Rp${formatAngka(n)}. Uang laci berkurang.`;
-		nominal = '';
-		keterangan = '';
-		await muat();
+		// Ketukan ganda tidak boleh mencatat dua kali.
+		if (memprosesKeluar) return;
+		memprosesKeluar = true;
+		try {
+			await antrekan(buatKejadianPengeluaran(pos.outlet!.id, { kategoriId: kat.id, jumlah: n, keterangan }, new Date()));
+			tercatatKeluar = `Tercatat: ${kat.nama} Rp${formatAngka(n)}. Uang laci berkurang.`;
+			nominal = '';
+			keterangan = '';
+			await muat();
+		} catch (err) {
+			pesanKeluar = `Gagal menyimpan di perangkat: ${(err as Error).message}`;
+		} finally {
+			memprosesKeluar = false;
+		}
 	}
 
 	async function catatSetoran() {
@@ -135,7 +145,12 @@
 			pesanSetor = 'Isi jumlah yang diserahkan ke owner, mis. 2.500.000.';
 			return;
 		}
-		await antrekan(buatKejadianSetoran(pos.outlet!.id, n, catatanSetor, new Date()));
+		try {
+			await antrekan(buatKejadianSetoran(pos.outlet!.id, n, catatanSetor, new Date()));
+		} catch (err) {
+			pesanSetor = `Gagal menyimpan di perangkat: ${(err as Error).message}`;
+			return;
+		}
 		tercatatSetor = `Setoran Rp${formatAngka(n)} tercatat. Menunggu owner mengonfirmasi.`;
 		setor = '';
 		catatanSetor = '';
@@ -171,7 +186,7 @@
 		</div>
 		{#if pesanKeluar}<p class="text-sm text-danger" role="alert">{pesanKeluar}</p>{/if}
 		{#if tercatatKeluar}<p class="text-sm font-semibold text-ok" role="status">{tercatatKeluar}</p>{/if}
-		<Button type="submit">Catat pengeluaran</Button>
+		<Button type="submit" loading={memprosesKeluar}>Catat pengeluaran</Button>
 	</form>
 
 	<section class="grid content-start gap-3 rounded-2xl border border-line bg-surface p-4" aria-label="Setoran">
@@ -186,7 +201,10 @@
 			<label for="setor" class="text-sm font-semibold">Jumlah yang diserahkan</label>
 			<input id="setor" bind:value={setor} inputmode="numeric" autocomplete="off" placeholder="mis. 2.500.000" class="tabular text-right {kotak}" />
 			{#if laci && parseRupiah(setor) !== null}
-				<p class="text-sm text-muted">Sisa di laci setelah setor: Rp{formatAngka(laci.saldo - (parseRupiah(setor) ?? 0))}</p>
+				{@const sisa = laci.saldo - (parseRupiah(setor) ?? 0)}
+				<p class="text-sm {sisa < 0 ? 'font-semibold text-danger' : 'text-muted'}">
+					{sisa < 0 ? 'Lebih besar dari uang di laci menurut catatan.' : `Sisa di laci setelah setor: Rp${formatAngka(sisa)}`}
+				</p>
 			{/if}
 		</div>
 		<div class="grid gap-1.5">

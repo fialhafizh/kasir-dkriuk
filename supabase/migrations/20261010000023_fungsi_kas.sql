@@ -55,13 +55,26 @@ begin
 end
 $$;
 
+-- Saldo laci sekarang + jam uang laci awal & jangkar terakhir (perangkat mengabaikan antrean yang jamnya ≤ jangkar,
+-- persis seperti rumus server).
 create function public.saldo_laci(p_outlet uuid) returns jsonb
 language plpgsql stable security definer set search_path = '' as $$
+declare
+  v_awal timestamptz;
+  v_jangkar timestamptz;
 begin
   perform public._cek_akses_outlet(p_outlet);
+  select waktu into v_awal from public.laci_awal where outlet_id = p_outlet;
+  if v_awal is not null then
+    select max(ditutup_at) into v_jangkar from public.shift
+    where outlet_id = p_outlet and ditutup_at is not null and not tutup_tertunda and ditutup_at >= v_awal and ditutup_at <= now();
+    v_jangkar := coalesce(v_jangkar, v_awal);
+  end if;
   return jsonb_build_object(
     'saldo', public._saldo_laci(p_outlet, now()),
-    'ada_awal', exists (select 1 from public.laci_awal where outlet_id = p_outlet)
+    'ada_awal', v_awal is not null,
+    'awal_at', v_awal,
+    'jangkar_at', v_jangkar
   );
 end
 $$;

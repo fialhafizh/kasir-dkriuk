@@ -67,7 +67,7 @@
 		}
 		try {
 			// Daftar dimuat ulang otomatis saat jumlah antrean berubah.
-			await antrekan(buatKejadianBatal(pos.outlet!.id, pos.shift?.id ?? null, p.id, a, new Date()));
+			await antrekan(buatKejadianBatal(pos.outlet!.id, pos.shift?.id ?? null, p.id, a, new Date(), { metode: p.metode, total: p.total }));
 		} catch (e) {
 			pesanBaris[p.id] = (e as Error).message;
 		}

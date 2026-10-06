@@ -65,7 +65,8 @@
 			const antre = kasAntrean(kejadian, s.outlet_id, s.dibuka_at, null);
 			r = {
 				...dasarR,
-				cash_seharusnya: laci?.saldo ?? dasarR.cash_seharusnya,
+				// Shift yang dibuka sebelum uang laci awal (sebelum 5a) memakai rumus lama, sama dengan server.
+				cash_seharusnya: laci?.adaAwal && (!laci.awalAt || s.dibuka_at >= laci.awalAt) ? laci.saldo : dasarR.cash_seharusnya,
 				pengeluaran_laci: (dasar?.pengeluaran_laci ?? 0) + antre.pengeluaran,
 				setoran: (dasar?.setoran ?? 0) + antre.setoran
 			};

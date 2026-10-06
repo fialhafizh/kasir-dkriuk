@@ -42,6 +42,7 @@
 	let fKet = $state('');
 	let fId = $state(crypto.randomUUID());
 	let pesanForm = $state('');
+	let memproses = $state(false);
 	let tercatat = $state('');
 
 	let namaBaru = $state('');
@@ -102,6 +103,8 @@
 		const n = parseRupiah(fNominal);
 		if (!fOutlet || !kat) return void (pesanForm = 'Pilih outlet dan kategori.');
 		if (n === null || n < 1) return void (pesanForm = 'Isi nominal, mis. 150.000.');
+		if (memproses) return;
+		memproses = true;
 		try {
 			await catatPengeluaranAdmin({
 				id: fId,
@@ -119,6 +122,8 @@
 			await muat();
 		} catch (err) {
 			pesanForm = (err as Error).message;
+		} finally {
+			memproses = false;
 		}
 	}
 
@@ -199,7 +204,7 @@
 	</div>
 	{#if pesanForm}<p class="text-sm text-danger sm:col-span-2" role="alert">{pesanForm}</p>{/if}
 	{#if tercatat}<p class="text-sm font-semibold text-ok sm:col-span-2" role="status">{tercatat}</p>{/if}
-	<div class="sm:col-span-2"><Button type="submit">Catat</Button></div>
+	<div class="sm:col-span-2"><Button type="submit" loading={memproses}>Catat</Button></div>
 </form>
 
 <form class="mt-6 flex flex-wrap items-end gap-3" onsubmit={(e) => (e.preventDefault(), void muat())}>
