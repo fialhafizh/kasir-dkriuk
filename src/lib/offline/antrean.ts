@@ -59,6 +59,7 @@ export async function kirimAntrean(
 		}
 		if (await jualDitolak(db, k)) {
 			await db.kejadian.update(k.urut!, { status: 'ditolak', alasan: TERTAHAN_JUAL });
+			ditolak++;
 			continue;
 		}
 		try {

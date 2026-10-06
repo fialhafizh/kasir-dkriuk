@@ -104,26 +104,39 @@ try {
 	gagal++;
 	console.error(`GAGAL langkah: ${(e as Error).message}`);
 } finally {
+	// Gerakan & transfer kedua outlet dihapus dulu (transfer mengacu ke dua outlet; FK restrict).
+	const hapus = async (nama: string, q: PromiseLike<{ error: { message: string } | null }>) => {
+		const { error } = await q;
+		if (error) {
+			gagal++;
+			console.error(`GAGAL membersihkan ${nama}: ${error.message}`);
+		}
+	};
+	if (outlets.length) {
+		const daftar = `(${outlets.join(',')})`;
+		await hapus('gerakan_stok', svc.from('gerakan_stok').delete().in('outlet_id', outlets));
+		const tr = ((await svc.from('transfer').select('id').or(`dari_outlet_id.in.${daftar},ke_outlet_id.in.${daftar}`)).data ?? []).map((x) => x.id);
+		if (tr.length) {
+			await hapus('transfer_item', svc.from('transfer_item').delete().in('transfer_id', tr));
+			await hapus('transfer', svc.from('transfer').delete().in('id', tr));
+		}
+	}
 	for (const o of outlets) {
-		await svc.from('gerakan_stok').delete().eq('outlet_id', o);
 		const op = ((await svc.from('opname').select('id').eq('outlet_id', o)).data ?? []).map((x) => x.id);
-		if (op.length) await svc.from('opname_item').delete().in('opname_id', op);
-		await svc.from('opname').delete().eq('outlet_id', o);
+		if (op.length) await hapus('opname_item', svc.from('opname_item').delete().in('opname_id', op));
+		await hapus('opname', svc.from('opname').delete().eq('outlet_id', o));
 		const sa = ((await svc.from('stok_awal').select('id').eq('outlet_id', o)).data ?? []).map((x) => x.id);
-		if (sa.length) await svc.from('stok_awal_item').delete().in('stok_awal_id', sa);
-		await svc.from('stok_awal').delete().eq('outlet_id', o);
-		const tr = ((await svc.from('transfer').select('id').eq('dari_outlet_id', o)).data ?? []).map((x) => x.id);
-		if (tr.length) await svc.from('transfer_item').delete().in('transfer_id', tr);
-		await svc.from('transfer').delete().eq('dari_outlet_id', o);
+		if (sa.length) await hapus('stok_awal_item', svc.from('stok_awal_item').delete().in('stok_awal_id', sa));
+		await hapus('stok_awal', svc.from('stok_awal').delete().eq('outlet_id', o));
 		const ids = ((await svc.from('penjualan').select('id').eq('outlet_id', o)).data ?? []).map((x) => x.id);
-		if (ids.length) await svc.from('penjualan_item').delete().in('penjualan_id', ids);
-		await svc.from('penjualan').delete().eq('outlet_id', o);
+		if (ids.length) await hapus('penjualan_item', svc.from('penjualan_item').delete().in('penjualan_id', ids));
+		await hapus('penjualan', svc.from('penjualan').delete().eq('outlet_id', o));
 		const sh = ((await svc.from('shift').select('id').eq('outlet_id', o)).data ?? []).map((x) => x.id);
-		if (sh.length) await svc.from('shift_perangkat').delete().in('shift_id', sh);
-		await svc.from('shift').delete().eq('outlet_id', o);
-		await svc.from('nomor_harian').delete().eq('outlet_id', o);
-		await svc.from('perangkat').delete().eq('outlet_id', o);
-		await svc.from('harga_jual').delete().eq('outlet_id', o);
+		if (sh.length) await hapus('shift_perangkat', svc.from('shift_perangkat').delete().in('shift_id', sh));
+		await hapus('shift', svc.from('shift').delete().eq('outlet_id', o));
+		await hapus('nomor_harian', svc.from('nomor_harian').delete().eq('outlet_id', o));
+		await hapus('perangkat', svc.from('perangkat').delete().eq('outlet_id', o));
+		await hapus('harga_jual', svc.from('harga_jual').delete().eq('outlet_id', o));
 	}
 	for (const u of users) {
 		const { error } = await svc.auth.admin.deleteUser(u);

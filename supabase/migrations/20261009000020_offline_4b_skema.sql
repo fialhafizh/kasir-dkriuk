@@ -23,6 +23,8 @@ $$;
 
 -- Jam server saat toko benar-benar ditutup / transaksi benar-benar dibatalkan (jam di kolom lain bisa jam perangkat).
 alter table public.shift add column ditutup_dicatat_at timestamptz;
+-- Shift yang sudah ditutup sebelum migrasi ini: jam server terbaik yang diketahui = jam tutupnya.
+update public.shift set ditutup_dicatat_at = ditutup_at where ditutup_at is not null and not tutup_tertunda;
 
 create function public._jam_tutup_server() returns trigger
 language plpgsql set search_path = '' as $$
