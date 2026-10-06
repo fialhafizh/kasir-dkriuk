@@ -40,8 +40,10 @@ async function akun(nama: string, role: 'kasir' | 'admin', outletKode?: string):
 	if (m.error) throw new Error(m.error.message);
 	return c;
 }
+// stok_outlet adalah view security_invoker: dibaca lewat akun admin uji (bukan service role).
+let pembaca: SupabaseClient;
 const stok = async (outletId: string, bahanId: string) =>
-	Number((await svc.from('stok_outlet').select('qty').eq('outlet_id', outletId).eq('bahan_id', bahanId).maybeSingle()).data?.qty ?? 0);
+	Number((await pembaca.from('stok_outlet').select('qty').eq('outlet_id', outletId).eq('bahan_id', bahanId).maybeSingle()).data?.qty ?? 0);
 
 try {
 	const A = await outlet('UJA');
@@ -53,6 +55,7 @@ try {
 	const ka = await akun('kasira', 'kasir', 'UJA');
 	const kb = await akun('kasirb', 'kasir', 'UJB');
 	const adm = await akun('admin', 'admin');
+	pembaca = adm;
 
 	// Stok awal offline (dua kali → satu), disetujui admin.
 	const sa = randomUUID();
