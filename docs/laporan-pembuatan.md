@@ -19,7 +19,8 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 | 3b | Stok lanjutan: rusak/terbuang & sisa harian, transfer antar outlet, opname mingguan | Selesai, di main — uji owner menunggu |
 | 4a | Offline: buka toko, jualan + struk, sisa, tutup toko tanpa internet; aplikasi online & bisa dipasang ke layar utama | Selesai — uji owner menunggu |
 | 4b | Offline: batal, rusak, transfer, opname, stok awal; halaman admin Perangkat & kejadian diabaikan | Selesai, di main — uji owner menunggu |
-| 5 | Keuangan: pengeluaran, setoran, kas harian, gaji, sewa, laba-rugi | Sedang dirancang |
+| 5a | Kas harian: uang laci berjalan, pengeluaran, setoran, kas harian, penjualan admin | Selesai di cabang — menunggu review akhir & persetujuan gabung |
+| 5b | Biaya tetap (sewa), gaji, laba-rugi, arus kas per kanal | Berikutnya |
 | 6 | Telegram: struk, ringkasan shift & harian, peringatan | Belum |
 | 7 | Dashboard & analisis (termasuk modal tepung, terbuang, susut) | Belum |
 | 8 | Rilis: uji menyeluruh, panduan pengguna | Belum |
@@ -85,6 +86,22 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - Perbaikan 4a yang ditemukan saat 4b: salinan data (menu, shift) kini benar-benar dipakai saat internet putus.
 - Pengerasan: dua tab aplikasi tidak mengirim bersamaan; data terkirim lama dibersihkan tanpa menghapus shift yang belum ditutup; peringatan bila ada data belum terkirim milik akun lain; halaman terbuka cepat walau sinyal lemah.
 - **Admin → Perangkat**: daftar HP/tablet kasir (kode, outlet, pengguna terakhir, jam sinkron; kuning bila > 24 jam) dan daftar **kejadian yang diabaikan kasir** beserta alasannya.
+
+### Tahap 5a — Kas harian (keputusan owner 9 Okt 2026)
+- Tahap 5 dipecah: **5a kas harian** dulu, lalu **5b** (biaya tetap/sewa, gaji, laba-rugi, arus kas).
+- **Uang laci menumpuk lintas hari**; kasir menyetor ke owner kira-kira tiap 3 hari dan menyisakan uang kembalian (mis. 100.000). QRIS & ojol tidak masuk laci. Contoh: 100.000 + jual cash 800.000 + 600.000 + 1.200.000 − pengeluaran 100.000 = 2.600.000; setor 2.500.000 → laci 100.000.
+- **Buka toko tidak lagi mengisi modal**: aplikasi menampilkan uang laci sekarang. Pertama kali per outlet, kasir mengisi uang laci awal sekali.
+- **Tutup toko**: uang seharusnya = uang laci (sudah termasuk sisa kemarin, jual cash, batal, pengeluaran, setoran); selisih seperti biasa.
+- **Pengeluaran kecil kasir** (gas, token listrik, air, lain-lain dengan keterangan wajib) langsung mengurangi laci; admin bisa membatalkan.
+- **Setoran** dicatat kasir (laci langsung berkurang), **owner menekan Terima**; bila uang yang diterima beda, isi jumlah sebenarnya + catatan (selisih setoran).
+- Setoran & pengeluaran bisa dicatat **kapan saja** (juga saat toko tutup) dan **tanpa internet**.
+- **Membatalkan catatan yang salah** (pengeluaran dobel, setoran tidak jadi, penjualan dobel dari shift yang sudah ditutup) = **koreksi**: dianggap tidak pernah ada di laci, selisih shift lama terkoreksi, uang laci sekarang tidak bergeser. Batal kasir saat toko buka = uang memang dikembalikan.
+- **Penjualan offline yang telat terkirim** memperbarui selisih shift-nya sendiri, bukan uang laci hari ini.
+- **Saldo laci tidak ditampilkan di layar jualan** (hanya Buka toko, Tutup toko, Kas) supaya kasir tidak menghitung untuk menutupi selisih.
+- Admin: **Kas harian** (per kanal, pengeluaran, setoran, uang laci awal → akhir, selisih per hari; per outlet / semua), **Setoran**, **Pengeluaran** (laci + di luar laci + belanja bahan dari Barang masuk; kategori bisa ditambah), **Penjualan** (cari & batal, termasuk shift yang sudah ditutup).
+- Belanja bahan yang terlambat dicatat (barang sudah termasuk opname) dicatat di Pengeluaran sebagai "Belanja bahan" tanpa efek stok. Batal barang masuk tampil sebagai koreksi pada **tanggal pembatalan**.
+- Outlet yang dinonaktifkan tidak bisa buka toko; data lama dari HP yang telat sinkron tetap diterima.
+- Shift sebelum Tahap 5a tetap dihitung dengan rumus lama (modal + jual cash).
 
 ## Catatan penting untuk tahap berikutnya
 
