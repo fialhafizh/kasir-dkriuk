@@ -137,6 +137,7 @@ try {
 		const sh = ((await svc.from('shift').select('id').eq('outlet_id', o)).data ?? []).map((x) => x.id);
 		if (sh.length) await hapus('shift_perangkat', svc.from('shift_perangkat').delete().in('shift_id', sh));
 		await hapus('shift', svc.from('shift').delete().eq('outlet_id', o));
+		await hapus('laci_awal', svc.from('laci_awal').delete().eq('outlet_id', o));
 		await hapus('nomor_harian', svc.from('nomor_harian').delete().eq('outlet_id', o));
 		await hapus('perangkat', svc.from('perangkat').delete().eq('outlet_id', o));
 		await hapus('harga_jual', svc.from('harga_jual').delete().eq('outlet_id', o));

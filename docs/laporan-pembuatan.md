@@ -19,7 +19,7 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 | 3b | Stok lanjutan: rusak/terbuang & sisa harian, transfer antar outlet, opname mingguan | Selesai, di main — uji owner menunggu |
 | 4a | Offline: buka toko, jualan + struk, sisa, tutup toko tanpa internet; aplikasi online & bisa dipasang ke layar utama | Selesai — uji owner menunggu |
 | 4b | Offline: batal, rusak, transfer, opname, stok awal; halaman admin Perangkat & kejadian diabaikan | Selesai, di main — uji owner menunggu |
-| 5a | Kas harian: uang laci berjalan, pengeluaran, setoran, kas harian, penjualan admin | Selesai di cabang — menunggu review akhir & persetujuan gabung |
+| 5a | Kas harian: uang laci berjalan, pengeluaran, setoran, kas harian, penjualan admin | Selesai di cabang (review akhir lulus, database server diperbarui, uji server lulus) — menunggu persetujuan gabung; uji owner menunggu |
 | 5b | Biaya tetap (sewa), gaji, laba-rugi, arus kas per kanal | Berikutnya |
 | 6 | Telegram: struk, ringkasan shift & harian, peringatan | Belum |
 | 7 | Dashboard & analisis (termasuk modal tepung, terbuang, susut) | Belum |
@@ -112,3 +112,4 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 
 - 5 Okt 2026: satu transaksi uji owner (BL-261004-001) dan shift ujinya dihapus atas permintaan owner; server bersih sebelum pemakaian.
 - 9 Okt 2026: database server diperbarui untuk Tahap 4b (migrasi 0020–0021); semua uji server (kasir, stok 3a/3b, offline 4a/4b) lulus memakai outlet & akun sementara yang sudah dihapus; server kembali bersih (3 outlet, 4 akun, 0 transaksi).
+- 10 Okt 2026: database server diperbarui untuk Tahap 5a (migrasi 0022–0023); semua uji server lulus; sisa data uji dari pembersihan yang gagal dihapus; server bersih (3 outlet, 4 akun, 0 transaksi, 7 kategori pengeluaran).

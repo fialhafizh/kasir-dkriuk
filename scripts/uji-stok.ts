@@ -108,6 +108,7 @@ try {
 		const shs = ((await svc.from('shift').select('id').eq('outlet_id', outletId)).data ?? []).map((x) => x.id);
 		if (shs.length) await svc.from('shift_perangkat').delete().in('shift_id', shs);
 		await svc.from('shift').delete().eq('outlet_id', outletId);
+		await svc.from('laci_awal').delete().eq('outlet_id', outletId);
 		await svc.from('perangkat').delete().eq('outlet_id', outletId);
 		await svc.from('nomor_harian').delete().eq('outlet_id', outletId);
 	}
