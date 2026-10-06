@@ -61,6 +61,7 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - **Nomor struk**: online nomor resmi; offline nomor sementara `S<kode perangkat>-NNN`; setiap transaksi punya **kode struk** pendek yang tercetak dan bisa dicari; struk offline tetap bisa ditelusuri ke pesanannya (nomor resmi, nomor sementara, jam jual, jam sampai, perangkat, kasir, isi).
 - Kejadian yang ditolak server masuk **Perlu perhatian** (coba lagi / abaikan dengan alasan, dilaporkan ke admin). Admin punya halaman **Perangkat** (jam sinkron terakhir tiap HP/tablet).
 - **Pemasangan online dimajukan ke Tahap 4** supaya bisa diuji di HP/tablet sungguhan (offline, printer Bluetooth, RawBT): alamat `https://daffialhafizh.github.io/kasir-dkriuk/`, bisa dipasang ke layar utama.
+- 6 Okt 2026: akun GitHub owner ditandai (flagged) oleh GitHub sehingga push & GitHub Pages terhambat; owner mengajukan pemulihan. **Sementara aplikasi dipasang di Netlify** (unggah folder hasil build, tanpa GitHub). Hanya alamat Supabase & kunci publik yang ikut di hasil build (sudah dicek).
 - Perangkat yang pernah login bisa dibuka offline kapan pun; perangkat baru butuh internet untuk login pertama. Keluar (logout) ditolak selama masih ada data belum terkirim.
 
 ---
