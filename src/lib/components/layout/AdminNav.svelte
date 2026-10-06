@@ -5,6 +5,10 @@
 
 	const ITEM = [
 		{ path: '/admin', label: 'Beranda' },
+		{ path: '/admin/kas', label: 'Kas' },
+		{ path: '/admin/setoran', label: 'Setoran' },
+		{ path: '/admin/pengeluaran', label: 'Pengeluaran' },
+		{ path: '/admin/penjualan', label: 'Penjualan' },
 		{ path: '/admin/stok', label: 'Stok' },
 		{ path: '/admin/bahan', label: 'Bahan' },
 		{ path: '/admin/menu', label: 'Menu' },
