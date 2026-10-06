@@ -17,7 +17,7 @@ export function stokKasir(): StatusStokKasir {
 	let outletTerakhir: string | null = null;
 	$effect(() => {
 		const o = pos.outlet;
-		void sinkron.terakhir;
+		void sinkron.versi;
 		void sinkron.menunggu;
 		void st.ulang;
 		if (!o) return;
@@ -27,6 +27,8 @@ export function stokKasir(): StatusStokKasir {
 			st.nilai = null;
 			st.status = 'memuat';
 		}
+		// "Coba lagi" setelah gagal: tampilkan Memuat.
+		if (!st.nilai) st.status = 'memuat';
 		let batal = false;
 		muatStokKasir(o.id)
 			.then((v) => {

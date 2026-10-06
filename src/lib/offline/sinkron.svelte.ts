@@ -12,13 +12,16 @@ class SinkronState {
 	ditolak = $state(0);
 	sedang = $state(false);
 	terakhir = $state<string | null>(null);
+	/** Naik setiap ada kejadian terkirim (dan sekali saat sinkron pertama): pemicu muat ulang halaman. */
+	versi = $state(0);
 	online = $state(typeof navigator === 'undefined' ? true : navigator.onLine);
 	#perangkat: string | null = null;
 	#berjalan: Promise<void> | null = null;
 	#mulai = false;
+	#tandaiAt = 0;
 
 	async segarkan() {
-		const h = await hitungAntrean(dbKasir);
+		const h = await hitungAntrean(dbKasir, auth.profile?.id ?? null);
 		this.menunggu = h.menunggu;
 		this.ditolak = h.ditolak;
 	}
@@ -46,10 +49,17 @@ class SinkronState {
 
 	async #kirim() {
 		const r = await kirimAntrean(dbKasir, pengirimSupabase(this.#perangkat!), auth.profile?.id ?? null);
-		if (r.berhenti === 'selesai') {
-			this.terakhir = new Date().toISOString();
-			await supabase.rpc('tandai_sinkron', { p_id: this.#perangkat });
+		if (r.berhenti !== 'selesai') return;
+		this.terakhir = new Date().toISOString();
+		// Sinkron berkala (30 detik) dengan antrean kosong tidak boleh memicu muat ulang & tulis server terus-menerus.
+		const pertama = this.versi === 0;
+		if (r.terkirim > 0 || pertama) {
+			this.versi++;
 			await bersihkanTerkirim(dbKasir, new Date(Date.now() - 3 * 86_400_000));
+		}
+		if (r.terkirim > 0 || Date.now() - this.#tandaiAt > 5 * 60_000) {
+			this.#tandaiAt = Date.now();
+			await supabase.rpc('tandai_sinkron', { p_id: this.#perangkat });
 		}
 	}
 

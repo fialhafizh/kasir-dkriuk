@@ -38,7 +38,7 @@
 	// Ringkasan = ringkasan server (salinan bila offline) + penjualan yang masih di antrean perangkat.
 	$effect(() => {
 		const s = pos.shift;
-		void sinkron.terakhir;
+		void sinkron.versi;
 		if (!s) return;
 		let batal = false;
 		const jar = (e: unknown) => galatJaringan(e as { message?: string });

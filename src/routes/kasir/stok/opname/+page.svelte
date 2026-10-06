@@ -16,7 +16,7 @@
 
 	const v = $derived(st.nilai);
 	const isian = $derived(v ? bentukIsian(v.data.bahan, v.data.satuan, v.data.isi) : []);
-	const halangan = $derived(
+	const halanganKini = $derived(
 		!v
 			? ''
 			: !v.awal.some((x) => x.status === 'disetujui')
@@ -27,6 +27,12 @@
 						? 'Masih ada kiriman/penerimaan yang belum selesai. Selesaikan dulu sebelum opname.'
 						: ''
 	);
+
+	// Diputuskan sekali saat data pertama tampil: muat ulang (sinkron) tidak boleh menutup formulir yang sedang diisi.
+	let halangan = $state<string | null>(null);
+	$effect(() => {
+		if (v && halangan === null) halangan = halanganKini;
+	});
 
 	async function kirim(item: ItemHitung[]) {
 		await antrekan(buatKejadianHitung('opname', pos.outlet!.id, item, new Date(), idOpname));
@@ -45,7 +51,7 @@
 		Opname tercatat dan dikirim ke admin (otomatis saat online). Menunggu persetujuan admin.
 	</p>
 	<a href={href('/kasir/stok')} class="mt-3 inline-flex min-h-12 items-center rounded-xl bg-surface-2 px-4 font-semibold">Kembali ke Stok</a>
-{:else if st.status === 'memuat'}
+{:else if st.status !== 'gagal' && halangan === null}
 	<p class="mt-4 text-muted" role="status">Memuat…</p>
 {:else if st.status === 'gagal'}
 	<p class="mt-4 text-danger" role="alert">{st.pesan}</p>

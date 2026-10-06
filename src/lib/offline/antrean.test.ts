@@ -159,3 +159,18 @@ describe('pengerasan 4b', () => {
 		expect(await hitungMilikLain(db, null)).toBe(2);
 	});
 });
+
+describe('review 4b: batal atas transaksi yang ditolak', () => {
+	it('batal tidak dikirim selama transaksinya ditolak; coba lagi transaksi melepas batalnya', async () => {
+		await tambahKejadian(db, k('j', 'jual'));
+		await tambahKejadian(db, { ...k('b', 'batal_jual'), data: { penjualan_id: 'j', alasan: 'x' } });
+		const p = pengirim({ j: 'tolak' });
+		await kirimAntrean(db, p);
+		expect(p.dikirim).toEqual(['j']);
+		expect((await db.kejadian.where('id').equals('b').first())?.status).toBe('ditolak');
+		await cobaLagi(db, 'j');
+		const p2 = pengirim({});
+		await kirimAntrean(db, p2);
+		expect(p2.dikirim).toEqual(['j', 'b']);
+	});
+});

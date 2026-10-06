@@ -52,9 +52,18 @@
 			pesanBaris[t.id] = 'Alasan pembatalan wajib diisi (3–200 karakter).';
 			return;
 		}
-		await antrekan(buatKejadianBatalTransfer(pos.outlet!.id, t.id, a, new Date()));
-		if (diubah?.id === t.id) diubah = null;
+		try {
+			await antrekan(buatKejadianBatalTransfer(pos.outlet!.id, t.id, a, new Date()));
+			if (diubah?.id === t.id) diubah = null;
+		} catch (e) {
+			pesanBaris[t.id] = (e as Error).message;
+		}
 	}
+
+	// Kiriman yang sedang diubah sudah diterima/dibatalkan: tutup formulir ubah.
+	$effect(() => {
+		if (diubah && st.nilai && !keluar.some((t) => t.id === diubah!.id)) diubah = null;
+	});
 </script>
 
 <svelte:head><title>Kirim ke Outlet Lain · Kasir D'Kriuk</title></svelte:head>

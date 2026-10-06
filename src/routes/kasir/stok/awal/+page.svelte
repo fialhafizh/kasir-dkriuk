@@ -15,7 +15,13 @@
 
 	const v = $derived(st.nilai);
 	const isian = $derived(v ? bentukIsian(v.data.bahan, v.data.satuan, v.data.isi) : []);
-	const bisa = $derived(!(v?.awal ?? []).some((a) => a.status === 'diajukan' || a.status === 'disetujui'));
+	const bisaKini = $derived(!(v?.awal ?? []).some((a) => a.status === 'diajukan' || a.status === 'disetujui'));
+
+	// Diputuskan sekali saat data pertama tampil (formulir yang sedang diisi tidak tertutup oleh muat ulang).
+	let bisa = $state<boolean | null>(null);
+	$effect(() => {
+		if (v && bisa === null) bisa = bisaKini;
+	});
 
 	async function kirim(item: ItemHitung[]) {
 		await antrekan(buatKejadianHitung('stok_awal', pos.outlet!.id, item, new Date(), idHitung));
@@ -35,7 +41,7 @@
 {#if terkirim}
 	<p class="mt-4 rounded-xl bg-surface-2 p-4 font-semibold text-ok" role="status">Tercatat dan dikirim ke admin (otomatis saat online). Menunggu persetujuan admin.</p>
 	<a href={href('/kasir/stok')} class="mt-3 inline-flex min-h-12 items-center rounded-xl bg-surface-2 px-4 font-semibold">Kembali ke Stok</a>
-{:else if st.status === 'memuat'}
+{:else if st.status !== 'gagal' && bisa === null}
 	<p class="mt-4 text-muted" role="status">Memuat…</p>
 {:else if st.status === 'gagal'}
 	<p class="mt-4 text-danger" role="alert">{st.pesan}</p>

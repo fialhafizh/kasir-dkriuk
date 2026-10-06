@@ -6,13 +6,13 @@
 	import { labelMetode } from '#lib/kasir/bayar.ts';
 	import { dataStrukRiwayat } from '#lib/kasir/cetak.ts';
 	import { encodeStruk, urlRawBT } from '#lib/kasir/escpos.ts';
+	import { antrekan } from '#lib/kasir/antre.ts';
 	import { buatKejadianBatal } from '#lib/kasir/offline-kasir.ts';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
 	import { printer } from '#lib/kasir/printer.svelte.ts';
 	import { barisStruk } from '#lib/kasir/struk.ts';
 	import { formatWaktuWib } from '#lib/kasir/waktu.ts';
 	import { formatAngka } from '#lib/master/rupiah.ts';
-	import { tambahKejadian } from '#lib/offline/antrean.ts';
 	import { bacaPerangkat } from '#lib/offline/perangkat.ts';
 	import { cocokCari, gabungRiwayat, type PenjualanLokal } from '#lib/offline/proyeksi.ts';
 	import { bacaSalinan, denganSalinan } from '#lib/offline/salinan.ts';
@@ -26,9 +26,12 @@
 	let pesanBaris = $state<Record<string, string>>({});
 	const perangkatIni = typeof localStorage === 'undefined' ? null : bacaPerangkat(localStorage).id;
 
+	// Jawaban muat yang lebih lama tidak boleh menimpa yang lebih baru.
+	let gen = 0;
 	async function muat() {
 		const s = pos.shift;
 		if (!s) return;
+		const g = ++gen;
 		try {
 			let server = null;
 			try {
@@ -36,15 +39,18 @@
 			} catch {
 				server = await bacaSalinan<typeof daftar>(dbKasir, `riwayat:${s.id}`);
 			}
-			daftar = gabungRiwayat(server ?? [], await dbKasir.kejadian.toArray(), s.id);
+			const d = gabungRiwayat(server ?? [], await dbKasir.kejadian.toArray(), s.id);
+			if (g !== gen) return;
+			daftar = d;
 			status = 'siap';
 		} catch (e) {
+			if (g !== gen) return;
 			pesan = (e as Error).message;
 			status = 'gagal';
 		}
 	}
 	$effect(() => {
-		void sinkron.terakhir;
+		void sinkron.versi;
 		void sinkron.menunggu;
 		if (pos.shift) void muat();
 	});
@@ -60,10 +66,8 @@
 			return;
 		}
 		try {
-			const k = buatKejadianBatal(pos.outlet!.id, pos.shift?.id ?? null, p.id, a, new Date());
-			await tambahKejadian(dbKasir, { ...k, user_id: auth.profile?.id ?? null });
-			await muat();
-			void sinkron.jalankan().then(muat);
+			// Daftar dimuat ulang otomatis saat jumlah antrean berubah.
+			await antrekan(buatKejadianBatal(pos.outlet!.id, pos.shift?.id ?? null, p.id, a, new Date()));
 		} catch (e) {
 			pesanBaris[p.id] = (e as Error).message;
 		}

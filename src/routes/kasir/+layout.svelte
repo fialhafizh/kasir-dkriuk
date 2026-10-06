@@ -24,7 +24,7 @@
 	// Muat shift setiap kali outlet berganti, saat status online berubah, dan setelah antrean terkirim.
 	$effect(() => {
 		void auth.offline;
-		void sinkron.terakhir;
+		void sinkron.versi;
 		if (pos.outlet) void pos.muatShift();
 	});
 
@@ -42,7 +42,7 @@
 	// Setelah sinkron selesai & online: perbarui salinan data stok supaya halaman Stok siap dibuka tanpa internet.
 	$effect(() => {
 		const o = pos.outlet;
-		if (!sinkron.terakhir || !o || auth.offline) return;
+		if (!sinkron.versi || !o || auth.offline) return;
 		void muatStokKasir(o.id).catch(() => {});
 	});
 
