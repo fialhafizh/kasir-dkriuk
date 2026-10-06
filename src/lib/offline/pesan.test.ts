@@ -3,7 +3,9 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { pesanSinkron } from './pesan';
 
-const sql = readFileSync(join(import.meta.dirname, '../../../supabase/migrations/20261008000019_fungsi_offline.sql'), 'utf8');
+const sql = ['20261008000019_fungsi_offline.sql', '20261009000021_fungsi_offline_4b.sql']
+	.map((f) => readFileSync(join(import.meta.dirname, '../../../supabase/migrations', f), 'utf8'))
+	.join('\n');
 const resmi = [...sql.matchAll(/raise exception '([^'%]+)' using errcode = '(\d+)'/g)].map((m) => ({ message: m[1], code: m[2] }));
 
 describe('pesanSinkron', () => {
