@@ -31,7 +31,7 @@ begin
     raise exception 'Penjualan dari shift yang sudah ditutup hanya bisa dibatalkan admin' using errcode = '42501';
   end if;
   update public.penjualan
-  set void_at = v_waktu, void_oleh = auth.uid(), void_alasan = v_alasan, void_dicatat_at = now(),
+  set void_at = v_waktu, void_oleh = auth.uid(), void_alasan = v_alasan,
       void_tanpa_stok = coalesce(public._dihitung_disetujui(v.outlet_id) >= v_waktu, false)
   where id = v_id;
   return jsonb_build_object('id', v.id, 'nomor', v.nomor, 'sudah_dibatalkan', false);
@@ -64,7 +64,8 @@ begin
   select count(*) filter (where void_at is null), count(*) filter (where void_at is not null),
          coalesce(sum(total) filter (where void_at is null), 0),
          coalesce(sum(total) filter (where void_at is null and metode = 'cash'), 0),
-         count(*) filter (where s.ditutup_at is not null and not s.tutup_tertunda and void_dicatat_at > s.ditutup_at)
+         -- Dibandingkan dengan jam server (jam tutup bisa jam perangkat).
+         count(*) filter (where not s.tutup_tertunda and void_dicatat_at > s.ditutup_dicatat_at)
   into v_jumlah, v_void, v_total, v_cash, v_batal_telat
   from public.penjualan where shift_id = p_shift;
   return jsonb_build_object(
@@ -115,10 +116,61 @@ begin
   -- Barang tidak mungkin diterima sebelum dikirim (jam perangkat bisa meleset).
   v_waktu := greatest(p_waktu, t.dikirim_at);
   update public.transfer set status = 'diterima', diterima_at = v_waktu, diterima_oleh = auth.uid() where id = p_id;
-  insert into public.gerakan_stok (outlet_id, bahan_id, qty, jenis, waktu, oleh, transfer_id)
-  select t.dari_outlet_id, i.bahan_id, -i.qty, 'transfer_keluar'::public.jenis_gerakan, v_waktu, auth.uid(), p_id from public.transfer_item i where i.transfer_id = p_id
-  union all
-  select t.ke_outlet_id, i.bahan_id, i.qty, 'transfer_masuk'::public.jenis_gerakan, v_waktu, auth.uid(), p_id from public.transfer_item i where i.transfer_id = p_id;
+  perform public._gerakan_transfer(t, v_waktu, true);
+end
+$$;
+
+-- Buku besar transfer (Tahap 4b): barang keluar pada jam DIKIRIM (saat itu fisiknya pergi), masuk kembali/ke
+-- tujuan pada jam diterima/dibatalkan. Baris yang jamnya ≤ hitungan fisik yang disetujui tidak ditulis
+-- (hitungan sudah mencerminkannya) — aturan yang sama dengan penjualan offline. Hitungan yang masih menunggu
+-- otomatis memperhitungkan baris ini saat disetujui.
+create function public._gerakan_transfer(t public.transfer, p_waktu timestamptz, p_diterima boolean) returns void
+language plpgsql security definer set search_path = '' as $$
+declare
+  v_tujuan uuid := case when p_diterima then t.ke_outlet_id else t.dari_outlet_id end;
+begin
+  if not coalesce(public._dihitung_disetujui(t.dari_outlet_id) >= t.dikirim_at, false) then
+    insert into public.gerakan_stok (outlet_id, bahan_id, qty, jenis, waktu, oleh, transfer_id)
+    select t.dari_outlet_id, i.bahan_id, -i.qty, 'transfer_keluar'::public.jenis_gerakan, t.dikirim_at, auth.uid(), t.id
+    from public.transfer_item i where i.transfer_id = t.id;
+  end if;
+  -- Dibatalkan: barang kembali ke outlet pengirim (dicatat sebagai masuk dari transfer itu).
+  if not coalesce(public._dihitung_disetujui(v_tujuan) >= p_waktu, false) then
+    insert into public.gerakan_stok (outlet_id, bahan_id, qty, jenis, waktu, oleh, transfer_id)
+    select v_tujuan, i.bahan_id, i.qty, 'transfer_masuk'::public.jenis_gerakan, p_waktu, auth.uid(), t.id
+    from public.transfer_item i where i.transfer_id = t.id;
+  end if;
+end
+$$;
+
+create function public._batal_transfer(p_id uuid, p_alasan text, p_waktu timestamptz) returns void
+language plpgsql security definer set search_path = '' as $$
+declare
+  t public.transfer;
+  v_waktu timestamptz;
+begin
+  select * into t from public.transfer where id = p_id;
+  if not found or not (public.is_admin() or coalesce(public.my_outlet_id() = t.dari_outlet_id, false)) then
+    raise exception 'Transfer tidak ditemukan' using errcode = '22023';
+  end if;
+  -- Kunci stok pengirim dulu, baru baris transfer (urutan sama dengan terima).
+  perform public._kunci_stok(t.dari_outlet_id);
+  t := public._transfer_milik_pengirim(p_id);
+  if p_alasan is null or length(trim(p_alasan)) < 3 or length(p_alasan) > 200 then
+    raise exception 'Alasan pembatalan wajib diisi (3–200 karakter)' using errcode = '22023';
+  end if;
+  v_waktu := greatest(p_waktu, t.dikirim_at);
+  update public.transfer set status = 'dibatalkan', batal_at = v_waktu, batal_oleh = auth.uid(), batal_alasan = trim(p_alasan)
+  where id = t.id;
+  -- Keluar (jam kirim) lalu kembali (jam batal): bersih nol, tetapi hitungan fisik di antaranya tetap benar.
+  perform public._gerakan_transfer(t, v_waktu, false);
+end
+$$;
+
+create or replace function public.batal_transfer(p_id uuid, p_alasan text) returns void
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform public._batal_transfer(p_id, p_alasan, now());
 end
 $$;
 
@@ -166,7 +218,7 @@ begin
              and (public.is_admin() or coalesce(public.my_outlet_id() = dari_outlet_id, false))) then
     return;
   end if;
-  perform public.batal_transfer(v_id, p ->> 'alasan');
+  perform public._batal_transfer(v_id, p ->> 'alasan', public._waktu_perangkat((p ->> 'waktu')::timestamptz));
 end
 $$;
 
@@ -242,6 +294,8 @@ end
 $$;
 
 revoke execute on function public._terima_transfer(uuid, jsonb, timestamptz) from public, anon, authenticated;
+revoke execute on function public._batal_transfer(uuid, text, timestamptz) from public, anon, authenticated;
+revoke execute on function public._gerakan_transfer(public.transfer, timestamptz, boolean) from public, anon, authenticated;
 revoke execute on function public.void_penjualan_offline(jsonb) from public, anon;
 revoke execute on function public.terima_transfer_offline(jsonb) from public, anon;
 revoke execute on function public.kirim_transfer_offline(jsonb) from public, anon;

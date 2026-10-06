@@ -189,3 +189,53 @@ describe('opname & stok awal offline', () => {
 		await expect(hitung('ajukan_opname_offline', crypto.randomUUID(), [['ori_dada', 9]])).rejects.toThrow(/Selesaikan kiriman/);
 	});
 });
+
+describe('review server 4b: transfer vs hitungan fisik', () => {
+	const ajukanOpname = (id: string, item: [string, number][], waktu: string) => hitung('ajukan_opname_offline', id, item, waktu);
+	const setujui = (id: string) => rpc(db, adminId, 'public.putuskan_opname($1, $2, $3::jsonb, $4)', [id, true, null, null]);
+
+	it('kiriman di jalan saat opname offline, diterima sebelum opname tiba → stok pengirim = hitungan', async () => {
+		await setujuiStokAwal(db, kasirBL, adminId, 'BL', [['ori_dada', 10]], 4);
+		const t = await kirimOffline([['ori_dada', 4]], "now() - interval '3 hours'");
+		await rpc(db, kasirTK, 'public.terima_transfer($1, $2::jsonb)', [t, JSON.stringify(await isian(db, [['ori_dada', 4]]))]);
+		// BL menghitung 2 jam lalu (barang sudah pergi): 6.
+		const o = crypto.randomUUID();
+		await ajukanOpname(o, [['ori_dada', 6]], "now() - interval '2 hours'");
+		await setujui(o);
+		expect(await stokBahan(db, 'BL', 'ori_dada')).toBe(6);
+		expect(await stokBahan(db, 'TK', 'ori_dada')).toBe(4);
+	});
+	it('kiriman di jalan saat opname, dibatalkan sesudahnya → barang kembali sekali', async () => {
+		await setujuiStokAwal(db, kasirBL, adminId, 'BL', [['ori_dada', 10]], 4);
+		const t = await kirimOffline([['ori_dada', 4]], "now() - interval '3 hours'");
+		await rpc(db, kasirBL, 'public.batal_transfer_offline($1::jsonb)', [JSON.stringify({ transfer_id: t, alasan: 'tidak jadi', waktu: await jam("now() - interval '1 hour'") })]);
+		const o = crypto.randomUUID();
+		await ajukanOpname(o, [['ori_dada', 6]], "now() - interval '2 hours'");
+		await setujui(o);
+		expect(await stokBahan(db, 'BL', 'ori_dada')).toBe(10);
+	});
+	it('kiriman lama dari perangkat lain tiba setelah opname disetujui → tidak dipotong dua kali', async () => {
+		await setujuiStokAwal(db, kasirBL, adminId, 'BL', [['ori_dada', 10]], 4);
+		const o = crypto.randomUUID();
+		await ajukanOpname(o, [['ori_dada', 6]], "now() - interval '2 hours'");
+		await setujui(o);
+		const t = await kirimOffline([['ori_dada', 4]], "now() - interval '3 hours'");
+		await terimaOffline(kasirTK, t, [['ori_dada', 4]]);
+		expect(await stokBahan(db, 'BL', 'ori_dada')).toBe(6);
+		expect(await stokBahan(db, 'TK', 'ori_dada')).toBe(4);
+	});
+	it('batal biasa tanpa hitungan di antaranya → stok pengirim tidak berubah', async () => {
+		const t = await kirimOffline([['ori_dada', 4]], "now() - interval '1 hour'");
+		await rpc(db, kasirBL, 'public.batal_transfer($1, $2)', [t, 'tidak jadi']);
+		expect(await stokBahan(db, 'BL', 'ori_dada')).toBe(0);
+	});
+	it('tanda batal setelah tutup memakai jam server, bukan jam tutup perangkat', async () => {
+		const s = await buka("now() - interval '3 hours'");
+		const a = await jual(s, "now() - interval '150 minutes'");
+		// Batal online sebelum tutup toko (offline, jam perangkat lebih awal) sampai di server.
+		await rpc(db, kasirBL, 'public.void_penjualan($1, $2)', [a, 'salah input']);
+		await tutup(s, "now() - interval '1 hour'");
+		const r = await rpc<{ batal_setelah_tutup: number }>(db, kasirBL, 'public.ringkasan_shift($1)', [s]);
+		expect(r.batal_setelah_tutup).toBe(0);
+	});
+});

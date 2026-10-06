@@ -20,3 +20,33 @@ begin
   return null;
 end
 $$;
+
+-- Jam server saat toko benar-benar ditutup / transaksi benar-benar dibatalkan (jam di kolom lain bisa jam perangkat).
+alter table public.shift add column ditutup_dicatat_at timestamptz;
+
+create function public._jam_tutup_server() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if (old.ditutup_at is null and new.ditutup_at is not null) or (old.tutup_tertunda and not new.tutup_tertunda) then
+    new.ditutup_dicatat_at := now();
+  end if;
+  return new;
+end
+$$;
+create trigger shift_jam_tutup_server before update on public.shift
+  for each row execute function public._jam_tutup_server();
+
+create function public._jam_batal_server() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if old.void_at is null and new.void_at is not null then
+    new.void_dicatat_at := now();
+  end if;
+  return new;
+end
+$$;
+create trigger penjualan_jam_batal_server before update on public.penjualan
+  for each row execute function public._jam_batal_server();
+
+revoke execute on function public._jam_tutup_server() from public, anon, authenticated;
+revoke execute on function public._jam_batal_server() from public, anon, authenticated;
