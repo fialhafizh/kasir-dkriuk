@@ -10,9 +10,8 @@ create table public.laci_awal (
   dicatat_at timestamptz not null default now()
 );
 
--- Outlet yang sudah berjalan sebelum 5a: modal shift pertamanya menjadi uang laci awal.
-insert into public.laci_awal (outlet_id, jumlah, waktu, oleh)
-select distinct on (outlet_id) outlet_id, modal, dibuka_at, dibuka_oleh from public.shift order by outlet_id, dibuka_at;
+-- Tidak ada pengisian otomatis dari shift lama: modal lama diketik kasir setelah uang diambil owner (tanpa catatan
+-- setoran), jadi hitungan tutup sebelum 5a bukan jangkar. Uang laci awal diisi kasir saat buka toko pertama di 5a.
 
 create table public.kategori_pengeluaran (
   id uuid primary key default gen_random_uuid(),
@@ -75,19 +74,9 @@ create index setoran_outlet_waktu on public.setoran (outlet_id, waktu desc);
 -- Batal oleh admin untuk shift yang sudah ditutup = koreksi catatan: transaksi dianggap tidak pernah ada di laci.
 alter table public.penjualan add column void_koreksi boolean not null default false;
 
--- Outlet nonaktif tidak bisa buka toko / jualan.
-create function public._jaga_outlet_aktif() returns trigger
-language plpgsql security definer set search_path = '' as $$
-begin
-  if not exists (select 1 from public.outlets where id = new.outlet_id and aktif) then
-    raise exception 'Outlet ini nonaktif' using errcode = '22023';
-  end if;
-  return new;
-end
-$$;
-create trigger shift_outlet_aktif before insert on public.shift for each row execute function public._jaga_outlet_aktif();
-create trigger penjualan_outlet_aktif before insert on public.penjualan for each row execute function public._jaga_outlet_aktif();
-revoke execute on function public._jaga_outlet_aktif() from public, anon, authenticated;
+-- Gerakan batal cash dibaca per outlet & jam batal (saldo laci).
+create index penjualan_void_cash on public.penjualan (outlet_id, void_at) where void_at is not null and metode = 'cash';
+create unique index kategori_pengeluaran_nama_kecil on public.kategori_pengeluaran (lower(nama));
 
 alter table public.laci_awal enable row level security;
 alter table public.kategori_pengeluaran enable row level security;

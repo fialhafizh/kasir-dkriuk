@@ -4,31 +4,55 @@
 -- p_kecuali) + gerakan dengan jam sesudah jangkar s.d. p_jam. Gerakan yang jamnya ≤ jangkar sudah termasuk
 -- uang yang dihitung, jadi data offline yang telat hanya mengubah selisih shift-nya, bukan saldo sesudahnya.
 create function public._saldo_laci(p_outlet uuid, p_jam timestamptz, p_kecuali uuid default null) returns bigint
-language sql stable security definer set search_path = '' as $$
-  with jangkar as (
-    select t, uang from (
-      select waktu as t, jumlah::bigint as uang from public.laci_awal where outlet_id = p_outlet
-      union all
-      select ditutup_at, uang_fisik::bigint from public.shift
-      where outlet_id = p_outlet and ditutup_at is not null and not tutup_tertunda and id is distinct from p_kecuali
-    ) x
-    where t <= p_jam
-    order by t desc
-    limit 1
-  ),
-  gerak as (
-    select total::bigint as j, waktu as t from public.penjualan
-    where outlet_id = p_outlet and metode = 'cash' and not void_koreksi
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  v_awal timestamptz;
+  v_t timestamptz;
+  v_uang bigint;
+begin
+  select waktu, jumlah into v_t, v_uang from public.laci_awal where outlet_id = p_outlet;
+  if not found or v_t > p_jam then
+    return 0;
+  end if;
+  v_awal := v_t;
+  -- Hitungan tutup toko sejak uang laci awal (shift sebelum 5a bukan jangkar).
+  select x.t, x.uang into v_t, v_uang from (
+    select v_awal as t, v_uang as uang, 0 as ord, null::uuid as id
     union all
-    select -total::bigint, void_at from public.penjualan
-    where outlet_id = p_outlet and metode = 'cash' and void_at is not null and not void_koreksi
-    union all
-    select -jumlah::bigint, waktu from public.pengeluaran where outlet_id = p_outlet and sumber = 'laci' and batal_at is null
-    union all
-    select -jumlah::bigint, waktu from public.setoran where outlet_id = p_outlet and batal_at is null
-  )
-  select coalesce((select uang from jangkar), 0)
-       + coalesce((select sum(j) from gerak where t <= p_jam and t > coalesce((select t from jangkar), '-infinity'::timestamptz)), 0)
+    select ditutup_at, uang_fisik::bigint, 1, id from public.shift
+    where outlet_id = p_outlet and ditutup_at is not null and not tutup_tertunda and id is distinct from p_kecuali
+      and ditutup_at >= v_awal and ditutup_at <= p_jam
+  ) x
+  order by x.t desc, x.ord desc, x.id desc
+  limit 1;
+  return v_uang
+    + coalesce((select sum(total) from public.penjualan
+                where outlet_id = p_outlet and metode = 'cash' and not void_koreksi and waktu > v_t and waktu <= p_jam), 0)
+    - coalesce((select sum(total) from public.penjualan
+                where outlet_id = p_outlet and metode = 'cash' and not void_koreksi and void_at > v_t and void_at <= p_jam), 0)
+    - coalesce((select sum(jumlah) from public.pengeluaran
+                where outlet_id = p_outlet and sumber = 'laci' and batal_at is null and waktu > v_t and waktu <= p_jam), 0)
+    - coalesce((select sum(jumlah) from public.setoran
+                where outlet_id = p_outlet and batal_at is null and waktu > v_t and waktu <= p_jam), 0);
+end
+$$;
+
+-- Uang seharusnya di laci saat shift ditutup (atau sekarang bila masih buka). Shift sebelum uang laci awal
+-- (sebelum Tahap 5a) memakai rumus lama: modal + penjualan cash shift itu. Shift sementara (tertunda): null.
+create function public._seharusnya_shift(s public.shift) returns bigint
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  v_awal timestamptz;
+begin
+  if s.tutup_tertunda then
+    return null;
+  end if;
+  select waktu into v_awal from public.laci_awal where outlet_id = s.outlet_id;
+  if v_awal is null or s.dibuka_at < v_awal then
+    return s.modal + coalesce((select sum(total) from public.penjualan where shift_id = s.id and void_at is null and metode = 'cash'), 0);
+  end if;
+  return public._saldo_laci(s.outlet_id, coalesce(s.ditutup_at, now()), s.id);
+end
 $$;
 
 create function public.saldo_laci(p_outlet uuid) returns jsonb
@@ -74,7 +98,7 @@ begin
   into v_jumlah, v_void, v_total, v_batal_telat
   from public.penjualan where shift_id = p_shift;
   v_akhir := coalesce(s.ditutup_at, now());
-  v_seharusnya := public._saldo_laci(s.outlet_id, v_akhir, s.id);
+  v_seharusnya := public._seharusnya_shift(s);
   select coalesce(sum(jumlah), 0) into v_pengeluaran from public.pengeluaran
   where outlet_id = s.outlet_id and sumber = 'laci' and batal_at is null and waktu > s.dibuka_at and waktu <= v_akhir;
   select coalesce(sum(jumlah), 0) into v_setoran from public.setoran
@@ -114,8 +138,11 @@ begin
   if v_id is null then
     raise exception 'Data shift tidak lengkap' using errcode = '22023';
   end if;
-  if v_modal < 0 or v_modal > 100000000 or (v_awal is not null and (v_awal < 0 or v_awal > 100000000)) then
+  if v_modal < 0 or v_modal > 100000000 then
     raise exception 'Modal kembalian tidak sah' using errcode = '22023';
+  end if;
+  if v_awal is not null and (v_awal < 0 or v_awal > 100000000) then
+    raise exception 'Uang laci awal tidak sah' using errcode = '22023';
   end if;
   perform pg_advisory_xact_lock(hashtextextended('shift:' || v_outlet::text, 0));
   select sp.shift_id into v_shift from public.shift_perangkat sp join public.shift s on s.id = sp.shift_id
@@ -145,6 +172,10 @@ begin
       insert into public.shift (id, outlet_id, dibuka_oleh, modal, dibuka_at, ditutup_at, ditutup_oleh, uang_fisik, tutup_tertunda)
       values (v_id, v_outlet, auth.uid(), v_saldo, v_waktu, v_waktu, auth.uid(), 0, true);
     else
+      -- Outlet nonaktif tidak bisa buka toko baru (data lama dari perangkat yang telat sinkron tetap diterima).
+      if not exists (select 1 from public.outlets where id = v_outlet and aktif) then
+        raise exception 'Outlet ini nonaktif' using errcode = '22023';
+      end if;
       insert into public.shift (id, outlet_id, dibuka_oleh, modal, dibuka_at, dibuka_lagi_setelah)
       values (v_id, v_outlet, auth.uid(), v_saldo, v_waktu,
         (select max(ditutup_at) from public.shift
@@ -167,6 +198,9 @@ begin
   if p_modal is null or p_modal < 0 or p_modal > 100000000 then
     raise exception 'Modal kembalian tidak sah' using errcode = '22023';
   end if;
+  if not exists (select 1 from public.outlets where id = p_outlet and aktif) then
+    raise exception 'Outlet ini nonaktif' using errcode = '22023';
+  end if;
   insert into public.laci_awal (outlet_id, jumlah, waktu, oleh) values (p_outlet, p_modal, now(), auth.uid())
   on conflict (outlet_id) do nothing;
   insert into public.shift (outlet_id, dibuka_oleh, modal)
@@ -178,6 +212,7 @@ end
 $$;
 
 revoke execute on function public._saldo_laci(uuid, timestamptz, uuid) from public, anon, authenticated;
+revoke execute on function public._seharusnya_shift(public.shift) from public, anon, authenticated;
 revoke execute on function public.saldo_laci(uuid) from public, anon;
 grant execute on function public.saldo_laci(uuid) to authenticated;
 
@@ -251,7 +286,7 @@ declare
 begin
   perform public._wajib_admin_keuangan();
   if v_sumber not in ('laci', 'luar') then
-    raise exception 'Data pengeluaran tidak lengkap' using errcode = '22023';
+    raise exception 'Sumber pengeluaran tidak sah' using errcode = '22023';
   end if;
   if not exists (select 1 from public.outlets where id = (p ->> 'outlet_id')::uuid) then
     raise exception 'Outlet tidak ditemukan' using errcode = '22023';
@@ -259,8 +294,9 @@ begin
   if v_tanggal is not null and (v_tanggal > public.tanggal_wib(now()) or v_tanggal < public.tanggal_wib(now()) - 400) then
     raise exception 'Tanggal pengeluaran tidak sah' using errcode = '22023';
   end if;
+  -- Dari laci: uang keluar sekarang (tanggal lampau tidak boleh menyelip sebelum hitungan laci).
   perform public._simpan_pengeluaran(p, v_sumber,
-    case when v_tanggal is null then now() else (v_tanggal::text || ' 12:00:00+07')::timestamptz end);
+    case when v_tanggal is null or v_sumber = 'laci' then now() else (v_tanggal::text || ' 12:00:00+07')::timestamptz end);
   return (p ->> 'id')::uuid;
 end
 $$;
@@ -424,7 +460,7 @@ begin
   if p_alasan is null or length(trim(p_alasan)) < 3 or length(p_alasan) > 200 then
     raise exception 'Alasan pembatalan wajib diisi (3–200 karakter)' using errcode = '22023';
   end if;
-  select ditutup_at into v_tutup from public.shift where id = v.shift_id for share;
+  select case when tutup_tertunda then null else ditutup_at end into v_tutup from public.shift where id = v.shift_id for share;
   if v_tutup is not null and not public.is_admin() then
     raise exception 'Penjualan dari shift yang sudah ditutup hanya bisa dibatalkan admin' using errcode = '42501';
   end if;
@@ -516,7 +552,7 @@ begin
       'setoran', (select coalesce(sum(jumlah), 0) from public.setoran where outlet_id = p_outlet and batal_at is null and waktu between v_awal and v_akhir),
       'saldo_awal', public._saldo_laci(p_outlet, v_awal - interval '1 microsecond'),
       'saldo_akhir', public._saldo_laci(p_outlet, v_akhir),
-      'selisih', (select coalesce(sum(s.uang_fisik - public._saldo_laci(p_outlet, s.ditutup_at, s.id)), 0) from public.shift s
+      'selisih', (select coalesce(sum(s.uang_fisik - public._seharusnya_shift(s)), 0) from public.shift s
                   where s.outlet_id = p_outlet and not s.tutup_tertunda and s.ditutup_at between v_awal and v_akhir)
     ));
   end loop;

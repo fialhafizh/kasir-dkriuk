@@ -86,8 +86,9 @@ describe('buku kas laci', () => {
 		expect(await saldo()).toBe(105000);
 	});
 	it('perangkat kedua yang membuka bersamaan tidak membuat uang laci awal ganda', async () => {
-		await buka(120, 100000);
-		await buka(110, 70000);
+		// Menit-menit berdekatan: kedua perangkat selalu di hari WIB yang sama.
+		await buka(2, 100000);
+		await buka(1, 70000);
 		expect(await nilai<number>('select count(*)::int as v from public.laci_awal')).toBe(1);
 		expect(await saldo()).toBe(100000);
 	});
@@ -123,7 +124,7 @@ describe('pengeluaran', () => {
 	});
 	it('pengeluaran admin dari luar laci tidak mengubah saldo; kasir tidak melihatnya', async () => {
 		await buka(120, 100000);
-		const p = { id: crypto.randomUUID(), outlet_id: await BL(), sumber: 'luar', kategori_id: await kategori('Perbaikan & peralatan'), jumlah: 45000, tanggal: await nilai<string>(`select public.tanggal_wib(now())::text as v`) };
+		const p = { id: crypto.randomUUID(), outlet_id: await BL(), sumber: 'luar', kategori_id: await kategori('Perbaikan & peralatan'), jumlah: 43210, tanggal: await nilai<string>(`select public.tanggal_wib(now())::text as v`) };
 		await rpc(db, adminId, 'public.catat_pengeluaran_admin($1::jsonb)', [JSON.stringify(p)]);
 		expect(await saldo()).toBe(100000);
 		const n = await rpc<number>(db, kasirBL, '(select count(*)::int from public.pengeluaran)', []);
@@ -167,7 +168,7 @@ describe('batal admin & kas harian', () => {
 	});
 	it('kas harian: per kanal, pengeluaran, setoran, saldo awal/akhir, belanja bahan & koreksi batal', async () => {
 		const s = await buka(10, 100000);
-		await jual(s, 9, 3);
+		await jual(s, 9, 4);
 		await pengeluaran(8, 4000);
 		await setor(7, 50000);
 		const o = await BL();
@@ -176,17 +177,64 @@ describe('batal admin & kas harian', () => {
 			`insert into public.barang_masuk (id, outlet_id, tanggal, waktu, total, batal_at, batal_alasan) values (gen_random_uuid(), $1, public.tanggal_wib(now()) - 3, now() - interval '3 days', 21000, now(), 'salah')`,
 			[o]
 		);
+		// Dua hari (kemarin & hari ini WIB): tes tetap benar walau dijalankan tepat setelah tengah malam.
 		const hari = await nilai<string>('select public.tanggal_wib(now())::text as v');
+		const kemarin = await nilai<string>('select (public.tanggal_wib(now()) - 1)::text as v');
 		await expect(rpc(db, kasirBL, 'public.kas_harian($1, $2, $3)', [o, hari, hari])).rejects.toThrow(/Hanya admin/);
-		const [h] = await rpc<Record<string, unknown>[]>(db, adminId, 'public.kas_harian($1, $2, $3)', [o, hari, hari]);
-		expect(h).toMatchObject({
-			total: 15000,
-			setoran: 50000,
-			belanja_bahan: 77000 - 21000,
-			saldo_akhir: 100000 + 15000 - 4000 - 50000,
-			pengeluaran_laci: [{ kategori: 'Gas', jumlah: 4000 }]
-		});
-		expect((h.per_metode as Record<string, { total: number }>).cash.total).toBe(15000);
+		const hs = await rpc<Record<string, unknown>[]>(db, adminId, 'public.kas_harian($1, $2, $3)', [o, kemarin, hari]);
+		expect(hs).toHaveLength(2);
+		const jml = (k: string) => hs.reduce((a, h) => a + Number(h[k]), 0);
+		expect(jml('total')).toBe(20000);
+		expect(jml('setoran')).toBe(50000);
+		expect(Number(hs[1].belanja_bahan)).toBe(77000 - 21000);
+		expect(Number(hs[0].saldo_awal)).toBe(0);
+		expect(Number(hs[1].saldo_akhir)).toBe(100000 + 20000 - 4000 - 50000);
+		expect(hs.flatMap((h) => h.pengeluaran_laci as unknown[])).toEqual([{ kategori: 'Gas', jumlah: 4000 }]);
 		await expect(rpc(db, adminId, 'public.kas_harian($1, $2, $3)', [o, '2026-01-01', '2026-12-31'])).rejects.toThrow(/paling lama 62 hari/);
+	});
+});
+
+describe('review server 5a', () => {
+	it('shift sebelum uang laci awal (sebelum 5a) memakai rumus lama; saldo mulai dari uang laci awal', async () => {
+		const o = await BL();
+		const lama = (
+			await db.query<{ id: string }>(
+				`insert into public.shift (outlet_id, dibuka_oleh, modal, dibuka_at, ditutup_at, ditutup_oleh, uang_fisik)
+				 values ($1, $2, 100000, now() - interval '30 hours', now() - interval '26 hours', $2, 1500000) returning id`,
+				[o, kasirBL]
+			)
+		).rows[0].id;
+		const s = await buka(60, 100000);
+		expect((await ringkasan(lama)).cash_seharusnya).toBe(100000);
+		expect(await ringkasan(s)).toMatchObject({ modal: 100000, cash_seharusnya: 100000 });
+	});
+	it('penjualan telat dari outlet yang sudah dinonaktifkan tetap diterima; buka toko baru ditolak', async () => {
+		const s = await buka(120, 100000);
+		await db.query(`update public.outlets set aktif = false where kode = 'BL'`);
+		await jual(s, 60, 1);
+		expect(await saldo()).toBe(105000);
+		await tutup(s, 30, 105000);
+		await expect(buka(10)).rejects.toThrow(/Outlet ini nonaktif/);
+	});
+	it('pengeluaran admin dari laci memakai jam sekarang walau diberi tanggal lampau', async () => {
+		const s = await buka(120, 100000);
+		await tutup(s, 60, 100000);
+		const p = { id: crypto.randomUUID(), outlet_id: await BL(), sumber: 'laci', kategori_id: await kategori('Gas'), jumlah: 10000, tanggal: await nilai<string>(`select (public.tanggal_wib(now()) - 5)::text as v`) };
+		await rpc(db, adminId, 'public.catat_pengeluaran_admin($1::jsonb)', [JSON.stringify(p)]);
+		expect(await saldo()).toBe(90000);
+	});
+	it('batal admin lewat antrean sesudah jam tutup = koreksi', async () => {
+		const s = await buka(180, 100000);
+		const p = await jual(s, 150, 1);
+		expect(await tutup(s, 60, 100000)).toMatchObject({ selisih: -5000 });
+		await rpc(db, adminId, 'public.void_penjualan_offline($1::jsonb)', [JSON.stringify({ penjualan_id: p, alasan: 'transaksi dobel', waktu: await jam(10) })]);
+		expect((await ringkasan(s)).selisih).toBe(0);
+		expect(await saldo()).toBe(100000);
+	});
+	it('kategori: kasir bisa membaca; nama sama (beda huruf besar) ditolak; hanya admin yang menyimpan', async () => {
+		expect(await rpc<number>(db, kasirBL, '(select count(*)::int from public.kategori_pengeluaran)', [])).toBeGreaterThan(0);
+		await expect(rpc(db, adminId, 'public.simpan_kategori($1::jsonb)', [JSON.stringify({ nama: 'gas' })])).rejects.toThrow(/sudah dipakai/);
+		await expect(rpc(db, kasirBL, 'public.simpan_kategori($1::jsonb)', [JSON.stringify({ nama: 'Sabun' })])).rejects.toThrow(/Hanya admin/);
+		await rpc(db, adminId, 'public.simpan_kategori($1::jsonb)', [JSON.stringify({ nama: 'Sabun', untuk_kasir: true })]);
 	});
 });
