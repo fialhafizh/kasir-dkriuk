@@ -13,15 +13,25 @@
 	let alasan = $state<Record<string, string>>({});
 	let pesan = $state<Record<string, string>>({});
 
-	// Penyesuaian bisa minus (potongan): "-10.000".
+	// Penyesuaian bisa minus (potongan): "-10.000" atau "−10.000".
 	const angka = (t: string | undefined) => {
-		const s = (t ?? '').trim();
+		const s = (t ?? '').trim().replace(/^−/, '-');
 		const neg = s.startsWith('-');
 		const n = parseRupiah(neg ? s.slice(1) : s);
 		return n === null ? (s === '' || s === '-' ? 0 : null) : neg ? -n : n;
 	};
 	const kotor = (r: RekapGaji) => r.hari_masuk * r.upah_harian;
-	const potonganDari = (r: RekapGaji) => (potongan[r.karyawan_id] === undefined ? saranPotongan(r.sisa_kasbon, kotor(r) + (angka(penyesuaian[r.karyawan_id]) ?? 0)) : angka(potongan[r.karyawan_id]));
+	const potonganDari = (r: RekapGaji) => {
+		if (potongan[r.karyawan_id] === undefined) return saranPotongan(r.sisa_kasbon, kotor(r) + (angka(penyesuaian[r.karyawan_id]) ?? 0));
+		const n = angka(potongan[r.karyawan_id]);
+		return n === null || n < 0 ? null : n;
+	};
+	const dibayarDari = (r: RekapGaji) => {
+		const pen = angka(penyesuaian[r.karyawan_id]);
+		const pot = potonganDari(r);
+		return pen === null || pot === null ? null : hitungDibayar(r.hari_masuk, r.upah_harian, pen, pot);
+	};
+	const rpBertanda = (n: number) => `${n < 0 ? '−' : ''}Rp${formatAngka(Math.abs(n))}`;
 
 	async function bayar(r: RekapGaji) {
 		pesan[r.karyawan_id] = '';
@@ -41,6 +51,11 @@
 				potongan_kasbon: pot,
 				sumber: sumber[r.karyawan_id] ?? 'luar'
 			});
+			// Isian baris ini dikosongkan supaya tidak terbawa ke pembayaran berikutnya.
+			delete penyesuaian[r.karyawan_id];
+			delete ket[r.karyawan_id];
+			delete potongan[r.karyawan_id];
+			delete sumber[r.karyawan_id];
 			onubah();
 		} catch (e) {
 			pesan[r.karyawan_id] = (e as Error).message;
@@ -71,7 +86,7 @@
 				</p>
 				{#if r.gaji}
 					<p class="mt-1 text-sm text-ok">
-						Dibayar Rp{formatAngka(r.gaji.dibayar)} pada {formatWaktuWib(r.gaji.dibayar_at)} ({r.gaji.hari_masuk} hari × Rp{formatAngka(r.gaji.upah_harian)}{r.gaji.penyesuaian ? `, penyesuaian Rp${formatAngka(r.gaji.penyesuaian)} (${r.gaji.keterangan})` : ''}{r.gaji.potongan_kasbon ? `, potong kasbon Rp${formatAngka(r.gaji.potongan_kasbon)}` : ''})
+						Dibayar Rp{formatAngka(r.gaji.dibayar)} pada {formatWaktuWib(r.gaji.dibayar_at)} ({r.gaji.hari_masuk} hari × Rp{formatAngka(r.gaji.upah_harian)}{r.gaji.penyesuaian ? `, penyesuaian ${rpBertanda(r.gaji.penyesuaian)} (${r.gaji.keterangan})` : ''}{r.gaji.potongan_kasbon ? `, potong kasbon Rp${formatAngka(r.gaji.potongan_kasbon)}` : ''})
 					</p>
 					<div class="mt-2 flex flex-wrap items-center gap-2">
 						<label class="sr-only" for="alasan-{r.karyawan_id}">Alasan batal</label>
@@ -80,7 +95,7 @@
 					</div>
 				{:else}
 					{@const pot = potonganDari(r)}
-					{@const pen = angka(penyesuaian[r.karyawan_id])}
+					{@const bayarnya = dibayarDari(r)}
 					<div class="mt-2 grid gap-2 sm:grid-cols-2">
 						<div class="grid gap-1">
 							<label for="pen-{r.karyawan_id}" class="text-xs font-semibold text-muted">Penyesuaian (minus = potongan)</label>
@@ -92,7 +107,7 @@
 						</div>
 						<div class="grid gap-1">
 							<label for="pot-{r.karyawan_id}" class="text-xs font-semibold text-muted">Potong kasbon</label>
-							<input id="pot-{r.karyawan_id}" value={pot === null ? potongan[r.karyawan_id] : formatAngka(pot)} oninput={(e) => (potongan[r.karyawan_id] = e.currentTarget.value)} inputmode="numeric" class="tabular text-right {kotak}" />
+							<input id="pot-{r.karyawan_id}" value={potongan[r.karyawan_id] ?? formatAngka(pot ?? 0)} oninput={(e) => (potongan[r.karyawan_id] = e.currentTarget.value)} inputmode="numeric" class="tabular text-right {kotak}" />
 						</div>
 						<div class="grid gap-1">
 							<label for="sumber-{r.karyawan_id}" class="text-xs font-semibold text-muted">Dibayar dari</label>
@@ -103,10 +118,14 @@
 						</div>
 					</div>
 					<div class="mt-2 flex flex-wrap items-center justify-between gap-2">
-						<p class="tabular font-bold">
-							Dibayar: {pen === null || pot === null ? '—' : `Rp${formatAngka(hitungDibayar(r.hari_masuk, r.upah_harian, pen, pot))}`}
+						<p class="tabular font-bold {bayarnya !== null && bayarnya < 0 ? 'text-danger' : ''}">
+							Dibayar: {bayarnya === null ? '— (periksa angka)' : rpBertanda(bayarnya)}
 						</p>
-						<Konfirmasi label="Bayar gaji" konfirmasiLabel="Ya, sudah dibayar" variant="primary" onkonfirmasi={() => bayar(r)} />
+						{#if bayarnya !== null && bayarnya >= 0}
+							<Konfirmasi label="Bayar gaji" konfirmasiLabel="Ya, sudah dibayar" variant="primary" onkonfirmasi={() => bayar(r)} />
+						{:else if bayarnya !== null}
+							<p class="text-sm text-danger">Gaji tidak boleh minus; kurangi potongan kasbon.</p>
+						{/if}
 					</div>
 				{/if}
 				{#if pesan[r.karyawan_id]}<p class="mt-1 text-sm text-danger" role="alert">{pesan[r.karyawan_id]}</p>{/if}

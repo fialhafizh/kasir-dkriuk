@@ -231,7 +231,7 @@
 	<form class="grid content-start gap-3 rounded-2xl border border-line bg-surface p-4" onsubmit={catatKasbon} novalidate>
 		<h2 class="font-display text-xl">Kasbon karyawan (dari laci)</h2>
 		{#if karyawan.length === 0}
-			<p class="text-sm text-muted">Belum ada data karyawan di perangkat ini (admin menambahkannya di menu Gaji; buka halaman ini sekali saat online).</p>
+			<p class="text-sm text-muted">Belum ada karyawan untuk outlet ini. Admin menambahkannya di menu Gaji; bila sedang offline, buka halaman ini sekali saat online.</p>
 		{:else}
 			<div class="grid gap-1.5">
 				<label for="karyawan" class="text-sm font-semibold">Karyawan</label>

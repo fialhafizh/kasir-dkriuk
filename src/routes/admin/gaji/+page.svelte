@@ -40,7 +40,11 @@
 	onMount(async () => {
 		try {
 			outlets = await muatOutlets();
-			outletId = outlets.find((o) => o.aktif)?.id ?? '';
+			outletId = outlets.find((o) => o.aktif)?.id ?? outlets[0]?.id ?? '';
+			if (!outletId) {
+				pesan = 'Belum ada outlet.';
+				status = 'gagal';
+			}
 		} catch (e) {
 			pesan = (e as Error).message;
 			status = 'gagal';
@@ -75,8 +79,8 @@
 {:else}
 	<div class="mt-6 grid gap-8">
 		<KehadiranGrid {bulan} {rekap} {hadir} {hariIni} onubah={muat} />
-		<Gajian {bulan} {rekap} onubah={muat} />
-		<KasbonAdmin {outletId} {rekap} {hariIni} onubah={muat} />
+		{#key `${outletId}|${bulan}`}<Gajian {bulan} {rekap} onubah={muat} />{/key}
+		{#key outletId}<KasbonAdmin {outletId} {rekap} {hariIni} onubah={muat} />{/key}
 		<DaftarKaryawan {outletId} {karyawan} onubah={muat} />
 	</div>
 {/if}

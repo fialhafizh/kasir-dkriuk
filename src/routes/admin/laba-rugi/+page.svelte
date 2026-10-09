@@ -24,7 +24,9 @@
 		status = 'memuat';
 		try {
 			if (!outlets.length) outlets = await muatOutlets();
-			const rg = mode === 'bulan' ? rentangBulan(bulan) : { dari, sampai };
+			const b = rentangBulan(bulan);
+			// Bulan berjalan: sampai hari ini saja (sewa & gaji tidak dihitung untuk hari yang belum terjadi).
+			const rg = mode === 'bulan' ? { dari: b.dari, sampai: b.sampai > hariIni ? hariIni : b.sampai } : { dari, sampai };
 			const dipilih = pilihan === 'semua' ? outlets : outlets.filter((o) => o.id === pilihan);
 			const hasil = await Promise.all(dipilih.map(async (o) => ({ judul: `${o.merek} ${o.nama}`, r: await laporanKeuangan(o.id, rg.dari, rg.sampai) })));
 			if (pilihan === 'semua') hasil.unshift({ judul: 'Semua outlet', r: await laporanKeuangan(null, rg.dari, rg.sampai) });

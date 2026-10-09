@@ -185,7 +185,7 @@
 		<label for="f-kat" class="text-sm font-semibold">Kategori</label>
 		<select id="f-kat" bind:value={fKategori} class={kotak}>
 			<option value="">Pilih…</option>
-			{#each kategori.filter((k) => k.aktif) as k (k.id)}<option value={k.id}>{k.nama}</option>{/each}
+			{#each kategori.filter((k) => k.aktif && k.kode !== 'kasbon' && k.kode !== 'gaji') as k (k.id)}<option value={k.id}>{k.nama}</option>{/each}
 		</select>
 	</div>
 	<div class="grid gap-1.5">

@@ -7,21 +7,28 @@
 		hadir,
 		hariIni,
 		onubah
-	}: { bulan: string; rekap: RekapGaji[]; hadir: Set<string>; hariIni: string; onubah: () => void } = $props();
+	}: { bulan: string; rekap: RekapGaji[]; hadir: Set<string>; hariIni: string; onubah: () => Promise<void> | void } = $props();
 
 	let pesan = $state('');
 	let proses = $state<string | null>(null);
 	const hari = $derived(hariDalamBulan(bulan));
 
-	async function ubah(r: RekapGaji, tanggal: string) {
+	// Satu perubahan sekaligus; kotak dikunci sampai data dimuat ulang (ketukan ganda tidak membalik arah).
+	async function ubah(r: RekapGaji, tanggal: string, el: HTMLInputElement) {
 		const kunci = `${r.karyawan_id}|${tanggal}`;
+		if (proses) {
+			el.checked = hadir.has(kunci);
+			return;
+		}
 		pesan = '';
 		proses = kunci;
 		try {
-			await aturKehadiran(r.karyawan_id, tanggal, !hadir.has(kunci));
-			onubah();
+			await aturKehadiran(r.karyawan_id, tanggal, el.checked);
+			await onubah();
 		} catch (e) {
 			pesan = (e as Error).message;
+			// Kembalikan ke keadaan yang tersimpan di server.
+			el.checked = hadir.has(kunci);
 		} finally {
 			proses = null;
 		}
@@ -40,7 +47,7 @@
 				<thead>
 					<tr>
 						<th class="sticky left-0 bg-bg py-2 pr-3 text-left font-semibold">Karyawan</th>
-						{#each hari as t (t)}<th class="w-10 px-1 text-center font-normal text-muted">{Number(t.slice(-2))}</th>{/each}
+						{#each hari as t (t)}<th class="min-w-12 text-center font-normal text-muted">{Number(t.slice(-2))}</th>{/each}
 						<th class="px-2 text-right font-semibold">Masuk</th>
 					</tr>
 				</thead>
@@ -50,15 +57,18 @@
 							<th class="sticky left-0 bg-bg py-1 pr-3 text-left font-semibold whitespace-nowrap">{r.nama}{r.gaji ? ' 🔒' : ''}</th>
 							{#each hari as t (t)}
 								{@const kunci = `${r.karyawan_id}|${t}`}
-								<td class="px-1 text-center">
-									<input
-										type="checkbox"
-										aria-label="{r.nama} masuk tanggal {Number(t.slice(-2))}"
-										checked={hadir.has(kunci)}
-										disabled={!!r.gaji || t > hariIni || proses === kunci}
-										onchange={() => ubah(r, t)}
-										class="size-6 accent-brand"
-									/>
+								<td class="p-0 text-center">
+									<!-- Seluruh sel bisa diketuk (≥ 48px) supaya mudah di HP. -->
+									<label class="flex min-h-12 min-w-12 items-center justify-center">
+										<input
+											type="checkbox"
+											aria-label="{r.nama} masuk tanggal {Number(t.slice(-2))}"
+											checked={hadir.has(kunci)}
+											disabled={!!r.gaji || t > hariIni || proses !== null}
+											onchange={(e) => ubah(r, t, e.currentTarget)}
+											class="size-6 accent-brand"
+										/>
+									</label>
 								</td>
 							{/each}
 							<td class="tabular px-2 text-right font-semibold">{r.hari_masuk}</td>

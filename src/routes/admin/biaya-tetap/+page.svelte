@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import Konfirmasi from '#lib/components/ui/Konfirmasi.svelte';
 	import { berlakuPada, muatBiayaTetap, simpanBiayaTetap, type BiayaTetap } from '#lib/kas/laporan.ts';
 	import { tanggalWib } from '#lib/kasir/waktu.ts';
 	import { muatOutlets } from '#lib/master/api.ts';
@@ -16,6 +17,8 @@
 	let fNominal = $state('');
 	let fMulai = $state(hariIni);
 	let pesanForm = $state('');
+	let pesanHapus = $state('');
+	let memproses = $state(false);
 
 	async function muat() {
 		try {
@@ -37,20 +40,26 @@
 		pesanForm = '';
 		const n = parseRupiah(fNominal, 2_000_000_000);
 		if (n === null) return void (pesanForm = 'Isi nominal per tahun, mis. 30.000.000 (isi 0 bila sewa berhenti).');
+		if (!fMulai) return void (pesanForm = 'Isi tanggal mulai berlaku.');
+		if (memproses) return;
+		memproses = true;
 		try {
 			await simpanBiayaTetap({ outlet_id: fOutlet, nama: fNama, per_tahun: n, mulai: fMulai });
 			fNominal = '';
 			await muat();
 		} catch (err) {
 			pesanForm = (err as Error).message;
+		} finally {
+			memproses = false;
 		}
 	}
 	async function hapus(b: BiayaTetap) {
+		pesanHapus = '';
 		try {
 			await simpanBiayaTetap({ id: b.id, aktif: false });
 			await muat();
 		} catch (err) {
-			pesan = (err as Error).message;
+			pesanHapus = (err as Error).message;
 		}
 	}
 	const kotak = 'min-h-12 rounded-xl border border-line-strong bg-surface px-3 text-fg';
@@ -104,15 +113,16 @@
 			<input id="bt-mulai" type="date" bind:value={fMulai} class={kotak} />
 		</div>
 		{#if pesanForm}<p class="text-sm text-danger sm:col-span-2" role="alert">{pesanForm}</p>{/if}
-		<div class="sm:col-span-2"><button type="submit" class="min-h-12 rounded-xl bg-brand px-4 font-semibold text-on-brand">Simpan</button></div>
+		<div class="sm:col-span-2"><button type="submit" disabled={memproses} class="min-h-12 rounded-xl bg-brand px-4 font-semibold text-on-brand disabled:opacity-60">Simpan</button></div>
 	</form>
 
 	<h2 class="mt-6 font-display text-2xl">Riwayat</h2>
+	{#if pesanHapus}<p class="mt-2 text-sm text-danger" role="alert">{pesanHapus}</p>{/if}
 	<ul class="mt-2 grid gap-2">
 		{#each daftar as b (b.id)}
 			<li class="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-line bg-surface p-3 {b.aktif ? '' : 'opacity-60'}">
 				<span>{namaOutlet(b.outlet_id)} · {b.nama} · Rp{formatAngka(b.per_tahun)}/tahun · mulai {b.mulai}{b.aktif ? '' : ' (dihapus)'}</span>
-				{#if b.aktif}<button type="button" class="min-h-12 rounded-xl bg-surface-2 px-3 text-sm" onclick={() => hapus(b)}>Hapus (salah input)</button>{/if}
+				{#if b.aktif}<Konfirmasi label="Hapus (salah input)" konfirmasiLabel="Ya, hapus" variant="ghost" onkonfirmasi={() => hapus(b)} />{/if}
 			</li>
 		{/each}
 	</ul>

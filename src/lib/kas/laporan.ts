@@ -35,6 +35,7 @@ export interface BiayaTetap {
 	per_tahun: number;
 	mulai: string;
 	aktif: boolean;
+	dicatat_at?: string;
 }
 
 /** Tanggal pertama & terakhir bulan 'YYYY-MM'. */
@@ -66,7 +67,7 @@ export async function laporanKeuangan(outletId: string | null, dari: string, sam
 }
 
 export async function muatBiayaTetap(): Promise<BiayaTetap[]> {
-	return periksa(await supabase.from('biaya_tetap').select('id, outlet_id, nama, per_tahun, mulai, aktif').order('mulai', { ascending: false })) as BiayaTetap[];
+	return periksa(await supabase.from('biaya_tetap').select('id, outlet_id, nama, per_tahun, mulai, aktif, dicatat_at').order('mulai', { ascending: false })) as BiayaTetap[];
 }
 export async function simpanBiayaTetap(p: { id?: string; outlet_id?: string; nama?: string; per_tahun?: number; mulai?: string; aktif?: boolean }): Promise<void> {
 	periksa(await supabase.rpc('simpan_biaya_tetap', { p }));
@@ -79,7 +80,8 @@ export function berlakuPada(baris: BiayaTetap[], tanggal: string): BiayaTetap[] 
 		if (!b.aktif || b.mulai > tanggal) continue;
 		const k = `${b.outlet_id}|${b.nama}`;
 		const lama = per.get(k);
-		if (!lama || b.mulai > lama.mulai) per.set(k, b);
+		// Sama dengan server: mulai terbaru, lalu yang dicatat paling akhir.
+		if (!lama || b.mulai > lama.mulai || (b.mulai === lama.mulai && (b.dicatat_at ?? '') > (lama.dicatat_at ?? ''))) per.set(k, b);
 	}
 	return [...per.values()];
 }

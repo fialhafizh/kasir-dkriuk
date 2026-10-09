@@ -7,6 +7,7 @@
 	let nama = $state('');
 	let upah = $state('');
 	let pesan = $state('');
+	let memproses = $state(false);
 	let upahUbah = $state<Record<string, string>>({});
 	let pesanBaris = $state<Record<string, string>>({});
 	const milik = $derived(karyawan.filter((k) => k.outlet_id === outletId));
@@ -16,6 +17,8 @@
 		pesan = '';
 		const u = parseRupiah(upah);
 		if (u === null) return void (pesan = 'Isi upah harian, mis. 70.000.');
+		if (memproses) return;
+		memproses = true;
 		try {
 			await simpanKaryawan({ outlet_id: outletId, nama, upah_harian: u });
 			nama = '';
@@ -23,6 +26,8 @@
 			onubah();
 		} catch (err) {
 			pesan = (err as Error).message;
+		} finally {
+			memproses = false;
 		}
 	}
 
@@ -69,7 +74,7 @@
 			<label for="kar-upah" class="text-xs font-semibold text-muted">Upah harian</label>
 			<input id="kar-upah" bind:value={upah} inputmode="numeric" class="tabular w-32 text-right {kotak}" />
 		</div>
-		<button type="submit" class="min-h-12 rounded-xl bg-brand px-4 font-semibold text-on-brand">Tambah</button>
+		<button type="submit" disabled={memproses} class="min-h-12 rounded-xl bg-brand px-4 font-semibold text-on-brand disabled:opacity-60">Tambah</button>
 	</form>
 	{#if pesan}<p class="mt-1 text-sm text-danger" role="alert">{pesan}</p>{/if}
 </section>

@@ -33,7 +33,7 @@
 		void muat();
 	});
 
-	const nama = (id: string) => rekap.find((r) => r.karyawan_id === id)?.nama ?? '-';
+	const nama = (id: string) => rekap.find((r) => r.karyawan_id === id)?.nama ?? 'karyawan nonaktif';
 
 	async function catat(e: SubmitEvent) {
 		e.preventDefault();
@@ -41,6 +41,7 @@
 		const n = parseRupiah(nominal);
 		if (!karyawanId) return void (pesan = 'Pilih karyawan.');
 		if (n === null || n < 1) return void (pesan = 'Isi nominal kasbon.');
+		if (sumber === 'luar' && !tanggal) return void (pesan = 'Isi tanggal kasbon.');
 		if (memproses) return;
 		memproses = true;
 		try {
