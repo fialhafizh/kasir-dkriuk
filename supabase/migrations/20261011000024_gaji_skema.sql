@@ -2,12 +2,25 @@
 
 -- Kategori sistem dikenali dari kode (nama boleh diubah admin).
 alter table public.kategori_pengeluaran add column kode text unique check (kode is null or kode in ('kasbon', 'gaji', 'sewa', 'belanja_bahan'));
-update public.kategori_pengeluaran set kode = 'belanja_bahan' where nama = 'Belanja bahan di luar Barang masuk';
+-- Kategori "Belanja bahan di luar Barang masuk" dari 5a (urutan 50; nama bisa sudah diubah admin).
+do $$
+begin
+  update public.kategori_pengeluaran set kode = 'belanja_bahan'
+  where id = (select id from public.kategori_pengeluaran
+              where nama = 'Belanja bahan di luar Barang masuk' or (urutan = 50 and not untuk_kasir)
+              order by (nama = 'Belanja bahan di luar Barang masuk') desc limit 1);
+  if not found then
+    raise exception 'Kategori belanja bahan dari Tahap 5a tidak ditemukan';
+  end if;
+end
+$$;
+-- Kategori sistem baru; bila admin sudah membuat kategori bernama sama, kategori itu yang dipakai.
+-- Kasbon bukan untuk formulir pengeluaran biasa: dicatat lewat menu Kasbon (wajib memilih karyawan).
 insert into public.kategori_pengeluaran (nama, untuk_kasir, wajib_keterangan, urutan, kode) values
-  -- Bukan untuk formulir pengeluaran biasa: kasbon dicatat lewat menu Kasbon (wajib memilih karyawan).
   ('Kasbon karyawan', false, false, 45, 'kasbon'),
   ('Gaji', false, false, 80, 'gaji'),
-  ('Sewa', false, false, 90, 'sewa');
+  ('Sewa', false, false, 90, 'sewa')
+on conflict (nama) do update set kode = excluded.kode, untuk_kasir = false;
 
 -- Karyawan terpisah dari akun aplikasi.
 create table public.karyawan (
@@ -91,3 +104,10 @@ create policy karyawan_baca on public.karyawan for select to authenticated using
 create policy kehadiran_baca on public.kehadiran for select to authenticated using ((select public.is_admin()));
 create policy gaji_baca on public.gaji for select to authenticated using ((select public.is_admin()));
 create policy biaya_tetap_baca on public.biaya_tetap for select to authenticated using ((select public.is_admin()));
+
+-- Kasir tidak melihat pembayaran gaji (nominal gaji rekan kerja), walau dibayar dari laci.
+drop policy pengeluaran_baca on public.pengeluaran;
+create policy pengeluaran_baca on public.pengeluaran for select to authenticated
+  using ((select public.is_admin())
+         or (sumber = 'laci' and outlet_id = (select public.my_outlet_id())
+             and kategori_id is distinct from (select k.id from public.kategori_pengeluaran k where k.kode = 'gaji')));

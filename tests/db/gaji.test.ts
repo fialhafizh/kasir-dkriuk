@@ -113,13 +113,16 @@ describe('kasbon & gaji', () => {
 		await rpc(db, adminId, 'public.batal_gaji($1, $2)', [g.id, 'salah hitung']);
 		expect(await saldo()).toBe(500000 - 100000);
 		await hadir(k, 4);
-		// Kirim ulang id lama tidak membuat gaji baru.
-		expect((await bayar(k, { id: g.id })).id).toBe(g.id);
+		// Id gaji yang sudah dibatalkan tidak bisa dipakai lagi (formulir memakai id baru).
+		await expect(bayar(k, { id: g.id })).rejects.toThrow(/Data gaji tidak lengkap/);
+		const g2 = await bayar(k);
+		expect((await bayar(k, { id: g2.id })).id).toBe(g2.id);
 	});
 });
 
 async function jualCash(shift: string, porsi: number) {
-	const p = { id: crypto.randomUUID(), outlet_id: await BL(), shift_id: shift, metode: 'cash', diterima: porsi * 5000, waktu: await jam(30), kode_struk: 'GAJ001', item: [{ menu_id: await idMenu(db, 'nasi'), qty: porsi }] };
+	// Jam jual 1 menit lalu: selalu "hari ini" WIB walau tes dijalankan tepat setelah tengah malam.
+	const p = { id: crypto.randomUUID(), outlet_id: await BL(), shift_id: shift, metode: 'cash', diterima: porsi * 5000, waktu: await jam(1), kode_struk: 'GAJ001', item: [{ menu_id: await idMenu(db, 'nasi'), qty: porsi }] };
 	await rpc(db, kasirBL, 'public.catat_penjualan_offline($1::jsonb)', [JSON.stringify(p)]);
 }
 
@@ -164,5 +167,25 @@ describe('laporan keuangan', () => {
 		const akhir = await nilai<string>(`select (date_trunc('month', public.tanggal_wib(now())) - interval '1 day')::date::text as v`);
 		const r = await rpc<{ gaji: number }>(db, adminId, 'public.laporan_keuangan($1, $2::date, $3::date)', [await BL(), awal, akhir]);
 		expect(r.gaji).toBe(2 * 70000 - 5000);
+	});
+	it('pembayaran gaji di periode tidak masuk pengeluaran lain (gaji dihitung sekali dari kehadiran)', async () => {
+		await buka(500000);
+		const k = await karyawan('Budi', 70000);
+		await hadir(k, 1);
+		await bayar(k, { sumber: 'laci' });
+		const awal = await bulanLalu();
+		const hariIni = await nilai<string>('select public.tanggal_wib(now())::text as v');
+		const r = await rpc<{ gaji: number; pengeluaran_lain_total: number; arus_keluar: { kategori: string; laci: number }[] }>(db, adminId, 'public.laporan_keuangan($1, $2::date, $3::date)', [await BL(), awal, hariIni]);
+		expect(r.gaji).toBe(70000);
+		expect(r.pengeluaran_lain_total).toBe(0);
+		expect(r.arus_keluar.find((x) => x.kategori === 'Gaji')?.laci).toBe(70000);
+		// Kasir tidak melihat pembayaran gaji walau dari laci.
+		expect(await rpc<number>(db, kasirBL, '(select count(*)::int from public.pengeluaran)', [])).toBe(0);
+	});
+	it('outlet karyawan tidak bisa dipindah', async () => {
+		const k = await karyawan('Budi', 70000);
+		await expect(
+			rpc(db, adminId, 'public.simpan_karyawan($1::jsonb)', [JSON.stringify({ id: k, outlet_id: await idOutlet(db, 'TK'), nama: 'Budi', upah_harian: 70000 })])
+		).rejects.toThrow(/tidak bisa dipindah/);
 	});
 });

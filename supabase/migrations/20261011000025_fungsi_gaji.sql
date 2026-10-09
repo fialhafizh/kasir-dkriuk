@@ -36,9 +36,12 @@ begin
     end if;
     insert into public.karyawan (outlet_id, nama, upah_harian) values (v_outlet, v_nama, v_upah) returning id into v_id;
   else
+    -- Outlet tidak bisa dipindah (riwayat kehadiran & gaji tetap milik outlet lama): buat karyawan baru.
+    if v_outlet is not null and exists (select 1 from public.karyawan where id = v_id and outlet_id <> v_outlet) then
+      raise exception 'Outlet karyawan tidak bisa dipindah; tambahkan sebagai karyawan baru di outlet lain' using errcode = '22023';
+    end if;
     update public.karyawan
-    set nama = v_nama, upah_harian = v_upah, aktif = coalesce((p ->> 'aktif')::boolean, aktif),
-        outlet_id = coalesce(v_outlet, outlet_id)
+    set nama = v_nama, upah_harian = v_upah, aktif = coalesce((p ->> 'aktif')::boolean, aktif)
     where id = v_id;
     if not found then
       raise exception 'Karyawan tidak ditemukan' using errcode = '22023';
@@ -68,6 +71,8 @@ begin
   if p_tanggal > public.tanggal_wib(now()) then
     raise exception 'Tanggal kehadiran tidak sah' using errcode = '22023';
   end if;
+  -- Kunci yang sama dengan bayar/batal gaji: kehadiran tidak bisa menyelip saat gaji sedang dihitung.
+  perform pg_advisory_xact_lock(hashtextextended('gaji:' || p_karyawan::text, 0));
   if exists (select 1 from public.gaji where karyawan_id = p_karyawan and batal_at is null
              and bulan = date_trunc('month', p_tanggal)::date) then
     raise exception 'Gaji bulan ini sudah dibayar; batalkan pembayarannya dulu untuk mengubah kehadiran' using errcode = '22023';
@@ -231,6 +236,9 @@ begin
   perform pg_advisory_xact_lock(hashtextextended('gaji:' || v_karyawan::text, 0));
   select * into g from public.gaji where id = v_id;
   if found then
+    if g.karyawan_id <> v_karyawan or g.batal_at is not null then
+      raise exception 'Data gaji tidak lengkap' using errcode = '22023';
+    end if;
     return to_jsonb(g);
   end if;
   if v_bulan > date_trunc('month', public.tanggal_wib(now()))::date then
@@ -242,7 +250,10 @@ begin
   if v_sumber not in ('laci', 'luar') then
     raise exception 'Sumber pengeluaran tidak sah' using errcode = '22023';
   end if;
-  if v_penyesuaian < -100000000 or v_penyesuaian > 100000000 or (v_penyesuaian <> 0 and (v_ket is null or length(v_ket) < 3)) then
+  if v_penyesuaian < -100000000 or v_penyesuaian > 100000000 then
+    raise exception 'Penyesuaian tidak sah' using errcode = '22023';
+  end if;
+  if v_penyesuaian <> 0 and (v_ket is null or length(v_ket) < 3) then
     raise exception 'Keterangan penyesuaian wajib diisi (3–200 karakter)' using errcode = '22023';
   end if;
   if v_ket is not null and length(v_ket) > 200 then
@@ -254,8 +265,11 @@ begin
   select count(*) into v_hari from public.kehadiran
   where karyawan_id = v_karyawan and tanggal >= v_bulan and tanggal < (v_bulan + interval '1 month')::date;
   v_dibayar := v_hari::bigint * k.upah_harian + v_penyesuaian - v_potongan;
-  if v_dibayar < 0 or v_dibayar > 100000000 then
+  if v_dibayar < 0 then
     raise exception 'Gaji yang dibayar tidak boleh minus; kurangi potongan kasbon' using errcode = '22023';
+  end if;
+  if v_dibayar > 100000000 then
+    raise exception 'Gaji yang dibayar terlalu besar' using errcode = '22023';
   end if;
   if v_dibayar > 0 then
     v_peng := gen_random_uuid();
@@ -277,10 +291,12 @@ declare
   g public.gaji;
 begin
   perform public._wajib_admin_keuangan();
-  select * into g from public.gaji where id = p_id for update;
+  select * into g from public.gaji where id = p_id;
   if not found then
     raise exception 'Gaji tidak ditemukan' using errcode = '22023';
   end if;
+  perform pg_advisory_xact_lock(hashtextextended('gaji:' || g.karyawan_id::text, 0));
+  select * into g from public.gaji where id = p_id for update;
   if g.batal_at is not null then
     raise exception 'Gaji sudah dibatalkan' using errcode = '22023';
   end if;
@@ -409,7 +425,7 @@ begin
 
   -- Sewa: tiap hari, baris aktif dengan mulai terakhir ≤ hari itu (per outlet & nama), dibagi 365.
   v_sewa := (select coalesce(round(sum(b.per_tahun::numeric / 365)), 0)
-             from generate_series(p_dari, p_sampai, interval '1 day') as d (hari)
+             from generate_series(p_dari::timestamp, p_sampai::timestamp, interval '1 day') as d (hari)
              cross join lateral (
                select distinct on (bt.outlet_id, bt.nama) bt.per_tahun
                from public.biaya_tetap bt
