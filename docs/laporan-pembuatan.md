@@ -20,7 +20,7 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 | 4a | Offline: buka toko, jualan + struk, sisa, tutup toko tanpa internet; aplikasi online & bisa dipasang ke layar utama | Selesai — uji owner menunggu |
 | 4b | Offline: batal, rusak, transfer, opname, stok awal; halaman admin Perangkat & kejadian diabaikan | Selesai, di main — uji owner menunggu |
 | 5a | Kas harian: uang laci berjalan, pengeluaran, setoran, kas harian, penjualan admin | Selesai, di main — uji owner menunggu |
-| 5b | Biaya tetap (sewa), gaji, laba-rugi, arus kas per kanal | Sedang dirancang |
+| 5b | Gaji & kasbon, biaya tetap (sewa), laba-rugi sederhana, arus kas | Selesai di cabang — menunggu review akhir & persetujuan gabung |
 | 6 | Telegram: struk, ringkasan shift & harian, peringatan | Belum |
 | 7 | Dashboard & analisis (termasuk modal tepung, terbuang, susut) | Belum |
 | 8 | Rilis: uji menyeluruh, panduan pengguna | Belum |
@@ -102,6 +102,16 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - Belanja bahan yang terlambat dicatat (barang sudah termasuk opname) dicatat di Pengeluaran sebagai "Belanja bahan" tanpa efek stok. Batal barang masuk tampil sebagai koreksi pada **tanggal pembatalan**.
 - Outlet yang dinonaktifkan tidak bisa buka toko; data lama dari HP yang telat sinkron tetap diterima.
 - Shift sebelum Tahap 5a tetap dihitung dengan rumus lama (modal + jual cash).
+
+### Tahap 5b — Gaji, sewa, laba-rugi (keputusan owner 9 Okt 2026)
+- **Gaji bulanan** = hari masuk × upah harian + penyesuaian (bonus/potongan, keterangan wajib) − kasbon. Ada **kasbon**.
+- **Kehadiran dicatat admin** (centang per hari di halaman Gaji). Setelah gaji dibayar, kehadiran bulan itu **terkunci**; batalkan pembayarannya untuk mengubah.
+- **Kasbon** bisa dari **laci** (dicatat kasir di menu Kas → Kasbon, juga tanpa internet; laci berkurang) atau **dari owner** (dicatat admin). Sisa kasbon dipotong saat gajian; yang lebih besar dari gaji dibawa ke bulan berikutnya.
+- Gaji dibayar dari laci atau dari owner (pilih saat bayar) → otomatis tercatat sebagai pengeluaran kategori Gaji.
+- Kasir hanya melihat **nama** karyawan (untuk kasbon), tidak melihat upah maupun gaji yang dibayar. Outlet karyawan tidak bisa dipindah (buat karyawan baru di outlet lain).
+- **Biaya tetap: hanya sewa** (nominal setahun per outlet, berlaku sejak tanggal tertentu; bila naik, tambah baris baru). Di laba-rugi dibagi rata per hari. Pembayaran sewa yang sebenarnya dicatat di Pengeluaran kategori Sewa dan tidak dihitung dua kali.
+- **Laba-rugi cara sederhana** (cara owner): omzet per kanal − belanja bahan − gaji − sewa − pengeluaran lain = laba, per outlet & semua outlet, per bulan atau rentang tanggal. Omzet ojol masih bruto; kasbon bukan biaya. Dilengkapi **arus kas** (uang masuk per kanal, uang keluar laci / luar laci, setoran diterima & selisihnya).
+- **Semua analisis** (untung per menu / harga jual terlalu murah, bahan kebanyakan atau susut, terbuang, proyeksi akhir bulan) dikerjakan di **Tahap 7**.
 
 ## Catatan penting untuk tahap berikutnya
 
