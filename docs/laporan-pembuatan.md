@@ -22,7 +22,9 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 | 5a | Kas harian: uang laci berjalan, pengeluaran, setoran, kas harian, penjualan admin | Selesai, di main — uji owner menunggu |
 | 5b | Gaji & kasbon, biaya tetap (sewa), laba-rugi sederhana, arus kas | Selesai, di main — uji owner menunggu |
 | 6 | Telegram: struk, ringkasan tutup toko & harian, peringatan, kas (grup bertopik) | Selesai, di main & aktif di server — uji owner menunggu |
-| 7 | Dashboard & analisis (termasuk modal tepung, terbuang, susut) | Belum |
+| 7a | Dasbor yang bisa dirakit (seperti Kibana): banyak dasbor, panel dari katalog, seret & ubah ukuran, siklus stok, riwayat kejadian | Selesai di cabang — menunggu review & persetujuan gabung |
+| 7b | Analisis kebocoran: laba per menu, susut, nilai terbuang, minyak/tepung, proyeksi | Belum |
+| 7c | Alat: rekonsiliasi ojol, rencana belanja, ekspor PDF/Excel | Belum |
 | 8 | Rilis: uji menyeluruh, panduan pengguna | Belum |
 
 ---
@@ -123,6 +125,15 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - Transaksi/batal tunai yang sampai di server **setelah toko ditutup** mengirim **Koreksi tutup toko** (selisih terbaru). Penjualan setelah jam ringkasan harian tidak masuk ringkasan hari itu (tetap ada di struk & tutup toko). Laporan data ditolak dibatasi 10 per jam.
 - Bila topik dihapus di grup, pesannya masuk General sampai admin menekan **Hubungkan ulang** (topik dibuat lagi).
 - **Admin → Telegram**: status grup, Hubungkan grup, Kirim pesan uji, jam ringkasan harian, batas pengeluaran, nyala/mati per jenis pesan, pesan gagal.
+
+### Tahap 7a — Dasbor (keputusan owner 9 Okt 2026)
+- Tahap 7 dipecah: **7a dasbor** → 7b analisis kebocoran → 7c alat (ojol, rencana belanja, ekspor).
+- Dipakai di HP dan laptop; angka diperbarui otomatis ±1 menit + tombol **Muat ulang** (kabar per kejadian tetap lewat Telegram).
+- Dasbor **bisa dirakit sendiri seperti Kibana**: banyak dasbor, tambah/ubah/gandakan/hapus panel, **hanya admin**. Di laptop panel diseret & diubah ukurannya; di HP diatur dengan ↑ ↓ dan lebar/tinggi.
+- Panel dirakit dari pilihan (tanpa rumus): **sumber** (penjualan, item terjual, pemakaian bahan, sisa/terbuang, barang masuk, pengeluaran, setoran, tutup toko, batal) × **ukuran** × **dikelompokkan per** (jam/hari/minggu/bulan, outlet, kanal, kasir, menu, kategori, varian Ori/Hot, bahan, alasan, …) × **saringan** × **tampilan** (angka, batang, garis, lingkaran, tabel, peta panas). Panel bisa mengunci periode/outlet sendiri dan membandingkan dengan periode sebelumnya.
+- Panel khusus: **status stok**, **uang di laci**, **riwayat kejadian** (semua kejadian dengan jamnya), **siklus stok** (lini waktu stok, berapa kali & berapa lama sekali habis, rata-rata bertahan sejak barang masuk, pemakaian per hari, perkiraan habis).
+- Dasbor bawaan **Ringkasan** (bisa dikembalikan ke isi awal): angka utama, omzet per hari per outlet, kanal, menu terlaris, bahan paling terpakai, terbuang per hari per alasan, jam ramai, perbandingan outlet, Ori vs Hot, status stok, riwayat.
+- "Potong ayam" = item kategori ayam; kulit, nasi, box terpisah. Semua tampilan bahasa Indonesia.
 
 ## Catatan penting untuk tahap berikutnya
 
