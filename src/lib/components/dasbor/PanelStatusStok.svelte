@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TombolEkspor from '#lib/components/ekspor/TombolEkspor.svelte';
 	import DaftarStok from '#lib/components/stok/DaftarStok.svelte';
 	import { muatDataStok, muatStok, petaStok } from '#lib/stok/api.ts';
 	import { susunStok } from '#lib/stok/tampil.ts';
@@ -37,6 +38,11 @@
 	<p class="text-sm text-danger" role="alert">{galat}</p>
 {:else}
 	<div class="grid h-full content-start gap-3 overflow-y-auto">
+		<div><TombolEkspor kecil judul="Status stok" lembar={() => [{
+			nama: 'Status stok',
+			kolom: ['Outlet', 'Barang', 'Stok', 'Status'],
+			baris: isi.flatMap((o) => o.perhatian.map((b) => [o.outlet.nama, b.label, b.teks, b.status === 'minus' ? 'Minus' : 'Menipis']))
+		}]} /></div>
 		{#each isi as o (o.outlet.id)}
 			<section>
 				<h3 class="mb-1 text-sm font-bold">{o.outlet.nama} <span class="font-normal text-muted">· {o.aman} aman</span></h3>

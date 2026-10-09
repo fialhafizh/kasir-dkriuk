@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TombolEkspor from '#lib/components/ekspor/TombolEkspor.svelte';
 	import { untrack } from 'svelte';
 	import { muatRiwayat, type Kejadian } from '#lib/dasbor/api.ts';
 	import { LABEL_RIWAYAT } from '#lib/dasbor/katalog.ts';
@@ -57,6 +58,13 @@
 			</li>
 		{/each}
 	</ol>
+	{#if daftar.length}
+		<div class="mt-2"><TombolEkspor kecil judul="Riwayat kejadian" lembar={() => [{
+			nama: 'Riwayat',
+			kolom: ['Waktu', 'Jenis', 'Outlet', 'Kejadian', 'Rincian'],
+			baris: daftar.map((k) => [formatWaktuWib(k.waktu), LABEL_RIWAYAT[k.jenis as keyof typeof LABEL_RIWAYAT] ?? k.jenis, namaOutlet(k.outlet_id), k.judul, k.rincian])
+		}]} /></div>
+	{/if}
 	{#if !habis && daftar.length}
 		<button type="button" class="mt-2 min-h-10 rounded-lg bg-surface-2 px-3 text-sm font-semibold" disabled={memuat} onclick={() => muat(true)}>Muat lebih</button>
 	{/if}

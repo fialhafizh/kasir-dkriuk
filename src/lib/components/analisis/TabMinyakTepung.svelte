@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TombolEkspor from '#lib/components/ekspor/TombolEkspor.svelte';
 	import { muatMinyakTepung, type MinyakTepung } from '#lib/analisis/api.ts';
 	import type { Rentang } from '#lib/dasbor/periode.ts';
 	import { formatWaktuWib } from '#lib/kasir/waktu.ts';
@@ -30,6 +31,17 @@
 	Perkiraan. Di antara dua pembelian, dihitung potong ayam + porsi kulit yang terjual (yang digoreng). Rata-rata hanya dari pembelian yang sudah disusul pembelian
 	berikutnya; pembelian terakhir masih berjalan.
 </p>
+{#if data.length}
+	<div class="mt-2"><TombolEkspor judul="Minyak dan tepung" cetak lembar={() => [{
+		nama: 'Pembelian',
+		kolom: ['Outlet', 'Bahan', 'Waktu', 'Jumlah', 'Satuan', 'Rupiah', 'Potong terjual', 'Potong per satuan', 'Biaya per potong', 'Masih berjalan'],
+		baris: data.flatMap((o) => o.bahan.flatMap((b) => b.pembelian.map((p) => [o.nama, b.nama, formatWaktuWib(p.waktu), p.jumlah, b.satuan, p.rupiah, p.potong, p.potong_per_satuan, p.biaya_per_potong, p.berjalan ? 'ya' : ''])))
+	}, {
+		nama: 'Tepung',
+		kolom: ['Outlet', 'Kg DKriuk', 'Kg Tepung A', '% DKriuk', 'Biaya tepung', 'Potong', 'Modal tepung per potong'],
+		baris: data.map((o) => [o.nama, o.tepung.kg_dkriuk, o.tepung.kg_a, o.tepung.persen_dkriuk, o.tepung.biaya, o.tepung.potong, o.tepung.modal_per_potong])
+	}]} /></div>
+{/if}
 {#each data as o (o.outlet_id)}
 	<section class="mt-4 rounded-2xl border border-line bg-surface p-3">
 		<h3 class="font-display text-xl">{o.nama}</h3>

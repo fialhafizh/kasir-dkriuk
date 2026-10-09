@@ -1,4 +1,6 @@
 <script lang="ts">
+	import TombolEkspor from '#lib/components/ekspor/TombolEkspor.svelte';
+	import { lembarLabaRugi } from '#lib/ekspor/laporan.ts';
 	import { onMount } from 'svelte';
 	import { laporanKeuangan, rentangBulan, type LaporanKeuangan } from '#lib/kas/laporan.ts';
 	import { labelMetode, METODE } from '#lib/kasir/bayar.ts';
@@ -83,6 +85,7 @@
 {:else if status === 'gagal'}
 	<p class="mt-4 text-danger" role="alert">{pesan}</p>
 {:else}
+	<div class="mt-4"><TombolEkspor judul="Laba-rugi" cetak lembar={() => [lembarLabaRugi(data)]} /></div>
 	<div class="mt-6 grid gap-6 lg:grid-cols-2">
 		{#each data as d (d.judul)}
 			{@const r = d.r}

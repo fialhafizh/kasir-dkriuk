@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TombolEkspor from '#lib/components/ekspor/TombolEkspor.svelte';
 	import { muatProyeksi, type Proyeksi } from '#lib/analisis/api.ts';
 	import { perubahan } from '#lib/dasbor/periode.ts';
 	import { formatAngka } from '#lib/master/rupiah.ts';
@@ -45,5 +46,10 @@
 			<p class="text-xs text-muted">Bulan lalu {rp(data.bulan_lalu_laba)} {beda(data.proyeksi_laba, data.bulan_lalu_laba)}</p>
 		</div>
 	</div>
+	<div class="mt-3"><TombolEkspor judul="Proyeksi" cetak lembar={() => [{
+		nama: 'Proyeksi',
+		kolom: ['Ukuran', 'Sejauh ini', 'Perkiraan akhir bulan', 'Bulan lalu'],
+		baris: [['Omzet', data!.omzet, data!.proyeksi_omzet, data!.bulan_lalu_omzet], ['Laba', data!.laba, data!.proyeksi_laba, data!.bulan_lalu_laba]]
+	}]} /></div>
 	<p class="mt-2 text-xs text-muted">Sewa dihitung per hari; gaji menurut kehadiran yang sudah dicatat. Belanja bahan besar di awal bulan membuat perkiraan laba awal bulan terlihat rendah.</p>
 {/if}

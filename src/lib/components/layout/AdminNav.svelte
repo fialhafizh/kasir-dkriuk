@@ -10,6 +10,7 @@
 		{ path: '/admin/setoran', label: 'Setoran' },
 		{ path: '/admin/pengeluaran', label: 'Pengeluaran' },
 		{ path: '/admin/penjualan', label: 'Penjualan' },
+		{ path: '/admin/ojol', label: 'Ojol' },
 		{ path: '/admin/laba-rugi', label: 'Laba-rugi' },
 		{ path: '/admin/analisis', label: 'Analisis' },
 		{ path: '/admin/gaji', label: 'Gaji' },
