@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Petunjuk from '#lib/components/bantuan/Petunjuk.svelte';
 	import { onMount } from 'svelte';
 	import TabMinyakTepung from '#lib/components/analisis/TabMinyakTepung.svelte';
 	import TabProyeksi from '#lib/components/analisis/TabProyeksi.svelte';
@@ -34,7 +35,7 @@
 
 <svelte:head><title>Analisis · Admin D'Kriuk</title></svelte:head>
 
-<h1 class="font-display text-3xl">Analisis</h1>
+<h1 class="font-display text-3xl">Analisis <Petunjuk topik="analisis" peran="admin" /></h1>
 <p class="mt-1 max-w-prose rounded-xl bg-accent/30 p-2 text-sm">
 	Semua angka di halaman ini <b>perkiraan</b> untuk mencari kebocoran. Laba riil ada di <a class="underline" href={href('/admin/laba-rugi')}>Laba-rugi</a>.
 </p>

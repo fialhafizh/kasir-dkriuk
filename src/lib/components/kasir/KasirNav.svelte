@@ -7,7 +7,8 @@
 		{ path: '/kasir/riwayat', label: 'Riwayat' },
 		{ path: '/kasir/stok', label: 'Stok' },
 		{ path: '/kasir/kas', label: 'Kas' },
-		{ path: '/kasir/tutup', label: 'Tutup toko' }
+		{ path: '/kasir/tutup', label: 'Tutup toko' },
+		{ path: '/kasir/bantuan', label: 'Bantuan' }
 	] as const;
 
 	const sedang = (p: string) => (p === '/kasir' ? aktif === '/kasir' : aktif === p || aktif.startsWith(`${p}/`));

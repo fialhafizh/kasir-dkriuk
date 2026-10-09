@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Petunjuk from '#lib/components/bantuan/Petunjuk.svelte';
 	import { untrack } from 'svelte';
 	import { galatJaringan } from '#lib/auth/cache-profil.ts';
 	import { auth } from '#lib/auth/session.svelte.ts';
@@ -153,7 +154,7 @@
 	<Selesai data={struk} {peringatan} onbaru={baru} />
 {:else}
 	<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-		<h1 class="font-display text-2xl">{pos.outlet?.merek} {pos.outlet?.nama}</h1>
+		<h1 class="font-display text-2xl">{pos.outlet?.merek} {pos.outlet?.nama} <Petunjuk topik="jualan" peran="kasir" /></h1>
 		<PrinterChip />
 	</div>
 	{#if pos.outlet}<PitaMinus outletId={pos.outlet.id} segar={segarStok} />{/if}
