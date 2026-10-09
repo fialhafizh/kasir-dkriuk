@@ -119,3 +119,15 @@ describe('olah data grafik', () => {
 		expect(ringkas(950)).toBe('950');
 	});
 });
+
+describe('susun ulang (penyunting HP)', () => {
+	it('mengalir kiri→kanan, baris baru bila penuh, tinggi baris = panel tertinggi', async () => {
+		const { susunUlang } = await import('./spek');
+		expect(susunUlang([{ w: 6, h: 2 }, { w: 6, h: 4 }, { w: 8, h: 3 }, { w: 6, h: 1 }])).toEqual([
+			{ w: 6, h: 2, x: 0, y: 0 },
+			{ w: 6, h: 4, x: 6, y: 0 },
+			{ w: 8, h: 3, x: 0, y: 4 },
+			{ w: 6, h: 1, x: 0, y: 7 }
+		]);
+	});
+});

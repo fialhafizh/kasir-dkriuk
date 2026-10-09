@@ -16,7 +16,7 @@
 		if (memuat) return;
 		memuat = true;
 		try {
-			const baru = await muatRiwayat(outlet, rentang, jenis, lanjut ? (daftar.at(-1)?.waktu ?? null) : null, BATAS);
+			const baru = await muatRiwayat(outlet, rentang, jenis, lanjut ? (daftar.at(-1) ?? null) : null, BATAS);
 			daftar = lanjut ? [...daftar, ...baru] : baru;
 			habis = baru.length < BATAS;
 			galat = '';
@@ -42,7 +42,7 @@
 	<div class="h-full overflow-y-auto">
 		{#if !daftar.length}<p class="text-sm text-muted">Belum ada kejadian di periode ini.</p>{/if}
 		<ol class="grid gap-1.5">
-			{#each daftar as k, i (i)}
+			{#each daftar as k (k.kunci)}
 				<li class="border-b border-line pb-1.5 text-sm">
 					<p class="flex flex-wrap items-baseline gap-x-2">
 						<span class="tabular text-xs text-muted">{formatWaktuWib(k.waktu)}</span>

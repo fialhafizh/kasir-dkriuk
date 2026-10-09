@@ -121,10 +121,12 @@ begin
     end loop;
   end if;
   if s ? 'urutan' and (coalesce(s -> 'urutan' ->> 'oleh', '') not in ('ukuran', 'kelompok')
-                       or coalesce(s -> 'urutan' ->> 'arah', '') not in ('naik', 'turun')) then
+                       or coalesce(s -> 'urutan' ->> 'arah', '') not in ('naik', 'turun')
+                       or (s -> 'urutan' ->> 'oleh' = 'kelompok' and v_n = 0)) then
     raise exception 'Urutan panel tidak sah' using errcode = '22023';
   end if;
-  if s ? 'batas' and (jsonb_typeof(s -> 'batas') <> 'number' or (s ->> 'batas')::numeric not between 1 and 500) then
+  if s ? 'batas' and (jsonb_typeof(s -> 'batas') <> 'number' or (s ->> 'batas')::numeric not between 1 and 500
+                      or (s ->> 'batas')::numeric <> trunc((s ->> 'batas')::numeric)) then
     raise exception 'Batas baris 1–500' using errcode = '22023';
   end if;
 end
@@ -256,7 +258,7 @@ declare
   d record;
   v_kel jsonb := coalesce(p_spek -> 'kelompok', '[]'::jsonb);
   v_ukuran jsonb := p_spek -> 'ukuran';
-  v_batas integer := coalesce((p_spek ->> 'batas')::integer, 500);
+  v_batas integer;
   v_kunci text[] := '{}';
   v_pilih text[] := '{}';
   v_luar text[] := '{}';
@@ -268,7 +270,12 @@ declare
   v_hasil jsonb;
 begin
   perform public._wajib_admin_dasbor();
+  -- Hanya jenis grafik yang dihitung di sini (jenis khusus punya fungsi sendiri dan tidak divalidasi katalog).
+  if v_jenis not in ('angka', 'batang', 'garis', 'lingkaran', 'tabel', 'peta_panas') then
+    raise exception 'Jenis panel tidak dikenal' using errcode = '22023';
+  end if;
   perform public._dasbor_cek_spek(v_jenis, p_spek);
+  v_batas := coalesce((p_spek ->> 'batas')::integer, 500);
   if p_dari is null or p_sampai is null or p_dari >= p_sampai or p_sampai - p_dari > interval '400 days' then
     raise exception 'Rentang tanggal tidak sah' using errcode = '22023';
   end if;
@@ -289,6 +296,7 @@ begin
   v_urut := case
     when coalesce(p_spek -> 'urutan' ->> 'oleh', case when jsonb_array_length(v_kel) > 0 then 'kelompok' else 'ukuran' end) = 'ukuran'
       then 'x.n0 ' || case when p_spek -> 'urutan' ->> 'arah' = 'naik' then 'asc' else 'desc' end
+           || coalesce((select string_agg(format(', x.k%s', g), '') from generate_series(0, jsonb_array_length(v_kel) - 1) g), '')
     else (select string_agg(format('x.k%s %s', g, case when p_spek -> 'urutan' ->> 'arah' = 'turun' then 'desc' else 'asc' end), ', ')
           from generate_series(0, jsonb_array_length(v_kel) - 1) g)
   end;

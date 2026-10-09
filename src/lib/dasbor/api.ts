@@ -80,18 +80,27 @@ export async function muatSiklus(outlet: string, kunci: string, r: Rentang): Pro
 export interface Kejadian {
 	waktu: string;
 	jenis: string;
+	/** kunci urut untuk halaman berikutnya */
+	kunci: string;
 	outlet_id: string;
 	judul: string;
 	rincian: string | null;
 }
-export async function muatRiwayat(outlet: string | null, r: Rentang, jenis: string[] | null, sebelum: string | null, batas = 50): Promise<Kejadian[]> {
+export async function muatRiwayat(
+	outlet: string | null,
+	r: Rentang,
+	jenis: string[] | null,
+	sebelum: { waktu: string; kunci: string } | null,
+	batas = 50
+): Promise<Kejadian[]> {
 	return periksa(
 		await supabase.rpc('riwayat_kejadian', {
 			p_outlet: outlet,
 			p_dari: r.dari.toISOString(),
 			p_sampai: r.sampai.toISOString(),
 			p_jenis: jenis && jenis.length ? jenis : null,
-			p_sebelum: sebelum,
+			p_sebelum: sebelum?.waktu ?? null,
+			p_sebelum_kunci: sebelum?.kunci ?? null,
 			p_batas: batas
 		})
 	) as Kejadian[];

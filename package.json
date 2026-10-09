@@ -33,7 +33,8 @@
     "@fontsource-variable/plus-jakarta-sans": "^5.3.0",
     "@fontsource/lilita-one": "^5.3.0",
     "@supabase/supabase-js": "^2.117.2",
-    "dexie": "^4.4.6"
+    "dexie": "^4.4.6",
+    "gridstack": "^12.6.0"
   },
   "imports": {
     "#lib/*": "./src/lib/*"

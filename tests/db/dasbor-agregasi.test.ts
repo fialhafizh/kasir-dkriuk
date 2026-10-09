@@ -155,6 +155,9 @@ describe('agregasi dasbor', () => {
 		});
 		await expect(hitung({ sumber: 'penjualan', ukuran: ['omzet'], saringan: { 'x; drop': ['a'] } }, dari, sampai)).rejects.toThrow(/Saringan panel tidak sah/);
 		await expect(hitung({ sumber: 'penjualan', ukuran: ['omzet'] }, sampai, dari)).rejects.toThrow(/Rentang tanggal tidak sah/);
+		await expect(hitung({ jenis: 'status_stok', sumber: 'x', ukuran: ['y'], batas: 99999 }, dari, sampai)).rejects.toThrow(/Jenis panel tidak dikenal/);
+		await expect(hitung({ sumber: 'penjualan', ukuran: ['omzet'], batas: 1.5 }, dari, sampai)).rejects.toThrow(/Batas baris/);
+		await expect(hitung({ sumber: 'penjualan', ukuran: ['omzet'], urutan: { oleh: 'kelompok', arah: 'naik' } }, dari, sampai)).rejects.toThrow(/Urutan panel/);
 		await expect(
 			rpc(db, kasirBL, 'public.agregasi_dasbor($1::jsonb, $2, $3, $4)', [JSON.stringify({ sumber: 'penjualan', ukuran: ['omzet'] }), null, dari, sampai])
 		).rejects.toThrow(/Hanya admin/);

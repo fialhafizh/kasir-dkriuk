@@ -84,3 +84,31 @@ export function urutHp<T extends { x: number; y: number }>(panel: T[]): T[] {
 export function letakBaru(panel: Pick<Panel, 'y' | 'h'>[], w = 6, h = 4): Pick<Panel, 'x' | 'y' | 'w' | 'h'> {
 	return { x: 0, y: panel.reduce((m, p) => Math.max(m, p.y + p.h), 0), w, h };
 }
+
+/** Lebar panel di HP/penyunting sederhana. */
+export const PILIHAN_LEBAR = [
+	{ w: 3, label: '¼' },
+	{ w: 4, label: '⅓' },
+	{ w: 6, label: '½' },
+	{ w: 8, label: '⅔' },
+	{ w: 12, label: 'Penuh' }
+] as const;
+
+/** Susun ulang panel sesuai urutan: mengalir kiri→kanan dalam 12 kolom, baris baru bila tidak muat. */
+export function susunUlang<T extends { w: number; h: number }>(urutan: T[]): (T & { x: number; y: number })[] {
+	let x = 0;
+	let y = 0;
+	let tinggiBaris = 0;
+	return urutan.map((p) => {
+		const w = Math.min(12, Math.max(1, p.w));
+		if (x + w > 12) {
+			y += tinggiBaris;
+			x = 0;
+			tinggiBaris = 0;
+		}
+		const hasil = { ...p, w, x, y };
+		x += w;
+		tinggiBaris = Math.max(tinggiBaris, p.h);
+		return hasil;
+	});
+}

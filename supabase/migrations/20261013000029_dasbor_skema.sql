@@ -30,6 +30,17 @@ create table public.dasbor_panel (
 );
 create index dasbor_panel_dasbor on public.dasbor_panel (dasbor_id, y, x);
 
+-- Indeks untuk agregasi "semua outlet" menurut jam (indeks lama diawali outlet_id).
+create index penjualan_waktu on public.penjualan (waktu);
+create index penjualan_void_at on public.penjualan (void_at) where void_at is not null;
+create index gerakan_jual_waktu on public.gerakan_stok (waktu) where jenis in ('jual', 'jual_batal');
+create index shift_ditutup_at on public.shift (ditutup_at) where ditutup_at is not null;
+create index rusak_waktu on public.rusak (waktu);
+create index pengeluaran_waktu on public.pengeluaran (waktu);
+create index setoran_waktu on public.setoran (waktu);
+create index barang_masuk_waktu on public.barang_masuk (waktu);
+create index kejadian_diabaikan_dibuat on public.kejadian_diabaikan (dibuat_at);
+
 alter table public.dasbor enable row level security;
 alter table public.dasbor_panel enable row level security;
 revoke all on public.dasbor, public.dasbor_panel from anon, authenticated;
@@ -68,14 +79,20 @@ begin
   if v_id is not null and not exists (select 1 from public.dasbor where id = v_id) then
     raise exception 'Dasbor tidak ditemukan' using errcode = '22023';
   end if;
+  if (select count(*) from jsonb_array_elements(v_panel) e where e ? 'id')
+     <> (select count(distinct e ->> 'id') from jsonb_array_elements(v_panel) e where e ? 'id') then
+    raise exception 'Panel ganda' using errcode = '22023';
+  end if;
   if v_id is null then
     insert into public.dasbor (nama, urutan, utama, saringan, diubah_oleh)
     values (v_nama, coalesce((select max(urutan) + 1 from public.dasbor), 0),
             not exists (select 1 from public.dasbor), public._dasbor_cek_saringan(p -> 'saringan'), auth.uid())
     returning id into v_id;
   else
+    -- Saringan tidak dikirim = tetap seperti sebelumnya.
     update public.dasbor
-    set nama = v_nama, saringan = public._dasbor_cek_saringan(p -> 'saringan'), diubah_at = now(), diubah_oleh = auth.uid()
+    set nama = v_nama, saringan = case when p ? 'saringan' then public._dasbor_cek_saringan(p -> 'saringan') else saringan end,
+        diubah_at = now(), diubah_oleh = auth.uid()
     where id = v_id;
   end if;
   for x in select * from jsonb_array_elements(v_panel) loop
@@ -85,6 +102,10 @@ begin
     perform public._dasbor_cek_spek(x ->> 'jenis', coalesce(x -> 'spek', '{}'::jsonb));
     begin
       v_pid := coalesce((x ->> 'id')::uuid, gen_random_uuid());
+    exception when invalid_text_representation then
+      raise exception 'Panel tidak dikenal' using errcode = '22023';
+    end;
+    begin
       insert into public.dasbor_panel (id, dasbor_id, judul, jenis, spek, x, y, w, h)
       values (v_pid, v_id, trim(x ->> 'judul'), x ->> 'jenis', coalesce(x -> 'spek', '{}'::jsonb),
               (x ->> 'x')::integer, (x ->> 'y')::integer, (x ->> 'w')::integer, (x ->> 'h')::integer)
@@ -110,6 +131,8 @@ declare
   v public.dasbor;
 begin
   perform public._wajib_admin_dasbor();
+  -- Dua penghapusan bersamaan tidak boleh menyisakan nol dasbor.
+  lock table public.dasbor in share row exclusive mode;
   select * into v from public.dasbor where id = p_id for update;
   if not found then
     raise exception 'Dasbor tidak ditemukan' using errcode = '22023';
@@ -128,6 +151,7 @@ create function public.jadikan_utama_dasbor(p_id uuid) returns void
 language plpgsql security definer set search_path = '' as $$
 begin
   perform public._wajib_admin_dasbor();
+  lock table public.dasbor in share row exclusive mode;
   if not exists (select 1 from public.dasbor where id = p_id) then
     raise exception 'Dasbor tidak ditemukan' using errcode = '22023';
   end if;
