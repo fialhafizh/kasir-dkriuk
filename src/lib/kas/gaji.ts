@@ -100,6 +100,8 @@ export async function bayarGaji(p: {
 	keterangan?: string;
 	potongan_kasbon: number;
 	sumber: 'laci' | 'luar';
+	/** Hari masuk yang dilihat admin; server menolak bila sudah berubah. */
+	hari_masuk: number;
 }): Promise<void> {
 	periksa(await supabase.rpc('bayar_gaji', { p: { ...p, bulan: `${p.bulan}-01` } }));
 }

@@ -188,4 +188,11 @@ describe('laporan keuangan', () => {
 			rpc(db, adminId, 'public.simpan_karyawan($1::jsonb)', [JSON.stringify({ id: k, outlet_id: await idOutlet(db, 'TK'), nama: 'Budi', upah_harian: 70000 })])
 		).rejects.toThrow(/tidak bisa dipindah/);
 	});
+	it('bayar ditolak bila kehadiran berubah sejak dilihat admin', async () => {
+		const k = await karyawan('Budi', 70000);
+		await hadir(k, 1);
+		const p = { id: crypto.randomUUID(), karyawan_id: k, bulan: await bulanLalu(), potongan_kasbon: 0, sumber: 'luar', hari_masuk: 2 };
+		await expect(rpc(db, adminId, 'public.bayar_gaji($1::jsonb)', [JSON.stringify(p)])).rejects.toThrow(/Data kehadiran berubah/);
+		await rpc(db, adminId, 'public.bayar_gaji($1::jsonb)', [JSON.stringify({ ...p, hari_masuk: 1 })]);
+	});
 });

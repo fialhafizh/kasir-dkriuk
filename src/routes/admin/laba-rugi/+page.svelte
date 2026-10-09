@@ -50,7 +50,8 @@
 <h1 class="font-display text-3xl">Laba-rugi</h1>
 <p class="mt-1 max-w-prose text-sm text-muted">
 	Cara sederhana: omzet − belanja bahan − gaji − sewa − pengeluaran lain. Omzet ojol masih bruto (sebelum potongan aplikasi). Kasbon bukan
-	biaya (dipotong dari gaji). Analisis kebocoran & proyeksi menyusul di dashboard (Tahap 7).
+	biaya (dipotong dari gaji). Penyesuaian gaji (bonus/potongan) ikut bila periode mencakup tanggal 1 bulan itu. Analisis kebocoran &
+	proyeksi menyusul di dashboard (Tahap 7).
 </p>
 
 <form class="mt-4 flex flex-wrap items-end gap-3" onsubmit={(e) => (e.preventDefault(), void muat())}>

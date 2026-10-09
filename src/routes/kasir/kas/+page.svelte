@@ -259,6 +259,7 @@
 		{#if laci}
 			<p class="text-sm text-muted">Uang di laci sekarang</p>
 			<p class="tabular font-display text-3xl text-brand">Rp{formatAngka(laci.saldo)}</p>
+			<p class="text-xs text-muted">Sudah dikurangi pembayaran gaji oleh admin dari laci, bila ada.</p>
 		{:else}
 			<p class="text-sm text-muted">Uang di laci belum diketahui di perangkat ini (buka sekali saat online).</p>
 		{/if}

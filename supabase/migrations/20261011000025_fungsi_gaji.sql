@@ -264,6 +264,10 @@ begin
   end if;
   select count(*) into v_hari from public.kehadiran
   where karyawan_id = v_karyawan and tanggal >= v_bulan and tanggal < (v_bulan + interval '1 month')::date;
+  -- Angka yang dilihat admin saat menekan Bayar harus sama dengan data sekarang.
+  if (p ->> 'hari_masuk') is not null and (p ->> 'hari_masuk')::integer <> v_hari then
+    raise exception 'Data kehadiran berubah; muat ulang halaman lalu periksa lagi' using errcode = '22023';
+  end if;
   v_dibayar := v_hari::bigint * k.upah_harian + v_penyesuaian - v_potongan;
   if v_dibayar < 0 then
     raise exception 'Gaji yang dibayar tidak boleh minus; kurangi potongan kasbon' using errcode = '22023';

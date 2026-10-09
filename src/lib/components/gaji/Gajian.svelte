@@ -49,7 +49,8 @@
 				penyesuaian: p,
 				...(ket[r.karyawan_id]?.trim() ? { keterangan: ket[r.karyawan_id].trim() } : {}),
 				potongan_kasbon: pot,
-				sumber: sumber[r.karyawan_id] ?? 'luar'
+				sumber: sumber[r.karyawan_id] ?? 'luar',
+				hari_masuk: r.hari_masuk
 			});
 			// Isian baris ini dikosongkan supaya tidak terbawa ke pembayaran berikutnya.
 			delete penyesuaian[r.karyawan_id];
