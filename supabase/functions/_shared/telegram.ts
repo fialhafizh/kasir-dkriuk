@@ -68,3 +68,13 @@ export function calonGrup(updates: unknown): CalonGrup[] {
 export function topikKurang(topik: Partial<Record<KunciTopik, number>> | null | undefined): typeof TOPIK {
 	return TOPIK.filter((t) => typeof topik?.[t.kunci] !== 'number');
 }
+
+export const escHtml = (t: string) => t.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+
+/** Membandingkan kunci cron dalam waktu tetap; kunci kosong/tidak ada selalu ditolak. */
+export function samaKunci(diberi: string | null | undefined, harus: string | null | undefined): boolean {
+	if (!diberi || !harus || diberi.length !== harus.length) return false;
+	let beda = 0;
+	for (let i = 0; i < harus.length; i++) beda |= diberi.charCodeAt(i) ^ harus.charCodeAt(i);
+	return beda === 0;
+}

@@ -14,6 +14,11 @@ create table public.telegram_pengaturan (
   harian_terakhir date,
   -- alamat Edge Function, diisi saat menghubungkan grup (dipakai pg_cron lewat pg_net)
   fungsi_url text,
+  -- satu pengirim pada satu waktu (pemanggilan Edge Function yang tumpang tindih menunggu)
+  pengirim uuid,
+  pengirim_sampai timestamptz,
+  -- batas kecepatan Telegram (retry_after) berlaku untuk seluruh grup
+  jeda_sampai timestamptz,
   diubah_at timestamptz not null default now()
 );
 insert into public.telegram_pengaturan (id) values (true);
@@ -47,3 +52,4 @@ alter table public.telegram_status_stok enable row level security;
 -- Tidak ada akses langsung untuk pengguna aplikasi: admin lewat fungsi, Edge Function lewat service_role.
 revoke all on public.telegram_pengaturan, public.telegram_antrean, public.telegram_status_stok from anon, authenticated;
 grant all on public.telegram_pengaturan, public.telegram_antrean, public.telegram_status_stok to service_role;
+revoke all on sequence public.telegram_antrean_id_seq from anon, authenticated;

@@ -26,7 +26,7 @@ Admin → Telegram ──► Edge Function telegram (mode hubungkan / uji, JWT a
 - **Antrean** `telegram_antrean (id, kunci unique, topik, teks, dibuat_at, terkirim_at, percobaan, galat, kirim_lagi_at)`. `kunci` (mis. `struk:<penjualan_id>`) mencegah pesan ganda saat kiriman offline diulang. Trigger hanya menyusun teks & insert (`on conflict do nothing`) — tidak pernah menggagalkan transaksi (galat ditangkap).
 - **Pengaturan** satu baris `telegram_pengaturan (chat_id, topik jsonb {struk,harian,peringatan,kas}, jam_harian, batas_pengeluaran, jenis_mati text[], harian_terakhir)`. Admin baca/ubah lewat fungsi; kasir tidak.
 - **Edge Function `telegram`**:
-  - `kirim` (dipanggil cron dengan rahasia `TELEGRAM_CRON_KUNCI` di header): ambil ≤ 20 pesan belum terkirim (urut dibuat_at, `for update skip locked`), kirim, tandai terkirim; gagal → percobaan+1, coba lagi bertahap (1, 2, 5, 15, 60 menit), berhenti setelah 10 kali (tampil di Admin). Patuh `retry_after` (429).
+  - `kirim` (dipanggil cron dengan header `x-kunci-cron`; kuncinya dibuat acak di Supabase Vault saat migrasi, tidak pernah di kode): satu pengirim pada satu waktu (giliran 90 detik), ambil ≤ 10 pesan (urut, `for update skip locked`, dipinjam 2 menit), kirim dengan jeda 3 detik (±20 pesan/menit per grup), berhenti setelah 45 detik; gagal → percobaan+1, coba lagi bertahap (1, 2, 5, 15, 60 menit), berhenti setelah 10 kali (tampil di Admin). `retry_after` (429) menjeda seluruh pengiriman. Topik yang dihapus di grup dilupakan (pesan ke General) sampai admin menekan Hubungkan ulang.
   - `hubungkan` (admin): baca `getUpdates` untuk menemukan grup tempat bot jadi admin, cek mode Topics, buat 4 topik (`createForumTopic`) bila belum ada, simpan chat_id & id topik.
   - `uji` (admin): kirim pesan uji ke tiap topik.
 - Teks pesan disusun di SQL (fungsi `_tg_*` per jenis) agar mudah diuji di PGlite; format HTML Telegram, nilai di-escape.
@@ -47,7 +47,7 @@ Status (terhubung ke grup apa, pesan terkirim terakhir, pesan gagal), tombol **H
 
 ## 6. Keamanan
 
-Token `TELEGRAM_BOT_TOKEN` & `TELEGRAM_CRON_KUNCI` di Supabase secrets; kunci cron juga di Vault untuk dipanggil pg_net. Antrean & pengaturan hanya service_role/fungsi admin. Pesan tidak memuat harga beli/upah karyawan.
+Token `TELEGRAM_BOT_TOKEN` di Supabase secrets; kunci cron acak di Supabase Vault (dibaca pg_cron & Edge Function lewat fungsi khusus service_role). Antrean & pengaturan hanya service_role/fungsi admin. Pesan tidak memuat harga beli/upah karyawan. Laporan data ditolak dari kasir dibatasi 10 per jam. Pesan panjang dipotong di akhir baris (batas 4096). Transaksi/batal tunai yang sampai setelah tutup toko mengirim **koreksi selisih**. Penjualan setelah jam ringkasan harian tidak masuk ringkasan hari itu (tetap ada di struk & tutup toko).
 
 ## 7. Pengujian
 

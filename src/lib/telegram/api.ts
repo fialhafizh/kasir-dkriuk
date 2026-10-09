@@ -52,6 +52,11 @@ export const KELOMPOK_JENIS: { topik: string; jenis: { kunci: string; label: str
 	}
 ];
 
+/** Label jenis pesan untuk layar admin. */
+export function labelJenis(kunci: string): string {
+	return KELOMPOK_JENIS.flatMap((k) => k.jenis).find((j) => j.kunci === kunci)?.label ?? kunci;
+}
+
 export interface PesanGagal {
 	id: number;
 	jenis: string;
@@ -103,7 +108,7 @@ async function panggil<T>(body: object): Promise<T> {
 	if (!error) return data as T;
 	throw new Error(await bacaGalatFungsi(error));
 }
-export type HasilHubungkan = { ok: true; judul: string } | { ok: false; pilih: { chat_id: number; judul: string }[] };
+export type HasilHubungkan = { ok: true; judul: string; dibuat: number } | { ok: false; pilih: { chat_id: number; judul: string }[] };
 export function hubungkanGrup(chatId?: number): Promise<HasilHubungkan> {
 	return panggil({ aksi: 'hubungkan', ...(chatId !== undefined ? { chat_id: chatId } : {}) });
 }

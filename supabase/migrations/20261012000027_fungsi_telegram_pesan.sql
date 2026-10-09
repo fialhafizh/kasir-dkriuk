@@ -46,6 +46,13 @@ language sql immutable set search_path = '' as $$
     else 'peringatan' end
 $$;
 
+-- Batas Telegram 4096 karakter: potong di akhir baris (setiap tag HTML dibuka & ditutup dalam satu baris).
+create function public._tg_potong(t text) returns text
+language sql immutable set search_path = '' as $$
+  select case when length(t) <= 4000 then t
+              else coalesce(substring(left(t, 3900) from '^(.*)\n'), '') || e'\n…' end
+$$;
+
 -- Masukkan pesan ke antrean bila grup sudah terhubung & jenisnya tidak dimatikan; kunci sama → diabaikan.
 create function public._tg_antre(p_jenis text, p_kunci text, p_teks text) returns void
 language plpgsql security definer set search_path = '' as $$
@@ -57,7 +64,7 @@ begin
     return;
   end if;
   insert into public.telegram_antrean (kunci, jenis, topik, teks)
-  values (p_kunci, p_jenis, public._tg_topik(p_jenis), left(p_teks, 4000))
+  values (p_kunci, p_jenis, public._tg_topik(p_jenis), public._tg_potong(p_teks))
   on conflict (kunci) do nothing;
 end
 $$;
@@ -65,6 +72,69 @@ $$;
 create function public._tg_aktif(p_jenis text) returns boolean
 language sql stable security definer set search_path = '' as $$
   select chat_id is not null and not (p_jenis = any (jenis_mati)) from public.telegram_pengaturan where id
+$$;
+
+-- Ringkasan shift tanpa cek akses (dipakai trigger Telegram; isi sama dengan ringkasan_shift 0023).
+create function public._ringkasan_shift(p_shift uuid) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  s public.shift;
+  v_metode jsonb;
+  v_jumlah integer;
+  v_void integer;
+  v_total integer;
+  v_batal_telat integer;
+  v_akhir timestamptz;
+  v_seharusnya bigint;
+  v_pengeluaran bigint;
+  v_setoran bigint;
+begin
+  select * into s from public.shift where id = p_shift;
+  if not found then
+    raise exception 'Shift tidak ditemukan' using errcode = '22023';
+  end if;
+  select jsonb_object_agg(m.metode, jsonb_build_object('jumlah', coalesce(x.jumlah, 0), 'total', coalesce(x.total, 0)))
+  into v_metode
+  from unnest(enum_range(null::public.metode_bayar)) as m (metode)
+  left join (
+    select metode, count(*)::integer as jumlah, sum(total)::integer as total
+    from public.penjualan where shift_id = p_shift and void_at is null group by metode
+  ) x on x.metode = m.metode;
+  select count(*) filter (where void_at is null), count(*) filter (where void_at is not null),
+         coalesce(sum(total) filter (where void_at is null), 0),
+         count(*) filter (where not s.tutup_tertunda and void_dicatat_at > s.ditutup_dicatat_at)
+  into v_jumlah, v_void, v_total, v_batal_telat
+  from public.penjualan where shift_id = p_shift;
+  v_akhir := coalesce(s.ditutup_at, now());
+  v_seharusnya := public._seharusnya_shift(s);
+  select coalesce(sum(jumlah), 0) into v_pengeluaran from public.pengeluaran
+  where outlet_id = s.outlet_id and sumber = 'laci' and batal_at is null and waktu > s.dibuka_at and waktu <= v_akhir;
+  select coalesce(sum(jumlah), 0) into v_setoran from public.setoran
+  where outlet_id = s.outlet_id and batal_at is null and waktu > s.dibuka_at and waktu <= v_akhir;
+  return jsonb_build_object(
+    'shift_id', s.id, 'outlet_id', s.outlet_id, 'modal', s.modal, 'dibuka_at', s.dibuka_at, 'ditutup_at', s.ditutup_at,
+    'jumlah_transaksi', v_jumlah, 'jumlah_void', v_void, 'total', v_total, 'per_metode', v_metode,
+    'cash_seharusnya', v_seharusnya,
+    'uang_fisik', case when s.tutup_tertunda then null else s.uang_fisik end,
+    'selisih', case when s.uang_fisik is null or s.tutup_tertunda then null else s.uang_fisik - v_seharusnya end,
+    'pengeluaran_laci', v_pengeluaran, 'setoran', v_setoran,
+    'digabung', s.digabung, 'jual_setelah_tutup', s.jual_setelah_tutup, 'dibuka_lagi_setelah', s.dibuka_lagi_setelah,
+    'tutup_tertunda', s.tutup_tertunda, 'batal_setelah_tutup', v_batal_telat
+  );
+end
+$$;
+
+create or replace function public.ringkasan_shift(p_shift uuid) returns jsonb
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  v_outlet uuid;
+begin
+  select outlet_id into v_outlet from public.shift where id = p_shift;
+  if v_outlet is null or not (public.is_admin() or coalesce(public.my_outlet_id() = v_outlet, false)) then
+    raise exception 'Shift tidak ditemukan' using errcode = '22023';
+  end if;
+  return public._ringkasan_shift(p_shift);
+end
 $$;
 
 -- ---------- Struk (dikirim saat transaksi selesai, termasuk itemnya) ----------
@@ -91,6 +161,10 @@ begin
       || '<b>Total ' || public._tg_rp(p.total) || '</b> · ' || v_bayar
       || case when p.dicatat_at - p.waktu > interval '10 minutes'
               then e'\n<i>Dicatat offline, sampai di server ' || public._tg_jam(p.dicatat_at) || '</i>' else '' end);
+    if p.metode = 'cash' and exists (select 1 from public.shift s where s.id = p.shift_id and s.ditutup_dicatat_at < p.dicatat_at) then
+      perform public._tg_koreksi_tutup(p.shift_id, 'koreksi_jual:' || p.id,
+        'penjualan tunai ' || public._tg_esc(p.nomor) || ' (' || public._tg_jam(p.waktu) || ', ' || public._tg_rp(p.total) || ') baru sampai setelah toko ditutup.');
+    end if;
   exception when others then
     raise warning 'telegram struk: %', sqlerrm;
   end;
@@ -99,6 +173,27 @@ end
 $$;
 create constraint trigger penjualan_tg_struk after insert on public.penjualan
   deferrable initially deferred for each row execute function public._tg_struk();
+
+-- Transaksi/batal tunai yang sampai di server setelah toko ditutup mengubah selisih shift itu: kirim selisih terbaru.
+create function public._tg_koreksi_tutup(p_shift uuid, p_kunci text, p_sebab text) returns void
+language plpgsql security definer set search_path = '' as $$
+declare
+  s public.shift;
+  r jsonb;
+begin
+  select * into s from public.shift where id = p_shift;
+  if s.ditutup_dicatat_at is null or s.tutup_tertunda then
+    return;
+  end if;
+  r := public._ringkasan_shift(p_shift);
+  perform public._tg_antre('selisih_kas', p_kunci,
+    '⚠️ <b>Koreksi tutup toko</b> · ' || public._tg_outlet(s.outlet_id) || e'\n'
+    || 'Shift tutup ' || public._tg_jam(s.ditutup_at) || ': ' || p_sebab || e'\n'
+    || 'Laci seharusnya kini ' || public._tg_rp((r ->> 'cash_seharusnya')::bigint)
+    || case when r ->> 'selisih' is null then ''
+            else ' · selisih kini <b>' || public._tg_rp((r ->> 'selisih')::bigint) || '</b>' end);
+end
+$$;
 
 -- ---------- Batal transaksi ----------
 create function public._tg_batal() returns trigger
@@ -114,6 +209,10 @@ begin
       || 'Oleh ' || public._tg_nama(new.void_oleh) || ': ' || public._tg_esc(new.void_alasan)
       || case when s.ditutup_dicatat_at is not null and not s.tutup_tertunda and new.void_dicatat_at > s.ditutup_dicatat_at
               then e'\n<i>Dibatalkan setelah tutup toko</i>' else '' end);
+    if new.metode = 'cash' and s.ditutup_dicatat_at < new.void_dicatat_at then
+      perform public._tg_koreksi_tutup(new.shift_id, 'koreksi_batal:' || new.id,
+        'batal tunai ' || public._tg_esc(new.nomor) || ' (' || public._tg_rp(new.total) || ') masuk setelah toko ditutup.');
+    end if;
   exception when others then
     raise warning 'telegram batal: %', sqlerrm;
   end;
@@ -137,7 +236,7 @@ begin
     if not (public._tg_aktif('tutup') or public._tg_aktif('selisih_kas')) then
       return null;
     end if;
-    r := public.ringkasan_shift(new.id);
+    r := public._ringkasan_shift(new.id);
     for m in select x::text from unnest(enum_range(null::public.metode_bayar)) as x loop
       if (r -> 'per_metode' -> m ->> 'jumlah')::integer > 0 then
         v_kanal := v_kanal || e'\n' || public._tg_metode(m) || ': ' || public._tg_rp((r -> 'per_metode' -> m ->> 'total')::bigint)
@@ -153,8 +252,8 @@ begin
       || v_kanal || e'\n'
       || '<b>Total ' || public._tg_rp((r ->> 'total')::bigint) || '</b>' || e'\n'
       || 'Laci seharusnya ' || public._tg_rp((r ->> 'cash_seharusnya')::bigint)
-      || ' · dihitung ' || coalesce(public._tg_rp((r ->> 'uang_fisik')::bigint), '-')
-      || ' · selisih ' || coalesce(public._tg_rp(v_selisih), '-') || case when v_selisih = 0 then ' ✅' when v_selisih <> 0 then ' ⚠️' else '' end || e'\n'
+      || ' · dihitung ' || case when r ->> 'uang_fisik' is null then '-' else public._tg_rp((r ->> 'uang_fisik')::bigint) end
+      || ' · selisih ' || case when v_selisih is null then '-' else public._tg_rp(v_selisih) end || case when v_selisih = 0 then ' ✅' when v_selisih <> 0 then ' ⚠️' else '' end || e'\n'
       || 'Pengeluaran laci ' || public._tg_rp((r ->> 'pengeluaran_laci')::bigint) || ' · setoran ' || public._tg_rp((r ->> 'setoran')::bigint));
     if v_selisih <> 0 then
       perform public._tg_antre('selisih_kas', 'selisih_kas:' || new.id,
@@ -318,6 +417,10 @@ begin
     if auth.uid() is null or not (public.is_admin() or v_outlet = public.my_outlet_id()) then
       return;
     end if;
+    -- Paling banyak 10 laporan per jam: klien yang berulang tidak membanjiri grup.
+    if (select count(*) from public.telegram_antrean where jenis = 'ditolak' and dibuat_at > now() - interval '1 hour') >= 10 then
+      return;
+    end if;
     perform public._tg_antre('ditolak', 'ditolak:' || ((p ->> 'id')::uuid)::text,
       '⚠️ <b>Data kasir ditolak server</b> · ' || public._tg_outlet(v_outlet) || e'\n'
       || public._tg_esc(public._tg_label_kejadian(left(p ->> 'jenis', 30))) || ' · ' || public._tg_nama(auth.uid()) || e'\n'
@@ -332,14 +435,22 @@ $$;
 -- ---------- Status stok (sama dengan src/lib/stok/tampil.ts) ----------
 -- Baris tampilan stok: satuan beli berisi >1 bahan = satu baris kelompok; selain itu satu baris per bahan
 -- dengan satuan beli satu-bahan ber-isi terkecil sebagai acuan ambang.
-create function public._tg_status_stok(p_outlet uuid)
+-- p_bahan: hanya baris yang memuat bahan ini (beserta anggota pack-nya); null = semua.
+create function public._tg_status_stok(p_outlet uuid, p_bahan uuid[] default null)
 returns table (kunci text, label text, status text, teks text)
 language sql stable security definer set search_path = '' as $$
-  with q as (
+  with relevan as (
+    select unnest(p_bahan) as id
+    union
+    select i2.bahan_id from public.satuan_beli_isi i1
+    join public.satuan_beli_isi i2 on i2.satuan_beli_id = i1.satuan_beli_id
+    where i1.bahan_id = any (p_bahan)
+  ),
+  q as (
     select b.id, b.nama, b.satuan, b.urutan, coalesce(sum(g.qty), 0)::numeric as n
     from public.bahan b
     left join public.gerakan_stok g on g.bahan_id = b.id and g.outlet_id = p_outlet
-    where b.aktif
+    where b.aktif and (p_bahan is null or b.id in (select id from relevan))
     group by b.id
   ),
   isi as (
@@ -387,7 +498,7 @@ language sql stable security definer set search_path = '' as $$
   ) x order by urutan, label
 $$;
 
-create function public._tg_cek_stok(p_outlet uuid) returns void
+create function public._tg_cek_stok(p_outlet uuid, p_bahan uuid[]) returns void
 language plpgsql security definer set search_path = '' as $$
 declare
   r record;
@@ -398,7 +509,7 @@ begin
   end if;
   for r in
     select s.kunci, s.label, s.status, s.teks
-    from public._tg_status_stok(p_outlet) s
+    from public._tg_status_stok(p_outlet, p_bahan) s
     left join public.telegram_status_stok t on t.outlet_id = p_outlet and t.kunci = s.kunci
     where s.status <> coalesce(t.status, 'aman')
   loop
@@ -419,11 +530,11 @@ $$;
 create function public._tg_stok() returns trigger
 language plpgsql security definer set search_path = '' as $$
 declare
-  v_outlet uuid;
+  r record;
 begin
   begin
-    for v_outlet in select distinct outlet_id from baru loop
-      perform public._tg_cek_stok(v_outlet);
+    for r in select outlet_id, array_agg(distinct bahan_id) as bahan from baru group by outlet_id loop
+      perform public._tg_cek_stok(r.outlet_id, r.bahan);
     end loop;
   exception when others then
     raise warning 'telegram stok: %', sqlerrm;
@@ -438,7 +549,8 @@ create trigger gerakan_stok_tg after insert on public.gerakan_stok
 revoke execute on function public._tg_esc(text), public._tg_rp(bigint), public._tg_jam(timestamptz), public._tg_metode(text),
   public._tg_outlet(uuid), public._tg_nama(uuid), public._tg_topik(text), public._tg_antre(text, text, text), public._tg_aktif(text),
   public._tg_struk(), public._tg_batal(), public._tg_tutup(), public._tg_setoran(), public._tg_pengeluaran(), public._tg_opname(),
-  public._tg_label_kejadian(text), public._tg_diabaikan(), public._tg_status_stok(uuid), public._tg_cek_stok(uuid), public._tg_stok()
+  public._tg_label_kejadian(text), public._tg_diabaikan(), public._tg_status_stok(uuid, uuid[]), public._tg_cek_stok(uuid, uuid[]), public._tg_stok(),
+  public._tg_potong(text), public._ringkasan_shift(uuid), public._tg_koreksi_tutup(uuid, text, text)
   from public, anon, authenticated;
 revoke execute on function public.lapor_ditolak(jsonb) from public, anon;
 grant execute on function public.lapor_ditolak(jsonb) to authenticated;

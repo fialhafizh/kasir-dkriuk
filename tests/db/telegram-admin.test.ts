@@ -15,6 +15,7 @@ beforeEach(async () => {
 	await db.query(`update public.telegram_pengaturan set chat_id = -100123, topik = '{"struk":2,"harian":3,"peringatan":4,"kas":5}'`);
 });
 
+const AMBIL = `select * from public._tg_ambil('00000000-0000-0000-0000-000000000001', 20)`;
 const nilai = async <T>(sql: string, params: unknown[] = []) => (await db.query<{ v: T }>(sql, params)).rows[0].v;
 const antre = (kunci: string) =>
 	nilai<number>(`insert into public.telegram_antrean (kunci, jenis, topik, teks) values ($1, 'struk', 'struk', 'halo') returning id as v`, [kunci]);
@@ -70,30 +71,59 @@ describe('antrean kirim', () => {
 	it('ambil meminjam pesan (tidak terambil dua kali) & urut', async () => {
 		const a = await antre('a');
 		const b = await antre('b');
-		const r = (await db.query<{ id: number; chat_id: number; thread_id: number }>('select * from public._tg_ambil(20)')).rows;
+		const r = (await db.query<{ id: number; chat_id: number; thread_id: number }>(AMBIL)).rows;
 		expect(r.map((x) => Number(x.id))).toEqual([a, b]);
 		expect(Number(r[0].thread_id)).toBe(2);
 		expect(Number(r[0].chat_id)).toBe(-100123);
-		expect((await db.query('select * from public._tg_ambil(20)')).rows).toHaveLength(0);
+		expect((await db.query(AMBIL)).rows).toHaveLength(0);
 	});
 
 	it('gagal: dicoba lagi bertahap, berhenti setelah 10 kali; retry_after tidak dihitung; kirim ulang admin', async () => {
 		const a = await antre('a');
 		await db.query(`select public._tg_hasil($1, false, 'Too Many Requests', 7)`, [a]);
+		await db.query('update public.telegram_pengaturan set jeda_sampai = null');
 		expect(await nilai<number>('select percobaan as v from public.telegram_antrean where id = $1', [a])).toBe(0);
 		await db.query(`select public._tg_hasil($1, false, 'Bad Request')`, [a]);
 		expect(await nilai<number>(`select round(extract(epoch from kirim_lagi_at - now()) / 60)::int as v from public.telegram_antrean where id = $1`, [a])).toBe(1);
 		for (let i = 0; i < 9; i++) await db.query(`select public._tg_hasil($1, false, 'Bad Request')`, [a]);
 		await db.query(`update public.telegram_antrean set kirim_lagi_at = now() - interval '1 second'`);
-		expect((await db.query('select * from public._tg_ambil(20)')).rows).toHaveLength(0);
+		expect((await db.query(AMBIL)).rows).toHaveLength(0);
 		const st = await rpc<{ gagal: { id: number; galat: string }[]; menunggu: number }>(db, adminId, 'public.telegram_status()', []);
 		expect(st.gagal).toHaveLength(1);
 		expect(st.gagal[0].galat).toBe('Bad Request');
 		expect(st.menunggu).toBe(0);
 		expect(await rpc<number>(db, adminId, 'public.kirim_ulang_telegram($1)', [a])).toBe(1);
-		expect((await db.query('select * from public._tg_ambil(20)')).rows).toHaveLength(1);
+		expect((await db.query(AMBIL)).rows).toHaveLength(1);
 		await db.query('select public._tg_hasil($1, true)', [a]);
 		expect(await nilai<boolean>('select terkirim_at is not null as v from public.telegram_antrean where id = $1', [a])).toBe(true);
+	});
+});
+
+describe('pengirim tunggal & batas kecepatan', () => {
+	const ambil = (pengirim: string) => db.query(`select * from public._tg_ambil($1, 20)`, [pengirim]).then((r) => r.rows);
+	const A = crypto.randomUUID();
+	const B = crypto.randomUUID();
+	it('pengirim lain menunggu sampai giliran dilepas; retry_after menjeda semua', async () => {
+		await antre('a');
+		expect(await ambil(A)).toHaveLength(1);
+		await antre('b');
+		expect(await ambil(B)).toHaveLength(0);
+		expect(await ambil(A)).toHaveLength(1);
+		await db.query('select public._tg_selesai($1)', [A]);
+		await antre('c');
+		const c = (await ambil(B)) as { id: number }[];
+		expect(c).toHaveLength(1);
+		await db.query(`select public._tg_hasil($1, false, 'Too Many Requests', 30)`, [c[0].id]);
+		await db.query('select public._tg_selesai($1)', [B]);
+		await antre('d');
+		expect(await ambil(A)).toHaveLength(0);
+	});
+	it('topik dihapus: id dilupakan, pesan berikutnya ke General & status minta hubungkan ulang', async () => {
+		await db.query(`select public._tg_topik_hilang('struk')`);
+		await antre('a');
+		const r = (await ambil(A)) as { topik: string; thread_id: number | null }[];
+		expect(r[0]).toMatchObject({ topik: 'struk', thread_id: null });
+		expect(await rpc(db, adminId, 'public.telegram_status()', [])).toMatchObject({ topik_lengkap: false });
 	});
 });
 
@@ -106,8 +136,10 @@ describe('akses', () => {
 		);
 		await expect(sebagai(db, kasirBL, () => db.query('select * from public.telegram_antrean'))).rejects.toThrow(/permission denied/);
 		await expect(sebagai(db, kasirBL, () => db.query('select * from public.telegram_pengaturan'))).rejects.toThrow(/permission denied/);
-		await expect(sebagai(db, kasirBL, () => db.query('select * from public._tg_ambil(20)'))).rejects.toThrow(/permission denied/);
+		await expect(sebagai(db, kasirBL, () => db.query(AMBIL))).rejects.toThrow(/permission denied/);
 		await expect(sebagai(db, adminId, () => db.query('select public._tg_hasil(1, true)'))).rejects.toThrow(/permission denied/);
+		await expect(sebagai(db, adminId, () => db.query('select public._tg_kunci_cron()'))).rejects.toThrow(/permission denied/);
+		await expect(rpc(db, kasirBL, 'public.kirim_ulang_telegram($1)', [null])).rejects.toThrow(/Hanya admin/);
 	});
 
 	it('simpan_telegram memvalidasi isian', async () => {

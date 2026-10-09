@@ -7,6 +7,7 @@
 		KELOMPOK_JENIS,
 		kirimUji,
 		kirimUlang,
+		labelJenis,
 		muatStatus,
 		simpanPengaturan,
 		teksPolos,
@@ -19,18 +20,23 @@
 	let fJam = $state('22:00');
 	let fBatas = $state('');
 	let mati = $state<Set<string>>(new Set());
-	let pesanAtur = $state('');
-	let pesanGrup = $state('');
+	type Pesan = { teks: string; galat: boolean } | null;
+	let pesanAtur = $state<Pesan>(null);
+	let pesanGrup = $state<Pesan>(null);
+	let pesanGagal = $state<Pesan>(null);
 	let pilihan = $state<{ chat_id: number; judul: string }[]>([]);
 	let hasilUji = $state<{ topik: string; ok: boolean; galat?: string }[]>([]);
 	let memproses = $state(false);
 
+	function isiForm(s: StatusTelegram) {
+		fJam = s.jam_harian;
+		fBatas = formatAngka(s.batas_pengeluaran);
+		mati = new Set(s.jenis_mati);
+	}
 	async function muat() {
 		try {
 			st = await muatStatus();
-			fJam = st.jam_harian;
-			fBatas = formatAngka(st.batas_pengeluaran);
-			mati = new Set(st.jenis_mati);
+			isiForm(st);
 			status = 'siap';
 		} catch (e) {
 			pesan = (e as Error).message;
@@ -38,15 +44,20 @@
 		}
 	}
 	onMount(muat);
+	/** Muat ulang status setelah aksi tanpa menimpa isian formulir yang belum disimpan. */
+	async function segarkan() {
+		st = await muatStatus();
+	}
 
-	async function jalankan(fn: () => Promise<void>, tulis: (m: string) => void) {
+	async function jalankan(fn: () => Promise<string | void>, tulis: (p: Pesan) => void) {
 		if (memproses) return;
 		memproses = true;
-		tulis('');
+		tulis(null);
 		try {
-			await fn();
+			const ok = await fn();
+			if (ok) tulis({ teks: ok, galat: false });
 		} catch (e) {
-			tulis((e as Error).message);
+			tulis({ teks: (e as Error).message, galat: true });
 		} finally {
 			memproses = false;
 		}
@@ -55,17 +66,18 @@
 	const hubungkan = (chatId?: number) =>
 		jalankan(async () => {
 			const h = await hubungkanGrup(chatId);
-			if (h.ok) {
-				pilihan = [];
-				pesanGrup = `Terhubung ke grup "${h.judul}". Topik sudah dibuat.`;
-				await muat();
-			} else pilihan = h.pilih;
+			if (!h.ok) return void (pilihan = h.pilih);
+			pilihan = [];
+			await segarkan();
+			return `Terhubung ke grup "${h.judul}".${h.dibuat ? ` ${h.dibuat} topik dibuat.` : ''}`;
 		}, (m) => (pesanGrup = m));
 
-	const uji = () =>
-		jalankan(async () => {
+	const uji = () => {
+		hasilUji = [];
+		return jalankan(async () => {
 			hasilUji = (await kirimUji()).hasil;
 		}, (m) => (pesanGrup = m));
+	};
 
 	function ubahJenis(kunci: string, nyala: boolean) {
 		const s = new Set(mati);
@@ -77,15 +89,21 @@
 	const simpan = (e: SubmitEvent) => {
 		e.preventDefault();
 		const batas = parseRupiah(fBatas, 100_000_000);
-		if (batas === null) return void (pesanAtur = 'Isi batas pengeluaran, mis. 100.000.');
+		if (batas === null) return void (pesanAtur = { teks: 'Isi batas pengeluaran, mis. 100.000.', galat: true });
 		return jalankan(async () => {
 			await simpanPengaturan({ jam_harian: fJam, batas_pengeluaran: batas, jenis_mati: [...mati] });
-			await muat();
-			pesanAtur = 'Pengaturan disimpan.';
+			await segarkan();
+			if (st) isiForm(st);
+			return 'Pengaturan disimpan.';
 		}, (m) => (pesanAtur = m));
 	};
 
-	const ulang = (id: number | null) => jalankan(async () => void (await kirimUlang(id), await muat()), (m) => (pesanGrup = m));
+	const ulang = (id: number | null) =>
+		jalankan(async () => {
+			const n = await kirimUlang(id);
+			await segarkan();
+			return `${n} pesan dijadwalkan kirim ulang.`;
+		}, (m) => (pesanGagal = m));
 	const kotak = 'min-h-12 rounded-xl border border-line-strong bg-surface px-3 text-fg';
 	const tombol = 'min-h-12 rounded-xl px-4 font-semibold disabled:opacity-60';
 </script>
@@ -134,7 +152,7 @@
 				{/each}
 			</div>
 		{/if}
-		{#if pesanGrup}<p class="text-sm" role="status">{pesanGrup}</p>{/if}
+		{#if pesanGrup}<p class="text-sm {pesanGrup.galat ? 'text-danger' : ''}" role={pesanGrup.galat ? 'alert' : 'status'}>{pesanGrup.teks}</p>{/if}
 		{#if hasilUji.length}
 			<ul class="grid gap-1 text-sm">
 				{#each hasilUji as h (h.topik)}
@@ -172,7 +190,7 @@
 				{/each}
 			</fieldset>
 		{/each}
-		{#if pesanAtur}<p class="text-sm" role="status">{pesanAtur}</p>{/if}
+		{#if pesanAtur}<p class="text-sm {pesanAtur.galat ? 'text-danger' : ''}" role={pesanAtur.galat ? 'alert' : 'status'}>{pesanAtur.teks}</p>{/if}
 		<div><button type="submit" disabled={memproses} class="{tombol} bg-brand text-on-brand">Simpan pengaturan</button></div>
 	</form>
 
@@ -180,10 +198,11 @@
 		<h2 class="mt-8 font-display text-2xl">Pesan gagal terkirim</h2>
 		<p class="mt-1 max-w-prose text-sm text-muted">Sudah dicoba 10 kali. Periksa grup/bot, lalu kirim ulang.</p>
 		<button type="button" class="mt-2 {tombol} bg-surface-2" disabled={memproses} onclick={() => ulang(null)}>Kirim ulang semua</button>
+		{#if pesanGagal}<p class="mt-2 text-sm {pesanGagal.galat ? 'text-danger' : ''}" role={pesanGagal.galat ? 'alert' : 'status'}>{pesanGagal.teks}</p>{/if}
 		<ul class="mt-3 grid gap-2">
 			{#each st.gagal as g (g.id)}
 				<li class="grid gap-1 rounded-2xl border border-warn bg-surface p-3 text-sm">
-					<p class="font-semibold">{formatWaktuWib(g.dibuat_at)} WIB · {g.jenis}</p>
+					<p class="font-semibold">{formatWaktuWib(g.dibuat_at)} WIB · {labelJenis(g.jenis)}</p>
 					<p class="line-clamp-2 whitespace-pre-line text-muted">{teksPolos(g.cuplikan)}</p>
 					{#if g.galat}<p class="text-danger">{g.galat}</p>{/if}
 					<div><button type="button" class="min-h-11 rounded-xl bg-surface-2 px-3 font-semibold" disabled={memproses} onclick={() => ulang(g.id)}>Kirim ulang</button></div>

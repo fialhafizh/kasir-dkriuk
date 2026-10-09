@@ -12,6 +12,8 @@ language plpgsql stable security definer set search_path = '' as $$
 declare
   o record;
   r record;
+  v_dari timestamptz := p_tanggal::timestamp at time zone 'Asia/Jakarta';
+  v_sampai timestamptz := (p_tanggal + 1)::timestamp at time zone 'Asia/Jakarta';
   v_teks text;
   v_total bigint := 0;
   v_kanal text;
@@ -21,13 +23,13 @@ begin
   for o in select id, nama from public.outlets where aktif order by kode loop
     select count(*) as n, coalesce(sum(total), 0)::bigint as total into r
     from public.penjualan
-    where outlet_id = o.id and void_at is null and (waktu at time zone 'Asia/Jakarta')::date = p_tanggal;
+    where outlet_id = o.id and void_at is null and waktu >= v_dari and waktu < v_sampai;
     v_total := v_total + r.total;
     v_teks := v_teks || e'\n\n<b>' || public._tg_esc(o.nama) || '</b> — ' || public._tg_rp(r.total) || ' (' || r.n || ' transaksi)';
     select string_agg(public._tg_metode(x.metode::text) || ' ' || public._tg_rp(x.total), ' · ' order by x.metode) into v_kanal
     from (
       select metode, sum(total)::bigint as total from public.penjualan
-      where outlet_id = o.id and void_at is null and (waktu at time zone 'Asia/Jakarta')::date = p_tanggal
+      where outlet_id = o.id and void_at is null and waktu >= v_dari and waktu < v_sampai
       group by metode
     ) x;
     if v_kanal is not null then
@@ -53,7 +55,7 @@ begin
     select row_number() over (order by sum(i.qty) desc, i.nama) as no, i.nama, sum(i.qty) as qty
     from public.penjualan_item i
     join public.penjualan p on p.id = i.penjualan_id
-    where p.void_at is null and (p.waktu at time zone 'Asia/Jakarta')::date = p_tanggal
+    where p.void_at is null and p.waktu >= v_dari and p.waktu < v_sampai
     group by i.nama
     order by 1
     limit 5
@@ -62,6 +64,20 @@ begin
     v_teks := v_teks || e'\n\n<b>Menu terlaris</b>\n' || v_baris;
   end if;
   return v_teks;
+end
+$$;
+
+-- Kunci rahasia pemanggil mode kirim; dibuat acak di Vault saat migrasi (server saja), tidak pernah di kode.
+create function public._tg_kunci_cron() returns text
+language plpgsql stable security definer set search_path = '' as $$
+declare
+  v text;
+begin
+  if not exists (select 1 from pg_extension where extname = 'supabase_vault') then
+    return null;
+  end if;
+  execute 'select decrypted_secret from vault.decrypted_secrets where name = $1' into v using 'telegram_cron_kunci';
+  return v;
 end
 $$;
 
@@ -76,15 +92,21 @@ begin
   if v.chat_id is null then
     return;
   end if;
-  if (p_sekarang at time zone 'Asia/Jakarta')::time >= v.jam_harian and coalesce(v.harian_terakhir < v_hari, true) then
-    perform public._tg_antre('harian', 'harian:' || v_hari, public._tg_harian(v_hari));
-    update public.telegram_pengaturan set harian_terakhir = v_hari where id;
-  end if;
-  if v.fungsi_url is not null and to_regproc('net.http_post') is not null and exists (
+  -- Galat ringkasan tidak boleh menghentikan pengiriman pesan lain.
+  begin
+    if (p_sekarang at time zone 'Asia/Jakarta')::time >= v.jam_harian and coalesce(v.harian_terakhir < v_hari, true) then
+      perform public._tg_antre('harian', 'harian:' || v_hari, public._tg_harian(v_hari));
+      update public.telegram_pengaturan set harian_terakhir = v_hari where id;
+    end if;
+  exception when others then
+    raise warning 'telegram harian: %', sqlerrm;
+  end;
+  if v.fungsi_url is not null and exists (select 1 from pg_extension where extname = 'pg_net') and exists (
     select 1 from public.telegram_antrean where terkirim_at is null and percobaan < 10 and kirim_lagi_at <= p_sekarang
   ) then
-    execute 'select net.http_post(url := $1, body := $2, headers := $3, timeout_milliseconds := 30000)'
-    using v.fungsi_url, '{"aksi":"kirim"}'::jsonb, '{"Content-Type":"application/json"}'::jsonb;
+    execute 'select net.http_post(url := $1, body := $2, headers := $3, timeout_milliseconds := 60000)'
+    using v.fungsi_url, '{"aksi":"kirim"}'::jsonb,
+      jsonb_build_object('Content-Type', 'application/json', 'x-kunci-cron', coalesce(public._tg_kunci_cron(), ''));
   end if;
 end
 $$;
@@ -165,14 +187,27 @@ end
 $$;
 
 -- ---------- Antrean untuk Edge Function (service_role) ----------
--- Ambil pesan siap kirim & pinjam 2 menit (pemanggil lain melewatinya), urut dibuat.
-create function public._tg_ambil(p_batas integer default 20)
-returns table (id bigint, chat_id bigint, thread_id bigint, teks text)
-language sql security definer set search_path = '' as $$
+-- Ambil pesan siap kirim & pinjam 2 menit, urut dibuat. Hanya satu pengirim (p_pengirim) dalam satu waktu;
+-- selama jeda batas kecepatan Telegram tidak ada yang diambil.
+create function public._tg_ambil(p_pengirim uuid, p_batas integer default 10)
+returns table (id bigint, chat_id bigint, topik text, thread_id bigint, teks text)
+language plpgsql security definer set search_path = '' as $$
+#variable_conflict use_column
+declare
+  v public.telegram_pengaturan;
+begin
+  update public.telegram_pengaturan s
+  set pengirim = p_pengirim, pengirim_sampai = now() + interval '90 seconds'
+  where s.id and s.chat_id is not null and coalesce(s.jeda_sampai <= now(), true)
+    and (s.pengirim = p_pengirim or coalesce(s.pengirim_sampai <= now(), true))
+  returning * into v;
+  if not found then
+    return;
+  end if;
+  return query
   with c as (
     select a.id from public.telegram_antrean a
     where a.terkirim_at is null and a.percobaan < 10 and a.kirim_lagi_at <= now()
-      and exists (select 1 from public.telegram_pengaturan s where s.id and s.chat_id is not null)
     order by a.id
     limit least(greatest(p_batas, 1), 50)
     for update skip locked
@@ -182,9 +217,20 @@ language sql security definer set search_path = '' as $$
     from c where a.id = c.id
     returning a.id, a.topik, a.teks
   )
-  select u.id, s.chat_id, (s.topik ->> u.topik)::bigint, u.teks
-  from u cross join public.telegram_pengaturan s where s.id
-  order by u.id
+  select u.id, v.chat_id, u.topik, (v.topik ->> u.topik)::bigint, u.teks from u order by u.id;
+end
+$$;
+
+-- Pengirim selesai: lepaskan giliran.
+create function public._tg_selesai(p_pengirim uuid) returns void
+language sql security definer set search_path = '' as $$
+  update public.telegram_pengaturan set pengirim = null, pengirim_sampai = null where id and pengirim = p_pengirim
+$$;
+
+-- Topik dihapus di grup: lupakan id-nya (pesan berikutnya ke General) sampai admin menekan Hubungkan ulang.
+create function public._tg_topik_hilang(p_topik text) returns void
+language sql security definer set search_path = '' as $$
+  update public.telegram_pengaturan set topik = topik - p_topik where id
 $$;
 
 -- Hasil kirim. p_tunda_detik = retry_after dari Telegram (batas kecepatan): tidak dihitung sebagai percobaan gagal.
@@ -196,6 +242,7 @@ begin
   elsif p_tunda_detik is not null then
     update public.telegram_antrean set kirim_lagi_at = now() + make_interval(secs => greatest(p_tunda_detik, 1)), galat = left(p_galat, 300)
     where id = p_id;
+    update public.telegram_pengaturan set jeda_sampai = now() + make_interval(secs => greatest(p_tunda_detik, 1)) where id;
   else
     update public.telegram_antrean
     set percobaan = percobaan + 1,
@@ -207,8 +254,10 @@ end
 $$;
 
 revoke execute on function public._tg_hari(date), public._tg_harian(date), public._tg_tiap_menit(timestamptz), public._tg_wajib_admin(),
-  public._tg_ambil(integer), public._tg_hasil(bigint, boolean, text, integer) from public, anon, authenticated;
-grant execute on function public._tg_ambil(integer), public._tg_hasil(bigint, boolean, text, integer) to service_role;
+  public._tg_ambil(uuid, integer), public._tg_hasil(bigint, boolean, text, integer), public._tg_selesai(uuid),
+  public._tg_topik_hilang(text), public._tg_kunci_cron() from public, anon, authenticated;
+grant execute on function public._tg_ambil(uuid, integer), public._tg_hasil(bigint, boolean, text, integer), public._tg_selesai(uuid),
+  public._tg_topik_hilang(text), public._tg_kunci_cron() to service_role;
 revoke execute on function public.telegram_status(), public.simpan_telegram(jsonb), public.kirim_ulang_telegram(bigint) from public, anon;
 grant execute on function public.telegram_status(), public.simpan_telegram(jsonb), public.kirim_ulang_telegram(bigint) to authenticated;
 
@@ -219,6 +268,10 @@ begin
      and exists (select 1 from pg_available_extensions where name = 'pg_net') then
     create extension if not exists pg_net with schema extensions;
     create extension if not exists pg_cron with schema pg_catalog;
+    if exists (select 1 from pg_extension where extname = 'supabase_vault')
+       and not exists (select 1 from vault.secrets where name = 'telegram_cron_kunci') then
+      perform vault.create_secret(replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', ''), 'telegram_cron_kunci');
+    end if;
     perform cron.schedule('telegram-tiap-menit', '* * * * *', 'select public._tg_tiap_menit()');
   end if;
 end

@@ -1,11 +1,11 @@
 // Edge Function: notifikasi Telegram. Token bot hanya di secret TELEGRAM_BOT_TOKEN.
-//   kirim     — dipanggil pg_cron tiap menit (tanpa sesi): mengirim pesan di antrean. Aman dipanggil siapa pun:
-//               hanya mengirim yang sudah diantre database ke grup yang sudah diatur admin.
+//   kirim     — dipanggil pg_cron tiap menit dengan header x-kunci-cron (kunci acak di Vault): mengirim antrean.
 //   hubungkan — admin: mengenali grup tempat bot menjadi admin, membuat topik, menyimpan pengaturan.
 //   uji       — admin: kirim pesan uji ke tiap topik.
 import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.117.2';
 import { kunciServis } from '../_shared/akun.ts';
-import { badanPesan, bacaPerintah, calonGrup, nilaiBalasan, TOPIK, topikKurang, type HasilKirim, type KunciTopik } from '../_shared/telegram.ts';
+import { badanPesan, bacaPerintah, calonGrup, escHtml, nilaiBalasan, samaKunci, TOPIK, topikKurang, type HasilKirim, type KunciTopik } from '../_shared/telegram.ts';
+import { kirimAntrean, type PesanAntre } from '../_shared/telegram-kirim.ts';
 
 const CORS = {
 	'Access-Control-Allow-Origin': '*',
@@ -23,7 +23,7 @@ function buatBot(token: string): Bot {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(badan ?? {}),
-			signal: AbortSignal.timeout(15_000)
+			signal: AbortSignal.timeout(10_000)
 		});
 		return { status: r.status, json: (await r.json().catch(() => ({}))) as Record<string, unknown> };
 	};
@@ -38,26 +38,27 @@ async function kirimSatu(bot: Bot, chatId: number, threadId: number | null, teks
 	}
 }
 
-async function kirimAntrean(db: SupabaseClient, bot: Bot) {
-	let terkirim = 0;
-	let gagal = 0;
-	// Beberapa putaran dalam satu panggilan; berhenti bila antrean habis atau kena batas kecepatan.
-	for (let putaran = 0; putaran < 3; putaran++) {
-		const { data, error } = await db.rpc('_tg_ambil', { p_batas: 20 });
-		if (error) throw error;
-		const daftar = (data ?? []) as { id: number; chat_id: number; thread_id: number | null; teks: string }[];
-		if (!daftar.length) break;
-		for (const p of daftar) {
-			const h = await kirimSatu(bot, p.chat_id, p.thread_id, p.teks);
-			await db.rpc('_tg_hasil', h.ok ? { p_id: p.id, p_ok: true } : { p_id: p.id, p_ok: false, p_galat: h.galat, p_tunda_detik: h.tundaDetik ?? null });
-			if (h.ok) terkirim++;
-			else gagal++;
-			// Batas kecepatan: sisa pesan yang dipinjam akan diambil lagi setelah masa pinjam habis.
-			if (!h.ok && h.tundaDetik) return { terkirim, gagal };
-			await new Promise((r) => setTimeout(r, 1100));
-		}
-	}
-	return { terkirim, gagal };
+function kirimDariAntrean(db: SupabaseClient, bot: Bot) {
+	const pengirim = crypto.randomUUID();
+	const rpc = async (nama: string, args: Record<string, unknown>) => {
+		const { data, error } = await db.rpc(nama, args);
+		if (error) console.error(`telegram ${nama}:`, error.code ?? 'galat');
+		return data;
+	};
+	return kirimAntrean({
+		ambil: async () => {
+			const { data, error } = await db.rpc('_tg_ambil', { p_pengirim: pengirim, p_batas: 10 });
+			if (error) throw error;
+			return (data ?? []) as PesanAntre[];
+		},
+		hasil: async (id, h) =>
+			void (await rpc('_tg_hasil', h.ok ? { p_id: id, p_ok: true } : { p_id: id, p_ok: false, p_galat: h.galat, p_tunda_detik: h.tundaDetik ?? null })),
+		topikHilang: async (topik) => void (await rpc('_tg_topik_hilang', { p_topik: topik })),
+		selesai: async () => void (await rpc('_tg_selesai', { p_pengirim: pengirim })),
+		kirim: (p) => kirimSatu(bot, p.chat_id, p.thread_id, p.teks),
+		tunggu: (ms) => new Promise((r) => setTimeout(r, ms)),
+		sekarang: () => Date.now()
+	});
 }
 
 async function hubungkan(db: SupabaseClient, bot: Bot, pilih: number | undefined) {
@@ -86,24 +87,31 @@ async function hubungkan(db: SupabaseClient, bot: Bot, pilih: number | undefined
 	}
 
 	const topik: Partial<Record<KunciTopik, number>> = Number(atur?.chat_id) === dipilih.chat_id ? { ...(atur?.topik ?? {}) } : {};
+	// Disimpan setelah setiap topik dibuat: kegagalan di tengah tidak membuat topik ganda saat dicoba lagi.
+	const simpan = async () => {
+		const { error } = await db
+			.from('telegram_pengaturan')
+			.update({
+				chat_id: dipilih.chat_id,
+				chat_judul: dipilih.judul,
+				topik,
+				fungsi_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/telegram`,
+				diubah_at: new Date().toISOString()
+			})
+			.eq('id', true);
+		if (error) throw error;
+	};
+	await simpan();
+	let dibuat = 0;
 	for (const t of topikKurang(topik)) {
 		const r = await bot('createForumTopic', { chat_id: dipilih.chat_id, name: t.nama, icon_color: t.warna });
 		const id = (r.json.result as { message_thread_id?: number } | undefined)?.message_thread_id;
-		if (!id) return json(502, { error: `Topik "${t.nama}" gagal dibuat: ${String(r.json.description ?? r.status)}` });
+		if (!id) return json(502, { error: `Topik "${t.nama}" gagal dibuat: ${String(r.json.description ?? r.status)}. Coba Hubungkan lagi.` });
 		topik[t.kunci] = id;
+		dibuat++;
+		await simpan();
 	}
-	const { error } = await db
-		.from('telegram_pengaturan')
-		.update({
-			chat_id: dipilih.chat_id,
-			chat_judul: dipilih.judul,
-			topik,
-			fungsi_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/telegram`,
-			diubah_at: new Date().toISOString()
-		})
-		.eq('id', true);
-	if (error) throw error;
-	return json(200, { ok: true, judul: dipilih.judul });
+	return json(200, { ok: true, judul: dipilih.judul, dibuat });
 }
 
 async function uji(db: SupabaseClient, bot: Bot) {
@@ -113,7 +121,7 @@ async function uji(db: SupabaseClient, bot: Bot) {
 	const hasil: { topik: string; ok: boolean; galat?: string }[] = [];
 	for (const t of TOPIK) {
 		const thread = (atur.topik as Record<string, number>)?.[t.kunci] ?? null;
-		const h = await kirimSatu(bot, Number(atur.chat_id), thread, `✅ Pesan uji dari Kasir D'Kriuk untuk topik <b>${t.nama}</b> · ${jam} WIB`);
+		const h = await kirimSatu(bot, Number(atur.chat_id), thread, `✅ Pesan uji dari Kasir D'Kriuk untuk topik <b>${escHtml(t.nama)}</b> · ${jam} WIB`);
 		hasil.push({ topik: t.nama, ok: h.ok, ...(h.ok ? {} : { galat: h.galat }) });
 	}
 	return json(200, { ok: hasil.every((h) => h.ok), hasil });
@@ -143,7 +151,11 @@ Deno.serve(async (req) => {
 	const p = hasil.perintah;
 
 	try {
-		if (p.aksi === 'kirim') return json(200, { ok: true, ...(await kirimAntrean(db, bot)) });
+		if (p.aksi === 'kirim') {
+			const { data: kunciCron } = await db.rpc('_tg_kunci_cron');
+			if (!samaKunci(req.headers.get('x-kunci-cron'), kunciCron as string | null)) return json(401, { error: 'Tidak sah.' });
+			return json(200, { ok: true, ...(await kirimDariAntrean(db, bot)) });
+		}
 
 		// verify_jwt dimatikan (sistem kunci baru); sesi admin diperiksa di sini.
 		const sesi = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');

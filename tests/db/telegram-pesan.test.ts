@@ -196,4 +196,41 @@ describe('pesan Telegram dari transaksi', () => {
 		await tutup(s, 0);
 		expect(await nilai<boolean>('select ditutup_at is not null as v from public.shift where id = $1', [s])).toBe(true);
 	});
+	it('transaksi tunai yang sampai setelah tutup toko → koreksi selisih', async () => {
+		const s = await buka(180, 100000);
+		await tutup(s, 110000);
+		expect(await pesan('selisih_kas')).toHaveLength(1);
+		await jual(s, 2, 120);
+		const k = await pesan('selisih_kas');
+		expect(k).toHaveLength(2);
+		expect(k[1].teks).toContain('Koreksi tutup toko');
+		expect(k[1].teks).toContain('selisih kini <b>Rp0</b>');
+	});
+
+	it('pesan sangat panjang dipotong di akhir baris', async () => {
+		const baris = Array.from({ length: 300 }, (_, i) => `<b>Baris ${i}</b> &amp; isi`).join('\n');
+		const t = await nilai<string>('select public._tg_potong($1) as v', [baris]);
+		expect(t.length).toBeLessThanOrEqual(4000);
+		expect(t.endsWith('\n…')).toBe(true);
+		expect(t.split('\n').slice(0, -1).every((l) => /^<b>Baris \d+<\/b> &amp; isi$/.test(l))).toBe(true);
+	});
+
+	it('lapor_ditolak paling banyak 10 per jam', async () => {
+		for (let i = 0; i < 12; i++)
+			await rpc(db, kasirBL, 'public.lapor_ditolak($1::jsonb)', [JSON.stringify({ id: crypto.randomUUID(), outlet_id: await BL(), jenis: 'jual', alasan: 'x' })]);
+		expect(await pesan('ditolak')).toHaveLength(10);
+	});
+
+	it('cek stok hanya memuat baris bahan yang bergerak (beserta anggota pack-nya)', async () => {
+		const dada = await nilai<string>(`select id as v from public.bahan where kode = 'ori_dada'`);
+		const rows = (await db.query<{ label: string }>('select label from public._tg_status_stok($1, $2)', [await BL(), [dada]])).rows;
+		expect(rows.map((r) => r.label)).toEqual(['Ayam Ori']);
+	});
+
+	it('tutup toko tanpa konteks login (mis. skrip servis) tetap terkirim', async () => {
+		const s = await buka(120, 0);
+		await db.query(`update public.shift set ditutup_at = now(), ditutup_oleh = $2, uang_fisik = 0 where id = $1`, [s, kasirBL]);
+		expect(await pesan('tutup')).toHaveLength(1);
+	});
 });
+
