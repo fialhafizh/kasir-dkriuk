@@ -24,7 +24,7 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 | 6 | Telegram: struk, ringkasan tutup toko & harian, peringatan, kas (grup bertopik) | Selesai, di main & aktif di server — uji owner menunggu |
 | 7a | Dasbor yang bisa dirakit (seperti Kibana): banyak dasbor, panel dari katalog, seret & ubah ukuran, siklus stok, riwayat kejadian | Selesai, di main — uji owner menunggu |
 | 7b | Analisis kebocoran (perkiraan): untung per menu, susut & terbuang rupiah, minyak/tepung, proyeksi; rincian kasbon di Gajian | Selesai, di main — uji owner menunggu |
-| 7c | Alat: rekonsiliasi ojol, rencana belanja, ekspor PDF/Excel | Belum |
+| 7c | Rencana belanja (salin WA/Telegram), ringkasan gaji, laporan ojol, ekspor Excel di semua data, cetak/PDF | Selesai di cabang |
 | 8 | Rilis: uji menyeluruh, panduan pengguna | Belum |
 
 ---
@@ -145,6 +145,12 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - **Proyeksi**: laba riil hari yang sudah selesai (tanggal 1 s.d. kemarin) dirata-rata per hari × hari sebulan (sewa & gaji dihitung per hari penuh); tanggal 1 belum ada proyeksi; dibanding bulan lalu.
 - Dasbor mendapat sumber **Untung per menu**, **Susut opname**, dan nilai rupiah untuk **Sisa / terbuang**.
 - **Kasbon** (contoh owner: Dira 50 rb + 100 rb + 250 rb): setiap pinjaman tercatat langsung (kasir di menu Kas / admin); gajian otomatis memotong seluruh sisa (400 rb), admin boleh mengubah (mis. 200 rb dulu), sisanya otomatis terisi di gajian berikutnya. Gajian kini menampilkan **rincian kasbon** (tanggal, jumlah, dari laci/owner, dicatat oleh, sudah/sebagian/belum dipotong — urut tanggal tertua).
+
+### Tahap 7c — Alat (keputusan owner 10 Okt 2026)
+- **Ojol**: kasir mencatat pesanan ojol dengan harga toko; owner sendiri mencocokkan dengan pencairan. Aplikasi memberi **laporan per aplikasi** (pesanan & total harga toko per hari/periode) di **Admin → Ojol**.
+- **Rencana belanja** (Admin → Belanja), seperti tabel belanja stokis owner: saran beli **per outlet** = pemakaian rata-rata 7 hari terakhir × jumlah hari (awal 7) − stok sekarang, dibulatkan ke atas per pack/karung; tepung/minyak/plastik merah dari rata-rata pembelian 4 minggu. Contoh owner: Bukit Lama perlu 80 Ori seminggu, sisa 10 → 70. Angka bisa diubah (berlaku hari itu), ada harga satuan, harga total & jumlah. **Salin untuk WA** dan **Kirim ke Telegram** (topik 💰 Kas) agar bisa disalin dari HP.
+- **Ringkasan gaji** (Admin → Gaji) seperti tabel gaji owner: nama, gaji/hari, hari masuk, gaji sebulan, kasbon, total + jumlah; per outlet atau semua; salin WA / Telegram / Excel.
+- **Setiap data yang tampil bisa diekspor ke Excel** (.xlsx, angka tetap angka): panel dasbor, Analisis, Belanja, Gaji, Ojol, Laba-rugi, Kas harian, Setoran, Pengeluaran, Penjualan; tombol **Cetak** untuk PDF.
 
 ## Catatan penting untuk tahap berikutnya
 
