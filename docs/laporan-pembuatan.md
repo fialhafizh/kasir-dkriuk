@@ -23,7 +23,7 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 | 5b | Gaji & kasbon, biaya tetap (sewa), laba-rugi sederhana, arus kas | Selesai, di main — uji owner menunggu |
 | 6 | Telegram: struk, ringkasan tutup toko & harian, peringatan, kas (grup bertopik) | Selesai, di main & aktif di server — uji owner menunggu |
 | 7a | Dasbor yang bisa dirakit (seperti Kibana): banyak dasbor, panel dari katalog, seret & ubah ukuran, siklus stok, riwayat kejadian | Selesai, di main — uji owner menunggu |
-| 7b | Analisis kebocoran: laba per menu, susut, nilai terbuang, minyak/tepung, proyeksi | Belum |
+| 7b | Analisis kebocoran (perkiraan): untung per menu, susut & terbuang rupiah, minyak/tepung, proyeksi; rincian kasbon di Gajian | Selesai di cabang |
 | 7c | Alat: rekonsiliasi ojol, rencana belanja, ekspor PDF/Excel | Belum |
 | 8 | Rilis: uji menyeluruh, panduan pengguna | Belum |
 
@@ -134,6 +134,17 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - Panel khusus: **status stok**, **uang di laci**, **riwayat kejadian** (semua kejadian dengan jamnya), **siklus stok** (lini waktu stok, berapa kali & berapa lama sekali habis, rata-rata bertahan sejak barang masuk, pemakaian per hari, perkiraan habis).
 - Dasbor bawaan **Ringkasan** (bisa dikembalikan ke isi awal): angka utama, omzet per hari per outlet, kanal, menu terlaris, bahan paling terpakai, terbuang per hari per alasan, jam ramai, perbandingan outlet, Ori vs Hot, status stok, riwayat.
 - "Potong ayam" = item kategori ayam; kulit, nasi, box terpisah. Semua tampilan bahasa Indonesia.
+
+### Tahap 7b — Analisis kebocoran (keputusan owner 9–10 Okt 2026)
+- **Laba riil tetap** rumus sederhana di Laba-rugi; semua analisis 7b berlabel **perkiraan**.
+- **Modal bahan** = rata-rata harga barang masuk di periode itu; bila tidak ada pembelian, harga acuan di Harga Beli.
+- **Modal pack ayam** dibagi ke tiap potongan **sebanding harga jual** potongan (dada menanggung lebih besar dari sayap); jumlahnya = harga pack. Bila satu potongan tidak punya harga jual, pack dibagi rata.
+- **Untung tipis** bila untung kotor per porsi < batas (awal **30%**, bisa diubah). Menu yang sebagian bahannya belum punya harga ditandai "modal belum lengkap" (tidak dihitung).
+- **Susut** = selisih opname disetujui × modal; **terbuang** = catatan sisa/rusak × modal (rupiah, per alasan).
+- **Minyak & tepung**: di antara dua pembelian, potong ayam + porsi kulit terjual → potong per liter/kg & biaya per potong; rasio tepung D'Kriuk : Tepung A (peringatan di luar 40–60% bila keduanya dibeli).
+- **Proyeksi**: omzet & laba riil bulan berjalan dirata-rata per hari (pecahan hari) × hari sebulan; dibanding bulan lalu.
+- Dasbor mendapat sumber **Untung per menu**, **Susut opname**, dan nilai rupiah untuk **Sisa / terbuang**.
+- **Kasbon** (contoh owner: Dira 50 rb + 100 rb + 250 rb): setiap pinjaman tercatat langsung (kasir di menu Kas / admin); gajian otomatis memotong seluruh sisa (400 rb), admin boleh mengubah (mis. 200 rb dulu), sisanya otomatis terisi di gajian berikutnya. Gajian kini menampilkan **rincian kasbon** (tanggal, jumlah, dari laci/owner, dicatat oleh, sudah/sebagian/belum dipotong — urut tanggal tertua).
 
 ## Catatan penting untuk tahap berikutnya
 
