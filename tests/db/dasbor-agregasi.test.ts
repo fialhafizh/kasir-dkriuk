@@ -174,4 +174,22 @@ describe('agregasi dasbor', () => {
 		expect((await hitung({ sumber: 'tutup_toko', ukuran: ['selisih', 'banyak'] }, dari, sampai)).baris[0].n).toEqual([9000 - 2 * (await harga('nasi')), 1]);
 		expect((await hitung({ sumber: 'setoran', ukuran: ['dicatat', 'diterima', 'selisih'] }, dari, sampai)).baris[0].n).toEqual([8000, 7500, -500]);
 	});
+
+	it('sumber 7b: untung per menu, nilai terbuang & susut memakai modal outlet', async () => {
+		const o = await idOutlet(db, 'BL');
+		const sat = async (k: string) => nilai<string>('select id as v from public.satuan_beli where kode = $1', [k]);
+		await db.query('insert into public.harga_beli (outlet_id, satuan_beli_id, harga) values ($1, $2, 12345), ($1, $3, 4321)', [o, await sat('beras_kg'), await sat('pack_kertas_nasi')]);
+		await jual(kasirBL, 'BL', [['nasi', 4]]);
+		const [dari, sampai] = await hariIni();
+		const u = await hitung({ sumber: 'untung_menu', ukuran: ['untung', 'modal', 'omzet'], kelompok: [{ kolom: 'menu' }] }, dari, sampai);
+		const modal = Math.round(4 * (1234.5 + 43.21));
+		expect(u.baris).toEqual([{ k: [expect.any(String)], l: ['Nasi'], n: [4 * (await harga('nasi')) - modal, modal, 4 * (await harga('nasi'))] }]);
+		await rpc(db, kasirBL, 'public.catat_rusak_offline($1::jsonb)', [
+			JSON.stringify({ id: crypto.randomUUID(), outlet_id: o, alasan: 'basi', waktu: await sekarang(), item: await isian(db, [['beras', 2]]) })
+		]);
+		const t = await hitung({ sumber: 'terbuang', ukuran: ['jumlah', 'nilai'] }, dari, sampai);
+		expect(t.baris[0].n).toEqual([2, 2 * 12345]);
+		const s = await hitung({ sumber: 'susut', ukuran: ['nilai'] }, dari, sampai);
+		expect(s.baris[0].n).toEqual([0]);
+	});
 });

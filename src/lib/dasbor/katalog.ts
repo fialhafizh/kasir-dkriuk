@@ -4,12 +4,14 @@ export const KATALOG = {
 	penjualan: { ukuran: ['omzet', 'transaksi', 'rata_rata'], kelompok: ['waktu', 'outlet', 'kanal', 'kasir', 'jam', 'hari'] },
 	item: { ukuran: ['jumlah', 'rupiah'], kelompok: ['waktu', 'outlet', 'menu', 'kategori', 'varian', 'kanal'] },
 	pemakaian: { ukuran: ['jumlah'], kelompok: ['waktu', 'outlet', 'bahan'] },
-	terbuang: { ukuran: ['jumlah'], kelompok: ['waktu', 'outlet', 'bahan', 'alasan'] },
+	terbuang: { ukuran: ['jumlah', 'nilai'], kelompok: ['waktu', 'outlet', 'bahan', 'alasan'] },
 	barang_masuk: { ukuran: ['rupiah', 'jumlah'], kelompok: ['waktu', 'outlet', 'barang'] },
 	pengeluaran: { ukuran: ['rupiah'], kelompok: ['waktu', 'outlet', 'kategori', 'sumber'] },
 	setoran: { ukuran: ['dicatat', 'diterima', 'selisih'], kelompok: ['waktu', 'outlet'] },
 	tutup_toko: { ukuran: ['selisih', 'banyak'], kelompok: ['waktu', 'outlet', 'kasir'] },
-	batal: { ukuran: ['banyak', 'rupiah'], kelompok: ['waktu', 'outlet', 'kasir', 'kanal'] }
+	batal: { ukuran: ['banyak', 'rupiah'], kelompok: ['waktu', 'outlet', 'kasir', 'kanal'] },
+	untung_menu: { ukuran: ['untung', 'modal', 'omzet'], kelompok: ['waktu', 'outlet', 'menu', 'kategori', 'varian'] },
+	susut: { ukuran: ['nilai', 'jumlah'], kelompok: ['waktu', 'outlet', 'bahan'] }
 } as const;
 
 export type Sumber = keyof typeof KATALOG;
@@ -24,7 +26,9 @@ export const LABEL_SUMBER: Record<Sumber, string> = {
 	pengeluaran: 'Pengeluaran',
 	setoran: 'Setoran',
 	tutup_toko: 'Tutup toko',
-	batal: 'Batal transaksi'
+	batal: 'Batal transaksi',
+	untung_menu: 'Untung per menu (perkiraan)',
+	susut: 'Susut opname'
 };
 
 const LABEL_UKURAN: Record<string, string> = {
@@ -36,11 +40,15 @@ const LABEL_UKURAN: Record<string, string> = {
 	dicatat: 'Dicatat kasir',
 	diterima: 'Diterima',
 	selisih: 'Selisih',
-	banyak: 'Banyak'
+	banyak: 'Banyak',
+	untung: 'Untung kotor',
+	modal: 'Modal',
+	nilai: 'Nilai (Rp)'
 };
 /** Ukuran yang nilainya rupiah. */
 const RUPIAH = new Set(['penjualan.omzet', 'penjualan.rata_rata', 'item.rupiah', 'barang_masuk.rupiah', 'pengeluaran.rupiah', 'setoran.dicatat',
-	'setoran.diterima', 'setoran.selisih', 'tutup_toko.selisih', 'batal.rupiah']);
+	'setoran.diterima', 'setoran.selisih', 'tutup_toko.selisih', 'batal.rupiah', 'terbuang.nilai', 'untung_menu.untung', 'untung_menu.modal',
+	'untung_menu.omzet', 'susut.nilai']);
 
 export const labelUkuran = (u: string) => LABEL_UKURAN[u] ?? u;
 export const ukuranRupiah = (sumber: string, u: string) => RUPIAH.has(`${sumber}.${u}`);

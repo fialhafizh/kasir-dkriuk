@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { pesanDasbor } from './api';
@@ -14,7 +14,9 @@ const sql = ['20261013000029_dasbor_skema.sql', '20261013000030_dasbor_agregasi.
 
 describe('katalog & pesan sama dengan server', () => {
 	it('katalog klien = _dasbor_katalog', () => {
-		const json = sql.match(/_dasbor_katalog\(\) returns jsonb[\s\S]*?select '(\{[\s\S]*?\})'::jsonb/)![1];
+		// definisi terakhir (migrasi berikutnya mengganti dengan create or replace)
+		const semua = readdirSync(dir).filter((f) => f.endsWith('.sql')).sort().map((f) => readFileSync(join(dir, f), 'utf8')).join('\n');
+		const json = [...semua.matchAll(/_dasbor_katalog\(\) returns jsonb[\s\S]*?select '(\{[\s\S]*?\})'::jsonb/g)].at(-1)![1];
 		expect(JSON.parse(json)).toEqual(KATALOG);
 	});
 	it('semua pesan resmi diteruskan apa adanya', () => {
