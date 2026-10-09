@@ -417,3 +417,7 @@ enabled = true
 [functions.admin-akun]
 # Sesi diperiksa di dalam fungsi (getUser + profil admin aktif); gateway tidak bisa memverifikasi JWT kunci baru.
 verify_jwt = false
+
+[functions.telegram]
+# Mode `kirim` dipanggil pg_cron tanpa sesi; mode admin memeriksa sesi di dalam fungsi (getUser + profil admin aktif).
+verify_jwt = false

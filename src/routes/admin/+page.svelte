@@ -28,7 +28,8 @@
 		{ path: '/admin/bahan', judul: 'Bahan', isi: 'Isi pack dan ambang stok menipis.' },
 		{ path: '/admin/harga-beli', judul: 'Harga Beli', isi: 'Harga beli bahan per outlet.' },
 		{ path: '/admin/akun', judul: 'Akun', isi: 'Tambah kasir, reset password, nonaktifkan akun.' },
-		{ path: '/admin/perangkat', judul: 'Perangkat', isi: 'HP/tablet kasir, jam sinkron terakhir, data yang diabaikan kasir.' }
+		{ path: '/admin/perangkat', judul: 'Perangkat', isi: 'HP/tablet kasir, jam sinkron terakhir, data yang diabaikan kasir.' },
+		{ path: '/admin/telegram', judul: 'Telegram', isi: 'Laporan otomatis ke grup: struk, tutup toko, ringkasan harian, peringatan, kas.' }
 	];
 </script>
 

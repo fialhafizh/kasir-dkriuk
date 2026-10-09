@@ -52,6 +52,21 @@ describe('antrean kejadian', () => {
 		const a = await db.kejadian.where('id').equals('a').first();
 		expect(a).toMatchObject({ status: 'ditolak', alasan: 'Shift sudah ditutup.' });
 	});
+	it('ditolak server dilaporkan ke owner (sekali kirim); laporan gagal tidak menghambat; jaringan tidak dilaporkan', async () => {
+		await tambahKejadian(db, k('a', 'terima_transfer', null));
+		await tambahKejadian(db, k('b', 'jual', 's2'));
+		await tambahKejadian(db, k('c', 'jual', 's3'));
+		const lapor: string[] = [];
+		const p = {
+			...pengirim({ a: 'tolak', c: 'putus' }),
+			async laporDitolak(x: Kejadian, alasan: string) {
+				lapor.push(`${x.id}:${alasan}`);
+				throw new Error('server tidak terjangkau');
+			}
+		};
+		expect(await kirimAntrean(db, p)).toEqual({ terkirim: 1, ditolak: 1, berhenti: 'jaringan' });
+		expect(lapor).toEqual(['a:Shift sudah ditutup.']);
+	});
 	it('buka toko ditolak → kejadian shift itu ikut tertahan; coba lagi melepas semuanya', async () => {
 		await tambahKejadian(db, k('buka', 'buka_shift', 's1'));
 		await tambahKejadian(db, k('j1', 'jual', 's1'));

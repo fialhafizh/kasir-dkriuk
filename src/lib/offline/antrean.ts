@@ -13,6 +13,8 @@ export class GalatKirim extends Error {
 
 export interface Pengirim {
 	kirim(k: Kejadian): Promise<unknown>;
+	/** Lapor kejadian yang ditolak server ke owner (Telegram). Tidak boleh menghambat antrean. */
+	laporDitolak?(k: Kejadian, alasan: string): Promise<void>;
 }
 
 const TERTAHAN = 'Menunggu: buka toko untuk shift ini ditolak. Selesaikan itu dulu.';
@@ -74,6 +76,7 @@ export async function kirimAntrean(
 			}
 			await db.kejadian.update(k.urut!, { status: 'ditolak', alasan: g.message, percobaan: k.percobaan + 1 });
 			ditolak++;
+			pengirim.laporDitolak?.(k, g.message).catch(() => {});
 			if (k.jenis === 'buka_shift' && k.shift_id) {
 				await db.kejadian
 					.where('shift_id')
