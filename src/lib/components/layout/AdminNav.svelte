@@ -11,6 +11,7 @@
 		{ path: '/admin/pengeluaran', label: 'Pengeluaran' },
 		{ path: '/admin/penjualan', label: 'Penjualan' },
 		{ path: '/admin/laba-rugi', label: 'Laba-rugi' },
+		{ path: '/admin/analisis', label: 'Analisis' },
 		{ path: '/admin/gaji', label: 'Gaji' },
 		{ path: '/admin/biaya-tetap', label: 'Biaya tetap' },
 		{ path: '/admin/stok', label: 'Stok' },

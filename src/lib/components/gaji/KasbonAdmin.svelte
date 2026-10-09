@@ -3,13 +3,14 @@
 	import Button from '#lib/components/ui/Button.svelte';
 	import Konfirmasi from '#lib/components/ui/Konfirmasi.svelte';
 	import { batalPengeluaran } from '#lib/kas/admin.ts';
-	import { catatKasbonAdmin, muatKasbon, type Kasbon, type RekapGaji } from '#lib/kas/gaji.ts';
+	import { catatKasbonAdmin, muatKasbon, muatNamaPencatat, type Kasbon, type RekapGaji } from '#lib/kas/gaji.ts';
 	import { formatWaktuWib } from '#lib/kasir/waktu.ts';
 	import { formatAngka, parseRupiah } from '#lib/master/rupiah.ts';
 
 	let { outletId, rekap, hariIni, onubah }: { outletId: string; rekap: RekapGaji[]; hariIni: string; onubah: () => void } = $props();
 
 	let daftar = $state<Kasbon[]>([]);
+	let pencatat = $state<Map<string, string>>(new Map());
 	let karyawanId = $state('');
 	let nominal = $state('');
 	let sumber = $state<'laci' | 'luar'>('luar');
@@ -23,7 +24,7 @@
 
 	async function muat() {
 		try {
-			daftar = await muatKasbon(outletId, new Date(Date.now() - 62 * 86_400_000).toISOString());
+			[daftar, pencatat] = await Promise.all([muatKasbon(outletId, new Date(Date.now() - 62 * 86_400_000).toISOString()), muatNamaPencatat()]);
 		} catch (e) {
 			pesan = (e as Error).message;
 		}
@@ -121,7 +122,9 @@
 						<span class="font-semibold">{nama(k.karyawan_id)} · {k.sumber === 'laci' ? 'dari laci' : 'dari owner'}</span>
 						<span class="tabular font-bold {k.batal_at ? 'line-through' : ''}">Rp{formatAngka(k.jumlah)}</span>
 					</p>
-					<p class="text-sm text-muted">{formatWaktuWib(k.waktu)}{k.keterangan ? ` · ${k.keterangan}` : ''}</p>
+					<p class="text-sm text-muted">
+						{formatWaktuWib(k.waktu)} · dicatat {(k.dicatat_oleh && pencatat.get(k.dicatat_oleh)) || '-'}{k.keterangan ? ` · ${k.keterangan}` : ''}
+					</p>
 					{#if k.batal_at}
 						<p class="text-sm text-danger">Dibatalkan: {k.batal_alasan}</p>
 					{:else}
