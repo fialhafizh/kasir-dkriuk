@@ -49,6 +49,7 @@ export function saldoLaciLokal(server: LaciServer | null, kejadian: Kejadian[], 
 				if (k.data.metode === 'cash' && !jualDiAntrean.has(String(k.data.penjualan_id ?? ''))) saldo -= angka(k.data.total);
 				break;
 			case 'pengeluaran':
+			case 'kasbon':
 			case 'setoran':
 				saldo -= angka(k.data.jumlah);
 				break;
@@ -67,7 +68,8 @@ export function kasAntrean(kejadian: Kejadian[], outletId: string, sejak: string
 	let setoran = 0;
 	for (const k of kejadian) {
 		if (k.outlet_id !== outletId || !berlaku(k, disimpanAt) || Date.parse(k.waktu) <= Date.parse(sejak)) continue;
-		if (k.jenis === 'pengeluaran') pengeluaran += angka(k.data.jumlah);
+		// Kasbon dari laci tercatat sebagai pengeluaran laci di server.
+		if (k.jenis === 'pengeluaran' || k.jenis === 'kasbon') pengeluaran += angka(k.data.jumlah);
 		if (k.jenis === 'setoran') setoran += angka(k.data.jumlah);
 	}
 	return { pengeluaran, setoran };
