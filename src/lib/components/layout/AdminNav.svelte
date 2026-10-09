@@ -14,6 +14,7 @@
 		{ path: '/admin/analisis', label: 'Analisis' },
 		{ path: '/admin/gaji', label: 'Gaji' },
 		{ path: '/admin/biaya-tetap', label: 'Biaya tetap' },
+		{ path: '/admin/belanja', label: 'Belanja' },
 		{ path: '/admin/stok', label: 'Stok' },
 		{ path: '/admin/bahan', label: 'Bahan' },
 		{ path: '/admin/menu', label: 'Menu' },

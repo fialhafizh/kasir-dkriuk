@@ -117,3 +117,11 @@ export function hubungkanGrup(chatId?: number): Promise<HasilHubungkan> {
 export function kirimUji(): Promise<{ ok: boolean; hasil: { topik: string; ok: boolean; galat?: string }[] }> {
 	return panggil({ aksi: 'uji' });
 }
+
+// Pesan resmi kirim_teks_telegram (migrasi 0036).
+const PESAN_KIRIM = /^(Jenis pesan tidak dikenal|Teks pesan kosong atau terlalu panjang|Grup Telegram belum dihubungkan|Hanya admin yang boleh membuka dasbor)/;
+/** Kirim teks (daftar belanja, ringkasan gaji, ojol) lewat bot ke topik Kas; terkirim ±1 menit. */
+export async function kirimTeks(jenis: 'belanja' | 'gaji' | 'ojol', teks: string): Promise<void> {
+	const { error } = await supabase.rpc('kirim_teks_telegram', { p_jenis: jenis, p_teks: teks });
+	if (error) throw new Error(((error.code === '22023' || error.code === '42501') && PESAN_KIRIM.test(error.message) ? `${error.message}.` : pesanKasir(error)) ?? 'Gagal mengirim.');
+}

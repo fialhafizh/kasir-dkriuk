@@ -104,3 +104,16 @@ body {
 		transition-duration: 0.01ms !important;
 	}
 }
+
+/* Cetak / simpan PDF: sembunyikan menu & tombol, latar putih. */
+@media print {
+	nav,
+	.kepala-aplikasi,
+	.tanpa-cetak {
+		display: none !important;
+	}
+	body {
+		background: #fff !important;
+		color: #000 !important;
+	}
+}
