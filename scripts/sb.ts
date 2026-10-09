@@ -3,7 +3,7 @@
 //   npm run sb -- functions deploy admin-akun --use-api
 import { spawnSync } from 'node:child_process';
 
-const rahasia = ['SUPABASE_ACCESS_TOKEN', 'SUPABASE_DB_PASSWORD', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SECRET_KEYS']
+const rahasia = ['SUPABASE_ACCESS_TOKEN', 'SUPABASE_DB_PASSWORD', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_SECRET_KEYS', 'TOKEN_BOT']
 	.map((k) => process.env[k])
 	.filter((v): v is string => !!v)
 	.flatMap((v) => [v, ...(v.match(/sb_secret_[\w-]+/g) ?? [])]);

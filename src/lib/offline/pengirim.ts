@@ -68,6 +68,12 @@ export function pengirimSupabase(perangkatId: string): Pengirim {
 				throw new GalatKirim(pesanSinkron(g), false);
 			}
 			return res.data;
+		},
+		async laporDitolak(k: Kejadian, alasan: string) {
+			// Sekali per kejadian di server (kunci id); gagal kirim laporan tidak apa-apa.
+			await supabase
+				.rpc('lapor_ditolak', { p: { id: k.id, outlet_id: k.outlet_id, jenis: k.jenis, alasan } })
+				.abortSignal(AbortSignal.timeout(10_000));
 		}
 	};
 }
