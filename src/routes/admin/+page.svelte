@@ -16,6 +16,10 @@
 	});
 
 	const pintasan = [
+		{ path: '/admin/kas', judul: 'Kas harian', isi: 'Penjualan per kanal, pengeluaran, setoran, uang laci per hari.' },
+		{ path: '/admin/setoran', judul: 'Setoran', isi: 'Konfirmasi setoran dari kasir; selisih setoran.' },
+		{ path: '/admin/pengeluaran', judul: 'Pengeluaran', isi: 'Pengeluaran laci, owner, belanja bahan; kategori.' },
+		{ path: '/admin/penjualan', judul: 'Penjualan', isi: 'Riwayat per outlet & tanggal; batal transaksi.' },
 		{ path: '/admin/stok', judul: 'Stok', isi: 'Stok per outlet, barang masuk, stok awal.' },
 		{ path: '/admin/menu', judul: 'Menu & Harga', isi: 'Harga jual per outlet dan resep pemotongan stok.' },
 		{ path: '/admin/bahan', judul: 'Bahan', isi: 'Isi pack dan ambang stok menipis.' },

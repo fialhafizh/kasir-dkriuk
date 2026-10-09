@@ -6,6 +6,8 @@ import {
 	buatKejadianHitung,
 	buatKejadianJual,
 	buatKejadianKirim,
+	buatKejadianPengeluaran,
+	buatKejadianSetoran,
 	buatKejadianTerima,
 	buatKejadianTutup,
 	buatKejadianUbah
@@ -65,5 +67,20 @@ describe('kejadian 4b', () => {
 		const o = buatKejadianHitung('opname', 'o', it2, waktu, 'h1');
 		expect(o).toEqual({ id: 'h1', jenis: 'opname', outlet_id: 'o', shift_id: null, waktu: '2026-10-08T05:00:00.000Z', data: { item: it2 } });
 		expect(buatKejadianHitung('stok_awal', 'o', it2, waktu).jenis).toBe('stok_awal');
+	});
+});
+
+describe('kejadian 5a', () => {
+	it('buka: modal tidak negatif; uang laci awal hanya bila diisi', () => {
+		expect(buatKejadianBuka('o', -5, waktu).data).toEqual({ shift_id: expect.any(String), modal: 0 });
+		expect(buatKejadianBuka('o', 100000, waktu, 100000).data).toMatchObject({ modal: 100000, laci_awal: 100000 });
+	});
+	it('batal membawa metode & total untuk saldo laci', () => {
+		expect(buatKejadianBatal('o', 's', 'p', 'salah', waktu, { metode: 'cash', total: 5000 }).data).toEqual({ penjualan_id: 'p', alasan: 'salah', metode: 'cash', total: 5000 });
+	});
+	it('pengeluaran & setoran', () => {
+		expect(buatKejadianPengeluaran('o', { kategoriId: 'k', jumlah: 25000, keterangan: ' ' }, waktu)).toMatchObject({ jenis: 'pengeluaran', shift_id: null, data: { kategori_id: 'k', jumlah: 25000 } });
+		expect(buatKejadianSetoran('o', 2500000, ' ambil malam ', waktu)).toMatchObject({ jenis: 'setoran', data: { jumlah: 2500000, catatan: 'ambil malam' } });
+		expect(buatKejadianSetoran('o', 1, '', waktu).data).not.toHaveProperty('catatan');
 	});
 });

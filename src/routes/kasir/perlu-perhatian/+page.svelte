@@ -47,11 +47,12 @@
 	}
 
 	const ringkas = (k: Kejadian) => {
-		const d = k.data as { kode_struk?: string; nomor_sementara?: string; total?: number; modal?: number; uang_fisik?: number; alasan?: string; item?: unknown[] };
+		const d = k.data as { kode_struk?: string; nomor_sementara?: string; total?: number; modal?: number; uang_fisik?: number; alasan?: string; item?: unknown[]; jumlah?: number };
 		if (k.jenis === 'jual') return [d.nomor_sementara, d.kode_struk && `kode ${d.kode_struk}`, d.total !== undefined && `Rp${d.total}`].filter(Boolean).join(' · ');
 		if (k.jenis === 'buka_shift') return `modal Rp${d.modal ?? 0}`;
 		if (k.jenis === 'tutup_shift') return `uang laci Rp${d.uang_fisik ?? 0}`;
 		if (k.jenis === 'batal_jual' || k.jenis === 'batal_transfer') return d.alasan ? `alasan: ${d.alasan}` : '';
+		if (k.jenis === 'pengeluaran' || k.jenis === 'setoran') return `Rp${d.jumlah ?? 0}`;
 		if (Array.isArray(d.item)) return `${d.item.length} bahan`;
 		return '';
 	};

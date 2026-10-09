@@ -14,6 +14,8 @@
 	import type { Ringkasan } from '#lib/kasir/types.ts';
 	import { href } from '#lib/nav.ts';
 	import { formatAngka, parseRupiah } from '#lib/master/rupiah.ts';
+	import { saldoLaciPerangkat } from '#lib/kas/laci.ts';
+	import { kasAntrean } from '#lib/offline/proyeksi-laci.ts';
 
 	let r = $state<Ringkasan | null>(null);
 	let hasil = $state<Ringkasan | null>(null);
@@ -51,12 +53,23 @@
 			}
 		};
 		void (async () => {
-			const [dasar, server, kejadian] = await Promise.all([
+			const [dasar, server, kejadian, laci] = await Promise.all([
 				coba(`ringkasan:${s.id}`, () => ringkasanShift(s.id)),
 				coba(`riwayat:${s.id}`, () => daftarPenjualanShift(s.id)),
-				dbKasir.kejadian.toArray()
+				dbKasir.kejadian.toArray(),
+				saldoLaciPerangkat(s.outlet_id).catch(() => null)
 			]);
-			if (!batal) r = ringkasanLokal(dasar, s, gabungRiwayat(server ?? [], kejadian, s.id), server !== null);
+			if (batal) return;
+			const dasarR = ringkasanLokal(dasar, s, gabungRiwayat(server ?? [], kejadian, s.id), server !== null);
+			// Uang seharusnya = saldo laci (sudah termasuk sisa sebelumnya, pengeluaran, setoran). Tanpa data laci: rumus lama.
+			const antre = kasAntrean(kejadian, s.outlet_id, s.dibuka_at, null);
+			r = {
+				...dasarR,
+				// Shift yang dibuka sebelum uang laci awal (sebelum 5a) memakai rumus lama, sama dengan server.
+				cash_seharusnya: laci?.adaAwal && (!laci.awalAt || Date.parse(s.dibuka_at) >= Date.parse(laci.awalAt)) ? laci.saldo : dasarR.cash_seharusnya,
+				pengeluaran_laci: (dasar?.pengeluaran_laci ?? 0) + antre.pengeluaran,
+				setoran: (dasar?.setoran ?? 0) + antre.setoran
+			};
 		})();
 		return () => {
 			batal = true;
@@ -102,8 +115,8 @@
 
 {#if hasil}
 	<p class="mt-2 font-semibold text-ok" role="status">
-		Toko ditutup. Setorkan Rp{formatAngka(Math.max(0, (hasil.uang_fisik ?? 0) - hasil.modal))} ke owner dan sisakan modal
-		Rp{formatAngka(hasil.modal)} di laci untuk besok.
+		Toko ditutup. Uang di laci sekarang Rp{formatAngka(hasil.uang_fisik ?? 0)}. Bila menyetor ke owner, catat di menu
+		<a class="underline" href={href('/kasir/kas')}>Kas</a>.
 	</p>
 	<div class="mt-4 max-w-md"><RingkasanShift r={hasil} /></div>
 	<a href={href('/kasir')} class="mt-4 inline-flex min-h-12 items-center rounded-xl bg-surface-2 px-4 font-semibold">Ke layar jualan</a>

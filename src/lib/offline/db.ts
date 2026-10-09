@@ -12,7 +12,9 @@ export type JenisKejadian =
 	| 'batal_transfer'
 	| 'terima_transfer'
 	| 'opname'
-	| 'stok_awal';
+	| 'stok_awal'
+	| 'pengeluaran'
+	| 'setoran';
 
 export interface Kejadian {
 	urut?: number;

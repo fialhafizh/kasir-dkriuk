@@ -42,6 +42,10 @@ export function pengirimSupabase(perangkatId: string): Pengirim {
 						return supabase.rpc('ajukan_opname_offline', { p: { ...dasar, id: k.id } }).abortSignal(batas);
 					case 'stok_awal':
 						return supabase.rpc('ajukan_stok_awal_offline', { p: { ...dasar, id: k.id } }).abortSignal(batas);
+					case 'pengeluaran':
+						return supabase.rpc('catat_pengeluaran_offline', { p: { ...dasar, id: k.id } }).abortSignal(batas);
+					case 'setoran':
+						return supabase.rpc('catat_setoran_offline', { p: { ...dasar, id: k.id } }).abortSignal(batas);
 					default: {
 						const tidakDikenal: never = k.jenis;
 						throw new GalatKirim(`Jenis kejadian tidak dikenal: ${String(tidakDikenal)}`, false);
