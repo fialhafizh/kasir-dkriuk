@@ -20,7 +20,7 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 | 4a | Offline: buka toko, jualan + struk, sisa, tutup toko tanpa internet; aplikasi online & bisa dipasang ke layar utama | Selesai — uji owner menunggu |
 | 4b | Offline: batal, rusak, transfer, opname, stok awal; halaman admin Perangkat & kejadian diabaikan | Selesai, di main — uji owner menunggu |
 | 5a | Kas harian: uang laci berjalan, pengeluaran, setoran, kas harian, penjualan admin | Selesai, di main — uji owner menunggu |
-| 5b | Gaji & kasbon, biaya tetap (sewa), laba-rugi sederhana, arus kas | Selesai di cabang (review akhir lulus, database server diperbarui, uji server lulus) — menunggu persetujuan gabung; uji owner menunggu |
+| 5b | Gaji & kasbon, biaya tetap (sewa), laba-rugi sederhana, arus kas | Selesai, di main — uji owner menunggu |
 | 6 | Telegram: struk, ringkasan shift & harian, peringatan | Belum |
 | 7 | Dashboard & analisis (termasuk modal tepung, terbuang, susut) | Belum |
 | 8 | Rilis: uji menyeluruh, panduan pengguna | Belum |
