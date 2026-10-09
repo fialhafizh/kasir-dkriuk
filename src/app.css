@@ -20,6 +20,15 @@
 	--dk-focus: #b5121a;
 	--dk-line-strong: #9c8068;
 	color-scheme: light;
+	/* warna seri grafik dasbor */
+	--dk-seri-1: #e3191f;
+	--dk-seri-2: #d19a00;
+	--dk-seri-3: #1f6fb2;
+	--dk-seri-4: #1a7a43;
+	--dk-seri-5: #8e44ad;
+	--dk-seri-6: #e67e22;
+	--dk-seri-7: #16a2a0;
+	--dk-seri-8: #7f6a5a;
 }
 
 :root[data-theme='dark'] {
@@ -40,6 +49,14 @@
 	--dk-focus: #ffd23f;
 	--dk-line-strong: #8f7362;
 	color-scheme: dark;
+	--dk-seri-1: #ff4136;
+	--dk-seri-2: #ffd23f;
+	--dk-seri-3: #5aa9ef;
+	--dk-seri-4: #4cc97e;
+	--dk-seri-5: #c18be0;
+	--dk-seri-6: #ff9f4a;
+	--dk-seri-7: #4fd6d3;
+	--dk-seri-8: #c2b2a3;
 }
 
 @theme inline {
