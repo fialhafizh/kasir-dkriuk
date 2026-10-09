@@ -21,7 +21,7 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 | 4b | Offline: batal, rusak, transfer, opname, stok awal; halaman admin Perangkat & kejadian diabaikan | Selesai, di main — uji owner menunggu |
 | 5a | Kas harian: uang laci berjalan, pengeluaran, setoran, kas harian, penjualan admin | Selesai, di main — uji owner menunggu |
 | 5b | Gaji & kasbon, biaya tetap (sewa), laba-rugi sederhana, arus kas | Selesai, di main — uji owner menunggu |
-| 6 | Telegram: struk, ringkasan shift & harian, peringatan | Belum |
+| 6 | Telegram: struk, ringkasan tutup toko & harian, peringatan, kas (grup bertopik) | Selesai di cabang — menunggu review & persetujuan gabung |
 | 7 | Dashboard & analisis (termasuk modal tepung, terbuang, susut) | Belum |
 | 8 | Rilis: uji menyeluruh, panduan pengguna | Belum |
 
@@ -112,6 +112,15 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - **Biaya tetap: hanya sewa** (nominal setahun per outlet, berlaku sejak tanggal tertentu; bila naik, tambah baris baru). Di laba-rugi dibagi rata per hari. Pembayaran sewa yang sebenarnya dicatat di Pengeluaran kategori Sewa dan tidak dihitung dua kali.
 - **Laba-rugi cara sederhana** (cara owner): omzet per kanal − belanja bahan − gaji − sewa − pengeluaran lain = laba, per outlet & semua outlet, per bulan atau rentang tanggal. Omzet ojol masih bruto; kasbon bukan biaya. Dilengkapi **arus kas** (uang masuk per kanal, uang keluar laci / luar laci, setoran diterima & selisihnya).
 - **Semua analisis** (untung per menu / harga jual terlalu murah, bahan kebanyakan atau susut, terbuang, proyeksi akhir bulan) dikerjakan di **Tahap 7**.
+
+### Tahap 6 — Telegram (keputusan owner 9 Okt 2026)
+- Bot **@kasirdkriuk_bot** (dibuat owner di BotFather). Token hanya disimpan di `.env.local` owner dan Supabase secrets, tidak pernah di kode/GitHub/chat.
+- Satu grup **Backup Dkriuk** mode **Topics**, dipisah **per jenis pesan**; topik dibuat otomatis oleh bot: 🧾 Struk · 🏪 Tutup toko & harian · ⚠️ Peringatan · 💰 Kas.
+- **Struk** setiap transaksi (termasuk yang dicatat offline, dikirim saat sampai di server dengan jam aslinya). **Tutup toko**: penjualan per kanal, uang laci seharusnya vs dihitung, selisih, pengeluaran, setoran. **Ringkasan harian** semua outlet pada jam yang diatur admin (default 22.00 WIB): omzet per kanal, menu terlaris, stok menipis/minus, setoran belum dikonfirmasi, toko yang belum ditutup.
+- **Peringatan**: batal transaksi; selisih kas saat tutup toko; selisih setoran; stok menipis/minus (sekali saat statusnya berubah, sama dengan tanda di halaman Stok); opname & stok awal menunggu persetujuan; data kasir ditolak server (mis. terima kiriman beda jumlah); data diabaikan kasir.
+- **Kas**: setoran dicatat & diterima, kasbon, pengeluaran laci mulai Rp100.000 (batas bisa diubah).
+- Cara kerja: pesan disusun di database saat data masuk lalu dikirim bot sekitar tiap menit; gangguan internet/Telegram → dicoba lagi otomatis (bertahap), tidak dobel. Pesan yang gagal 10 kali tampil di **Admin → Telegram** dan bisa dikirim ulang. Notifikasi tidak pernah menggagalkan transaksi.
+- **Admin → Telegram**: status grup, Hubungkan grup, Kirim pesan uji, jam ringkasan harian, batas pengeluaran, nyala/mati per jenis pesan, pesan gagal.
 
 ## Catatan penting untuk tahap berikutnya
 
