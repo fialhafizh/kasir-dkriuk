@@ -130,6 +130,7 @@ begin
   select * into v from public.telegram_pengaturan where id;
   return jsonb_build_object(
     'terhubung', v.chat_id is not null,
+    'kunci_cron', public._tg_kunci_cron() is not null,
     'chat_judul', v.chat_judul,
     'topik_lengkap', v.topik ?& array['struk', 'harian', 'peringatan', 'kas'],
     'jam_harian', to_char(v.jam_harian, 'HH24:MI'),
@@ -268,9 +269,14 @@ begin
      and exists (select 1 from pg_available_extensions where name = 'pg_net') then
     create extension if not exists pg_net with schema extensions;
     create extension if not exists pg_cron with schema pg_catalog;
-    if exists (select 1 from pg_extension where extname = 'supabase_vault')
-       and not exists (select 1 from vault.secrets where name = 'telegram_cron_kunci') then
-      perform vault.create_secret(replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', ''), 'telegram_cron_kunci');
+    if exists (select 1 from pg_extension where extname = 'supabase_vault') then
+      begin
+        if not exists (select 1 from vault.secrets where name = 'telegram_cron_kunci') then
+          perform vault.create_secret(replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', ''), 'telegram_cron_kunci');
+        end if;
+      exception when others then
+        raise warning 'telegram: kunci cron tidak bisa dibuat di Vault (%): buat manual', sqlerrm;
+      end;
     end if;
     perform cron.schedule('telegram-tiap-menit', '* * * * *', 'select public._tg_tiap_menit()');
   end if;

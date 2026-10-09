@@ -207,6 +207,15 @@ describe('pesan Telegram dari transaksi', () => {
 		expect(k[1].teks).toContain('selisih kini <b>Rp0</b>');
 	});
 
+	it('koreksi selisih tetap dikirim walau struk dimatikan', async () => {
+		await hubungkan(['struk']);
+		const s = await buka(180, 100000);
+		await tutup(s, 110000);
+		await jual(s, 2, 120);
+		expect(await pesan('struk')).toHaveLength(0);
+		expect((await pesan('selisih_kas')).map((x) => x.teks.includes('Koreksi'))).toEqual([false, true]);
+	});
+
 	it('pesan sangat panjang dipotong di akhir baris', async () => {
 		const baris = Array.from({ length: 300 }, (_, i) => `<b>Baris ${i}</b> &amp; isi`).join('\n');
 		const t = await nilai<string>('select public._tg_potong($1) as v', [baris]);

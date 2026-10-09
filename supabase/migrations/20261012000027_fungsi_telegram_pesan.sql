@@ -147,7 +147,15 @@ declare
 begin
   begin
     select * into p from public.penjualan where id = new.id;
-    if not found or p.void_at is not null or not public._tg_aktif('struk') then
+    if not found or p.void_at is not null then
+      return null;
+    end if;
+    -- Koreksi selisih tetap dikirim walau struk dimatikan (_tg_antre memeriksa jenis selisih_kas).
+    if p.metode = 'cash' and exists (select 1 from public.shift s where s.id = p.shift_id and s.ditutup_dicatat_at < p.dicatat_at) then
+      perform public._tg_koreksi_tutup(p.shift_id, 'koreksi_jual:' || p.id,
+        'penjualan tunai ' || public._tg_esc(p.nomor) || ' (' || public._tg_jam(p.waktu) || ', ' || public._tg_rp(p.total) || ') baru sampai setelah toko ditutup.');
+    end if;
+    if not public._tg_aktif('struk') then
       return null;
     end if;
     select string_agg(i.qty || '× ' || public._tg_esc(i.nama) || ' — ' || public._tg_rp(i.subtotal), e'\n' order by i.nama)
@@ -161,10 +169,6 @@ begin
       || '<b>Total ' || public._tg_rp(p.total) || '</b> · ' || v_bayar
       || case when p.dicatat_at - p.waktu > interval '10 minutes'
               then e'\n<i>Dicatat offline, sampai di server ' || public._tg_jam(p.dicatat_at) || '</i>' else '' end);
-    if p.metode = 'cash' and exists (select 1 from public.shift s where s.id = p.shift_id and s.ditutup_dicatat_at < p.dicatat_at) then
-      perform public._tg_koreksi_tutup(p.shift_id, 'koreksi_jual:' || p.id,
-        'penjualan tunai ' || public._tg_esc(p.nomor) || ' (' || public._tg_jam(p.waktu) || ', ' || public._tg_rp(p.total) || ') baru sampai setelah toko ditutup.');
-    end if;
   exception when others then
     raise warning 'telegram struk: %', sqlerrm;
   end;
@@ -439,12 +443,12 @@ $$;
 create function public._tg_status_stok(p_outlet uuid, p_bahan uuid[] default null)
 returns table (kunci text, label text, status text, teks text)
 language sql stable security definer set search_path = '' as $$
-  with relevan as (
-    select unnest(p_bahan) as id
+  with recursive relevan (id) as (
+    select unnest(p_bahan)
     union
-    select i2.bahan_id from public.satuan_beli_isi i1
+    select i2.bahan_id from relevan r
+    join public.satuan_beli_isi i1 on i1.bahan_id = r.id
     join public.satuan_beli_isi i2 on i2.satuan_beli_id = i1.satuan_beli_id
-    where i1.bahan_id = any (p_bahan)
   ),
   q as (
     select b.id, b.nama, b.satuan, b.urutan, coalesce(sum(g.qty), 0)::numeric as n

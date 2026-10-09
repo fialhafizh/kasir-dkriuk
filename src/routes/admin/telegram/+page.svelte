@@ -127,6 +127,9 @@
 			<p>
 				Terhubung ke <b>{st.chat_judul ?? 'grup'}</b>{st.topik_lengkap ? '' : ' (topik belum lengkap — tekan Hubungkan lagi)'}.
 			</p>
+			{#if !st.kunci_cron}
+				<p class="text-sm text-danger" role="alert">Pengiriman otomatis belum aktif (kunci jadwal belum ada di server). Hubungi pembuat aplikasi.</p>
+			{/if}
 			<p class="text-sm text-muted">
 				Menunggu dikirim: {st.menunggu} · terakhir terkirim: {st.terkirim_terakhir ? `${formatWaktuWib(st.terkirim_terakhir)} WIB` : 'belum ada'}
 			</p>
@@ -194,11 +197,11 @@
 		<div><button type="submit" disabled={memproses} class="{tombol} bg-brand text-on-brand">Simpan pengaturan</button></div>
 	</form>
 
+	{#if pesanGagal}<p class="mt-6 text-sm {pesanGagal.galat ? 'text-danger' : ''}" role={pesanGagal.galat ? 'alert' : 'status'}>{pesanGagal.teks}</p>{/if}
 	{#if st.gagal.length}
 		<h2 class="mt-8 font-display text-2xl">Pesan gagal terkirim</h2>
 		<p class="mt-1 max-w-prose text-sm text-muted">Sudah dicoba 10 kali. Periksa grup/bot, lalu kirim ulang.</p>
 		<button type="button" class="mt-2 {tombol} bg-surface-2" disabled={memproses} onclick={() => ulang(null)}>Kirim ulang semua</button>
-		{#if pesanGagal}<p class="mt-2 text-sm {pesanGagal.galat ? 'text-danger' : ''}" role={pesanGagal.galat ? 'alert' : 'status'}>{pesanGagal.teks}</p>{/if}
 		<ul class="mt-3 grid gap-2">
 			{#each st.gagal as g (g.id)}
 				<li class="grid gap-1 rounded-2xl border border-warn bg-surface p-3 text-sm">

@@ -67,6 +67,8 @@ export interface PesanGagal {
 
 export interface StatusTelegram {
 	terhubung: boolean;
+	/** Kunci jadwal kirim ada di Vault server (tanpa itu pesan tidak pernah terkirim). */
+	kunci_cron: boolean;
 	chat_judul: string | null;
 	topik_lengkap: boolean;
 	jam_harian: string;

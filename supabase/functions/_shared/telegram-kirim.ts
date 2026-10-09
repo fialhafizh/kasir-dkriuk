@@ -25,7 +25,7 @@ export const BATAS_MS = 45_000;
 /** Jeda antar pesan: Telegram mengizinkan ±20 pesan/menit per grup. */
 export const JEDA_MS = 3_000;
 
-export const topikTerhapus = (galat: string) => /thread not found|TOPIC_DELETED|TOPIC_CLOSED/i.test(galat);
+export const topikTerhapus = (galat: string) => /thread not found|TOPIC_DELETED/i.test(galat);
 
 export async function kirimAntrean(d: DepKirim): Promise<{ terkirim: number; gagal: number }> {
 	const mulai = d.sekarang();
