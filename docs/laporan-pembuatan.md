@@ -22,7 +22,7 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 | 5a | Kas harian: uang laci berjalan, pengeluaran, setoran, kas harian, penjualan admin | Selesai, di main — uji owner menunggu |
 | 5b | Gaji & kasbon, biaya tetap (sewa), laba-rugi sederhana, arus kas | Selesai, di main — uji owner menunggu |
 | 6 | Telegram: struk, ringkasan tutup toko & harian, peringatan, kas (grup bertopik) | Selesai, di main & aktif di server — uji owner menunggu |
-| 7a | Dasbor yang bisa dirakit (seperti Kibana): banyak dasbor, panel dari katalog, seret & ubah ukuran, siklus stok, riwayat kejadian | Selesai di cabang — menunggu review & persetujuan gabung |
+| 7a | Dasbor yang bisa dirakit (seperti Kibana): banyak dasbor, panel dari katalog, seret & ubah ukuran, siklus stok, riwayat kejadian | Selesai, di main — uji owner menunggu |
 | 7b | Analisis kebocoran: laba per menu, susut, nilai terbuang, minyak/tepung, proyeksi | Belum |
 | 7c | Alat: rekonsiliasi ojol, rencana belanja, ekspor PDF/Excel | Belum |
 | 8 | Rilis: uji menyeluruh, panduan pengguna | Belum |
@@ -148,3 +148,4 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - 9 Okt 2026 (malam): database server diperbarui untuk Tahap 5b (migrasi 0024–0025); semua uji server (kasir, stok, offline, kas, gaji) lulus; server bersih.
 - 9 Okt 2026: **aplikasi online** di **https://fialhafizh.github.io/kasir-dkriuk/** (akun GitHub baru owner `fialhafizh`, repo publik `fialhafizh/kasir-dkriuk`; akun lama tidak dipakai lagi, Netlify tidak jadi dipakai). Setiap kiriman ke `main` otomatis dipasang ulang. Diperiksa: aplikasi tersambung ke Supabase dan tidak ada kunci rahasia di kode yang terpasang. Kiriman kode (push) dilakukan owner dari Git Bash.
 - 9 Okt 2026 (sore): database server diperbarui untuk Tahap 6 (migrasi 0026–0028), token bot disimpan di Supabase secrets, fungsi `telegram` dipasang, jadwal kirim tiap menit aktif (kuncinya dibuat acak di Vault server). Grup **Backup Dkriuk** terhubung, 4 topik dibuat bot, pesan uji terkirim ke tiap topik. Uji server Telegram + semua uji lama lulus (notifikasi dimatikan sementara selama uji lama agar grup tidak penuh pesan uji, lalu dinyalakan lagi); server bersih (3 outlet, 4 akun, 0 transaksi).
+- 9 Okt 2026 (malam): database server diperbarui untuk Tahap 7a (migrasi 0029–0031: dasbor, indeks waktu); uji server dasbor + semua uji lama lulus (notifikasi Telegram dimatikan sementara lalu dinyalakan lagi); server bersih.
