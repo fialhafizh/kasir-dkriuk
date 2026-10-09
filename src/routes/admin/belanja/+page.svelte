@@ -30,15 +30,18 @@
 			// penyimpanan peramban tidak tersedia: isian hanya hilang saat halaman ditutup
 		}
 	}
+	let nomor = 0;
 	async function muat() {
+		hari = Math.min(60, Math.max(1, Math.round(Number(hari) || 7)));
+		const ini = ++nomor;
 		memuat = true;
 		try {
-			rencana = await muatRencana(hari);
-			galat = '';
+			const r = await muatRencana(hari);
+			if (ini === nomor) (rencana = r), (galat = '');
 		} catch (e) {
-			galat = (e as Error).message;
+			if (ini === nomor) galat = (e as Error).message;
 		} finally {
-			memuat = false;
+			if (ini === nomor) memuat = false;
 		}
 	}
 	onMount(() => {
@@ -46,10 +49,16 @@
 		void muat();
 	});
 
-	function ubah(satuan: string, outlet: string, teks: string) {
-		const n = Math.max(0, Math.round(Number(teks.replace(/\D/g, '')) || 0));
-		isian = { ...isian, [kunciSel(satuan, outlet)]: n };
+	/** Kosong = kembali ke saran; selain bilangan bulat ≥ 0 ditolak (mis. "1,5" bukan 15). */
+	function ubah(satuan: string, outlet: string, el: HTMLInputElement) {
+		const teks = el.value.trim();
+		const k = kunciSel(satuan, outlet);
+		const salin = { ...isian };
+		if (teks === '') delete salin[k];
+		else if (/^\d{1,6}$/.test(teks)) salin[k] = Number(teks);
+		isian = salin;
 		simpanIsian();
+		el.value = String(isian[k] ?? rencana?.barang.find((b) => b.satuan_beli_id === satuan)?.per_outlet[outlet]?.saran ?? 0);
 	}
 	function aturUlang() {
 		isian = {};
@@ -105,7 +114,7 @@
 									inputmode="numeric"
 									class="tabular min-h-10 w-16 rounded-lg border px-2 text-right {isian[kunciSel(x.b.satuan_beli_id, o.id)] !== undefined ? 'border-brand' : 'border-line-strong'} bg-surface"
 									value={isian[kunciSel(x.b.satuan_beli_id, o.id)] ?? p?.saran ?? 0}
-									onchange={(e) => ubah(x.b.satuan_beli_id, o.id, e.currentTarget.value)}
+									onchange={(e) => ubah(x.b.satuan_beli_id, o.id, e.currentTarget)}
 								/>
 								{#if p}
 									<span class="block text-[11px] text-muted">

@@ -54,7 +54,8 @@ export const KELOMPOK_JENIS: { topik: string; jenis: { kunci: string; label: str
 
 /** Label jenis pesan untuk layar admin. */
 export function labelJenis(kunci: string): string {
-	return KELOMPOK_JENIS.flatMap((k) => k.jenis).find((j) => j.kunci === kunci)?.label ?? kunci;
+	const manual: Record<string, string> = { belanja: 'Daftar belanja', gaji: 'Ringkasan gaji', ojol: 'Laporan ojol' };
+	return KELOMPOK_JENIS.flatMap((k) => k.jenis).find((j) => j.kunci === kunci)?.label ?? manual[kunci] ?? kunci;
 }
 
 export interface PesanGagal {

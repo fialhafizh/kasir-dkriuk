@@ -14,6 +14,7 @@
 
 	$effect(() => {
 		if (!semua) return;
+		void rekap; // dimuat ulang setelah gaji/kasbon outlet terpilih berubah
 		const b = bulan;
 		lain = null;
 		let batal = false;
@@ -22,7 +23,7 @@
 				if (!batal) (lain = d), (galat = '');
 			})
 			.catch((e) => {
-				if (!batal) galat = (e as Error).message;
+				if (!batal) (galat = (e as Error).message), (lain = []);
 			});
 		return () => {
 			batal = true;

@@ -50,6 +50,20 @@ describe('rencana belanja', () => {
 		expect(r.barang.find((b) => b.nama.startsWith('Pack Ayam Hot'))!.per_outlet[bl].saran).toBe(0);
 		// 14 hari → 160 − 10 = 150
 		expect((await rencana(14)).barang.find((b) => b.nama.startsWith('Pack Ayam Ori'))!.per_outlet[bl].saran).toBe(150);
+		// 21 hari → 240 − 10 = 230 (tanpa kelebihan 1 pack karena pembulatan)
+		expect((await rencana(21)).barang.find((b) => b.nama.startsWith('Pack Ayam Ori'))!.per_outlet[bl].saran).toBe(230);
+	});
+
+	it('pack dibeli utuh menurut potongan yang paling kurang (dada habis walau sayap banyak)', async () => {
+		const bl = await idOutlet(db, 'BL');
+		// seminggu terjual 7 pack seragam; sisa: dada 0, sayap 40, lainnya cukup 1 pack
+		const isi = [['ori_dada', 3, 0], ['ori_paha_atas', 2, 2], ['ori_paha_bawah', 2, 2], ['ori_sayap', 2, 40]] as const;
+		for (const [k, n, sisa] of isi) {
+			await gerak('BL', k, 7 * n + sisa, 'masuk', 10);
+			await gerak('BL', k, -7 * n, 'jual', 3);
+		}
+		const ori = (await rencana()).barang.find((b) => b.nama.startsWith('Pack Ayam Ori'))!.per_outlet[bl];
+		expect(ori.saran).toBe(7);
 	});
 
 	it('bahan tidak dipotong otomatis (minyak): dari rata-rata pembelian 28 hari, stok tidak dipakai', async () => {

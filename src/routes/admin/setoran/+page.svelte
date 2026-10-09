@@ -115,7 +115,7 @@
 	{#if riwayat.length === 0}
 		<p class="mt-2 rounded-xl bg-surface-2 p-4 text-sm text-muted">Belum ada.</p>
 	{:else}
-		{#if riwayat.length}<div class="mb-2"><TombolEkspor judul="Setoran" cetak lembar={() => [{
+		{#if riwayat.length || menunggu.length}<div class="mb-2"><TombolEkspor judul="Setoran" cetak lembar={() => [{
 			nama: 'Setoran',
 			kolom: ['Outlet', 'Waktu', 'Dicatat', 'Diterima', 'Waktu diterima', 'Selisih', 'Catatan', 'Batal'],
 			baris: [...menunggu, ...riwayat].map((x) => [namaOutletEkspor(x.outlet_id), _wkt(x.waktu), Number(x.jumlah), x.jumlah_diterima === null ? null : Number(x.jumlah_diterima),

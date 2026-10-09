@@ -91,6 +91,7 @@
 
 {#if perHari?.baris.length}
 	<h2 class="mt-6 font-display text-xl">Per hari</h2>
+	{#if perHari.terpotong}<p class="text-xs text-warn">Hanya 500 baris pertama yang tampil; persempit periode untuk melihat semua.</p>{/if}
 	<div class="mt-2 overflow-x-auto">
 		<table class="w-full min-w-[24rem] text-sm">
 			<thead class="text-left text-xs text-muted">

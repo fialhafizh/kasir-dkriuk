@@ -12,6 +12,8 @@ describe('penulis Excel', () => {
 		expect(namaLembar('Belanja: Okt/2026', t)).toBe('Belanja  Okt 2026 2');
 		expect(namaLembar('x'.repeat(40), t)).toHaveLength(31);
 		expect(namaLembar('', t)).toBe('Lembar');
+		expect(namaLembar("'Omzet'", t)).toBe('Omzet');
+		expect(namaLembar('History', t)).toBe('History 1');
 	});
 	it('zip berisi lembar, judul tebal, angka sebagai angka, teks di-escape', () => {
 		const isi = buatXlsx([
@@ -28,6 +30,12 @@ describe('penulis Excel', () => {
 		expect(s1).toContain('Ayam &lt;Ori&gt; &amp; Hot');
 		expect(s1).not.toContain('r="B3"');
 		expect(strFromU8(z['xl/workbook.xml'])).toContain('<sheet name="Gaji" sheetId="2" r:id="rId2"/>');
+	});
+	it('kasus tepi: tanpa lembar, NaN, teks sangat panjang', () => {
+		expect(Object.keys(unzipSync(buatXlsx([]))).includes('xl/worksheets/sheet1.xml')).toBe(true);
+		const s = strFromU8(unzipSync(buatXlsx([{ nama: 'a', kolom: ['x', 'y'], baris: [[Number.NaN, 'z'.repeat(40000)]] }]))['xl/worksheets/sheet1.xml']);
+		expect(s).not.toContain('NaN');
+		expect(s).not.toContain('z'.repeat(32768));
 	});
 	it('nama file', () => {
 		expect(namaFile('Belanja/stokis: BL', '2026-10-14')).toBe('Belanja stokis BL 2026-10-14.xlsx');

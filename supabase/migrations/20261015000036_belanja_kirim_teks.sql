@@ -22,22 +22,24 @@ begin
     ),
     outlet as (select id, nama, kode from public.outlets where aktif),
     dalam_pack as (select i.bahan_id from isi i join satuan s on s.id = i.sid and s.anggota > 1),
-    -- bahan tunggal: satuan beli yang punya harga acuan di outlet itu dulu, lalu isi terkecil
+    -- bahan tunggal: satu satuan beli untuk semua outlet (satu bahan = satu baris):
+    -- yang punya harga acuan di outlet mana pun dulu, lalu isi terkecil
     pilih as (
-      select distinct on (o.id, i.bahan_id) o.id as outlet_id, i.sid, i.bahan_id, i.qty as isi
-      from outlet o cross join isi i
-      join satuan s on s.id = i.sid and s.anggota = 1
-      left join public.harga_beli hb on hb.outlet_id = o.id and hb.satuan_beli_id = i.sid
+      select distinct on (i.bahan_id) i.sid, i.bahan_id, i.qty as isi
+      from isi i join satuan s on s.id = i.sid and s.anggota = 1
       where i.bahan_id not in (select bahan_id from dalam_pack)
-      order by o.id, i.bahan_id, (hb.harga is null), i.qty, i.sid
+      order by i.bahan_id, not exists (select 1 from public.harga_beli hb where hb.satuan_beli_id = i.sid), i.qty, i.sid
     ),
     barang as (
       select o.id as outlet_id, i.sid, i.bahan_id, i.qty as isi
       from outlet o cross join isi i join satuan s on s.id = i.sid and s.anggota > 1
       union all
-      select outlet_id, sid, bahan_id, isi from pilih
+      select o.id, p.sid, p.bahan_id, p.isi from outlet o cross join pilih p
     ),
-    saldo as (select outlet_id, bahan_id, sum(qty) as n from public.gerakan_stok group by 1, 2),
+    saldo as (
+      select outlet_id, bahan_id, sum(qty) as n from public.gerakan_stok
+      where bahan_id in (select bahan_id from isi) group by 1, 2
+    ),
     pakai as (
       select outlet_id, bahan_id, -sum(qty) as n from public.gerakan_stok
       where jenis in ('jual', 'jual_batal', 'rusak', 'rusak_batal') and waktu >= now() - interval '7 days' group by 1, 2
@@ -48,14 +50,21 @@ begin
       join public.satuan_beli_isi i on i.satuan_beli_id = bi.satuan_beli_id
       where b.batal_at is null and b.waktu >= now() - interval '28 days' group by 1, 2
     ),
-    hitung as (
-      select br.outlet_id, br.sid, sum(br.isi) as isi, bool_or(bh.mode <> 'otomatis') as dari_beli,
-             sum(coalesce(sl.n, 0)) as saldo, sum(coalesce(pk.n, 0)) as pakai7, sum(coalesce(b28.n, 0)) as beli28
+    anggota as (
+      select br.outlet_id, br.sid, br.isi, bh.mode <> 'otomatis' as dari_beli,
+             coalesce(sl.n, 0) as saldo, coalesce(pk.n, 0) as pakai7, coalesce(b28.n, 0) as beli28
       from barang br join public.bahan bh on bh.id = br.bahan_id
       left join saldo sl on sl.outlet_id = br.outlet_id and sl.bahan_id = br.bahan_id
       left join pakai pk on pk.outlet_id = br.outlet_id and pk.bahan_id = br.bahan_id
       left join beli28 b28 on b28.outlet_id = br.outlet_id and b28.bahan_id = br.bahan_id
-      group by br.outlet_id, br.sid
+    ),
+    hitung as (
+      select outlet_id, sid, sum(isi) as isi, bool_or(dari_beli) as dari_beli,
+             sum(saldo) as saldo, sum(pakai7) as pakai7, sum(beli28) as beli28,
+             -- pack dibeli utuh: jumlah pack = potongan yang paling kurang (mis. dada habis walau sayap masih banyak)
+             max(case when dari_beli then beli28 * p_hari / 28 / isi
+                      else (pakai7 * p_hari / 7 - greatest(saldo, 0)) / isi end) as kurang
+      from anggota group by outlet_id, sid
     ),
     nilai as (
       select h.*,
@@ -75,7 +84,7 @@ begin
         join (
           select n.sid, jsonb_object_agg(n.outlet_id, jsonb_build_object(
             'stok', n.stok, 'pakai_hari', n.pakai_hari, 'dari_beli', n.dari_beli, 'harga', n.harga,
-            'saran', greatest(0, ceil(round(n.pakai_hari * p_hari - greatest(coalesce(n.stok, 0), 0), 3)))::integer)) as per
+            'saran', greatest(0, ceil(round(n.kurang, 6)))::integer)) as per
           from nilai n group by n.sid
         ) x on x.sid = s.id
       ), '[]'::jsonb)

@@ -116,4 +116,7 @@ body {
 		background: #fff !important;
 		color: #000 !important;
 	}
+	.overflow-x-auto {
+		overflow: visible !important;
+	}
 }

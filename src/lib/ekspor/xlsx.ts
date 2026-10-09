@@ -21,7 +21,9 @@ export function hurufKolom(i: number): string {
 
 /** Nama lembar sah: ≤ 31 karakter, tanpa []:*?/\, unik. */
 export function namaLembar(nama: string, terpakai: Set<string>): string {
-	const dasar = (nama.replace(/[[\]:*?/\\]/g, ' ').trim() || 'Lembar').slice(0, 31);
+	let dasar = nama.replace(/[[\]:*?/\\]/g, ' ').trim().replace(/^'+|'+$/g, '').trim().slice(0, 31).replace(/'+$/, '');
+	if (!dasar) dasar = 'Lembar';
+	else if (dasar.toLowerCase() === 'history') dasar = `${dasar} 1`;
 	let n = dasar;
 	for (let i = 2; terpakai.has(n.toLowerCase()); i++) n = `${dasar.slice(0, 31 - String(i).length - 1)} ${i}`;
 	terpakai.add(n.toLowerCase());
@@ -31,14 +33,15 @@ export function namaLembar(nama: string, terpakai: Set<string>): string {
 function sel(ref: string, v: Sel, gaya = 0): string {
 	const s = gaya ? ` s="${gaya}"` : '';
 	if (v === null || v === undefined || v === '') return '';
-	if (typeof v === 'number' && Number.isFinite(v)) return `<c r="${ref}"${s}><v>${v}</v></c>`;
-	return `<c r="${ref}"${s} t="inlineStr"><is><t xml:space="preserve">${esc(bersih(String(v)))}</t></is></c>`;
+	if (typeof v === 'number') return Number.isFinite(v) ? `<c r="${ref}"${s}><v>${v}</v></c>` : '';
+	// batas Excel 32.767 karakter per sel
+	return `<c r="${ref}"${s} t="inlineStr"><is><t xml:space="preserve">${esc(bersih(String(v)).slice(0, 32767))}</t></is></c>`;
 }
 
 function lembarXml(l: Lembar): string {
 	const semua = [l.kolom, ...l.baris];
 	const lebar = l.kolom.map((k, i) => Math.min(60, Math.max(8, ...semua.map((r) => String(r[i] ?? '').length + 2))));
-	const kolom = `<cols>${lebar.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>`;
+	const kolom = lebar.length ? `<cols>${lebar.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join('')}</cols>` : '';
 	const baris = semua
 		.map((r, ri) => `<row r="${ri + 1}">${r.map((v, ci) => sel(`${hurufKolom(ci)}${ri + 1}`, v, ri === 0 ? 1 : 0)).join('')}</row>`)
 		.join('');
@@ -51,7 +54,9 @@ function lembarXml(l: Lembar): string {
 }
 
 /** Isi file .xlsx (bytes). */
-export function buatXlsx(lembar: Lembar[]): Uint8Array {
+export function buatXlsx(daftar: Lembar[]): Uint8Array {
+	// buku kerja wajib punya minimal satu lembar
+	const lembar: Lembar[] = daftar.length ? daftar : [{ nama: 'Data', kolom: ['Tidak ada data'], baris: [] }];
 	const terpakai = new Set<string>();
 	const nama = lembar.map((l) => namaLembar(l.nama, terpakai));
 	const berkas: Record<string, Uint8Array> = {
