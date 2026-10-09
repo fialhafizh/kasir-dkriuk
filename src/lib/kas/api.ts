@@ -16,6 +16,8 @@ export interface Kategori {
 	wajib_keterangan: boolean;
 	aktif: boolean;
 	urutan: number;
+	/** Kategori sistem (kasbon, gaji, sewa, belanja_bahan); null = kategori biasa. */
+	kode: string | null;
 }
 
 export interface Pengeluaran {
@@ -28,6 +30,7 @@ export interface Pengeluaran {
 	keterangan: string | null;
 	batal_at: string | null;
 	batal_alasan: string | null;
+	karyawan_id?: string | null;
 }
 
 export interface Setoran {
@@ -44,15 +47,20 @@ export interface Setoran {
 	batal_alasan: string | null;
 }
 
+/** Nama karyawan aktif outlet (tanpa upah) untuk kasbon dari laci. */
+export async function muatKaryawanOutlet(outletId: string): Promise<{ id: string; nama: string }[]> {
+	return periksa(await supabase.rpc('karyawan_outlet', { p_outlet: outletId })) as { id: string; nama: string }[];
+}
+
 export async function muatSaldoLaci(outletId: string): Promise<LaciServer> {
 	return periksa(await supabase.rpc('saldo_laci', { p_outlet: outletId })) as LaciServer;
 }
 
 export async function muatKategori(): Promise<Kategori[]> {
-	return periksa(await supabase.from('kategori_pengeluaran').select('id, nama, untuk_kasir, wajib_keterangan, aktif, urutan').order('urutan').order('nama')) as Kategori[];
+	return periksa(await supabase.from('kategori_pengeluaran').select('id, nama, untuk_kasir, wajib_keterangan, aktif, urutan, kode').order('urutan').order('nama')) as Kategori[];
 }
 
-const KOLOM_PENGELUARAN = 'id, outlet_id, sumber, kategori_id, jumlah, waktu, keterangan, batal_at, batal_alasan';
+const KOLOM_PENGELUARAN = 'id, outlet_id, sumber, kategori_id, jumlah, waktu, keterangan, batal_at, batal_alasan, karyawan_id';
 const KOLOM_SETORAN = 'id, outlet_id, jumlah, waktu, catatan, dicatat_oleh, diterima_at, jumlah_diterima, catatan_terima, batal_at, batal_alasan';
 
 /** Pengeluaran (opsional per outlet) dalam rentang jam [dari, sampai). */

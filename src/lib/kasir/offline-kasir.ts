@@ -101,6 +101,19 @@ export function buatKejadianPengeluaran(outletId: string, a: { kategoriId: strin
 	};
 }
 
+/** Kasbon karyawan dari laci (dipotong saat gajian). */
+export function buatKejadianKasbon(outletId: string, a: { karyawanId: string; jumlah: number; keterangan?: string }, waktu: Date): KejadianBaru {
+	const ket = a.keterangan?.trim();
+	return {
+		id: crypto.randomUUID(),
+		jenis: 'kasbon',
+		outlet_id: outletId,
+		shift_id: null,
+		waktu: waktu.toISOString(),
+		data: { karyawan_id: a.karyawanId, jumlah: a.jumlah, ...(ket ? { keterangan: ket } : {}) }
+	};
+}
+
 /** Setoran ke owner (uang keluar dari laci). */
 export function buatKejadianSetoran(outletId: string, jumlah: number, catatan: string, waktu: Date): KejadianBaru {
 	const c = catatan.trim();

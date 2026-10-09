@@ -52,7 +52,7 @@
 		if (k.jenis === 'buka_shift') return `modal Rp${d.modal ?? 0}`;
 		if (k.jenis === 'tutup_shift') return `uang laci Rp${d.uang_fisik ?? 0}`;
 		if (k.jenis === 'batal_jual' || k.jenis === 'batal_transfer') return d.alasan ? `alasan: ${d.alasan}` : '';
-		if (k.jenis === 'pengeluaran' || k.jenis === 'setoran') return `Rp${d.jumlah ?? 0}`;
+		if (k.jenis === 'pengeluaran' || k.jenis === 'setoran' || k.jenis === 'kasbon') return `Rp${d.jumlah ?? 0}`;
 		if (Array.isArray(d.item)) return `${d.item.length} bahan`;
 		return '';
 	};

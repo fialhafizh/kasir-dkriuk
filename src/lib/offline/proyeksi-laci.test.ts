@@ -80,3 +80,11 @@ describe('kasAntrean', () => {
 		expect(kasAntrean(ks, 'o', '2026-10-08T02:00:00Z', null)).toEqual({ pengeluaran: 20, setoran: 300 });
 	});
 });
+
+describe('kasbon (5b)', () => {
+	it('kasbon dari laci mengurangi saldo & masuk pengeluaran shift', () => {
+		const ks = [kej({ id: 'k', jenis: 'kasbon', waktu: '2026-10-08T05:00:00Z', data: { karyawan_id: 'x', jumlah: 40000 } })];
+		expect(saldoLaciLokal({ saldo: 100000, ada_awal: true }, ks, 'o', null).saldo).toBe(60000);
+		expect(kasAntrean(ks, 'o', '2026-10-08T02:00:00Z', null).pengeluaran).toBe(40000);
+	});
+});

@@ -5,6 +5,7 @@ import {
 	buatKejadianBuka,
 	buatKejadianHitung,
 	buatKejadianJual,
+	buatKejadianKasbon,
 	buatKejadianKirim,
 	buatKejadianPengeluaran,
 	buatKejadianSetoran,
@@ -82,5 +83,15 @@ describe('kejadian 5a', () => {
 		expect(buatKejadianPengeluaran('o', { kategoriId: 'k', jumlah: 25000, keterangan: ' ' }, waktu)).toMatchObject({ jenis: 'pengeluaran', shift_id: null, data: { kategori_id: 'k', jumlah: 25000 } });
 		expect(buatKejadianSetoran('o', 2500000, ' ambil malam ', waktu)).toMatchObject({ jenis: 'setoran', data: { jumlah: 2500000, catatan: 'ambil malam' } });
 		expect(buatKejadianSetoran('o', 1, '', waktu).data).not.toHaveProperty('catatan');
+	});
+});
+
+describe('kejadian 5b', () => {
+	it('kasbon membawa karyawan & nominal', () => {
+		expect(buatKejadianKasbon('o', { karyawanId: 'k1', jumlah: 50000, keterangan: ' ' }, waktu)).toMatchObject({
+			jenis: 'kasbon',
+			shift_id: null,
+			data: { karyawan_id: 'k1', jumlah: 50000 }
+		});
 	});
 });

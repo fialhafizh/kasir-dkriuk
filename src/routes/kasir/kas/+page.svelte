@@ -2,10 +2,10 @@
 	import Button from '#lib/components/ui/Button.svelte';
 	import Konfirmasi from '#lib/components/ui/Konfirmasi.svelte';
 	import { galatJaringan } from '#lib/auth/cache-profil.ts';
-	import { muatKategori, muatPengeluaran, muatSetoran, type Kategori, type Pengeluaran, type Setoran } from '#lib/kas/api.ts';
+	import { muatKaryawanOutlet, muatKategori, muatPengeluaran, muatSetoran, type Kategori, type Pengeluaran, type Setoran } from '#lib/kas/api.ts';
 	import { saldoLaciPerangkat, type SaldoLaci } from '#lib/kas/laci.ts';
 	import { antrekan } from '#lib/kasir/antre.ts';
-	import { buatKejadianPengeluaran, buatKejadianSetoran } from '#lib/kasir/offline-kasir.ts';
+	import { buatKejadianKasbon, buatKejadianPengeluaran, buatKejadianSetoran } from '#lib/kasir/offline-kasir.ts';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
 	import { formatWaktuWib } from '#lib/kasir/waktu.ts';
 	import { formatAngka, parseRupiah } from '#lib/master/rupiah.ts';
@@ -15,7 +15,7 @@
 
 	interface Baris {
 		id: string;
-		jenis: 'pengeluaran' | 'setoran';
+		jenis: 'pengeluaran' | 'setoran' | 'kasbon';
 		waktu: string;
 		jumlah: number;
 		teks: string;
@@ -24,6 +24,9 @@
 
 	let laci = $state<SaldoLaci | null>(null);
 	let kategori = $state<Kategori[]>([]);
+	let karyawan = $state<{ id: string; nama: string }[]>([]);
+	// Formulir pengeluaran biasa: kategori kasir, bukan kategori sistem (kasbon punya formulir sendiri).
+	const kategoriKasir = $derived(kategori.filter((k) => k.untuk_kasir && k.aktif && !k.kode));
 	let daftar = $state<Baris[]>([]);
 	let pesanMuat = $state('');
 
@@ -33,6 +36,13 @@
 	let pesanKeluar = $state('');
 	let memprosesKeluar = $state(false);
 	let tercatatKeluar = $state('');
+
+	let karyawanId = $state('');
+	let nominalKasbon = $state('');
+	let ketKasbon = $state('');
+	let pesanKasbon = $state('');
+	let tercatatKasbon = $state('');
+	let memprosesKasbon = $state(false);
 
 	let setor = $state('');
 	let catatanSetor = $state('');
@@ -49,9 +59,14 @@
 		pesanMuat = '';
 		laci = await saldoLaciPerangkat(o.id).catch(() => null);
 		try {
-			kategori = (await denganSalinan(dbKasir, 'kategori', muatKategori, jaringan)).nilai.filter((k) => k.untuk_kasir && k.aktif);
+			kategori = (await denganSalinan(dbKasir, 'kategori', muatKategori, jaringan)).nilai;
 		} catch (e) {
 			pesanMuat = (e as Error).message;
+		}
+		try {
+			karyawan = (await denganSalinan(dbKasir, `karyawan:${o.id}`, () => muatKaryawanOutlet(o.id), jaringan)).nilai;
+		} catch {
+			// Belum pernah tersimpan & offline: kasbon belum bisa dipilih karyawannya.
 		}
 		let keluar: Pengeluaran[] = [];
 		let masuk: Setoran[] = [];
@@ -64,16 +79,17 @@
 			// Belum pernah tersimpan & offline: tampilkan antrean saja.
 		}
 		const antre: Kejadian[] = (await dbKasir.kejadian.toArray().catch(() => [])).filter(
-			(k) => k.outlet_id === o.id && (k.jenis === 'pengeluaran' || k.jenis === 'setoran') && k.status !== 'terkirim' && k.status !== 'diabaikan'
+			(k) => k.outlet_id === o.id && (k.jenis === 'pengeluaran' || k.jenis === 'setoran' || k.jenis === 'kasbon') && k.status !== 'terkirim' && k.status !== 'diabaikan'
 		);
 		const nama = (id: string) => kategori.find((k) => k.id === id)?.nama ?? 'Pengeluaran';
+		const orang = (id: unknown) => karyawan.find((x) => x.id === id)?.nama ?? 'karyawan';
 		daftar = [
 			...antre.map((k) => ({
 				id: k.id,
 				jenis: k.jenis as Baris['jenis'],
 				waktu: k.waktu,
 				jumlah: Number(k.data.jumlah ?? 0),
-				teks: k.jenis === 'pengeluaran' ? nama(String(k.data.kategori_id)) : 'Setoran ke owner',
+				teks: k.jenis === 'pengeluaran' ? nama(String(k.data.kategori_id)) : k.jenis === 'kasbon' ? `Kasbon ${orang(k.data.karyawan_id)}` : 'Setoran ke owner',
 				status: k.status === 'ditolak' ? `Ditolak: ${k.alasan}` : 'Belum terkirim'
 			})),
 			...keluar
@@ -83,7 +99,7 @@
 					jenis: 'pengeluaran' as const,
 					waktu: p.waktu,
 					jumlah: p.jumlah,
-					teks: `${nama(p.kategori_id)}${p.keterangan ? ` · ${p.keterangan}` : ''}`,
+					teks: `${nama(p.kategori_id)}${p.karyawan_id ? ` ${orang(p.karyawan_id)}` : ''}${p.keterangan ? ` · ${p.keterangan}` : ''}`,
 					status: p.batal_at ? `Dibatalkan admin: ${p.batal_alasan}` : ''
 				})),
 			...masuk
@@ -137,6 +153,29 @@
 		}
 	}
 
+	async function catatKasbon(e: SubmitEvent) {
+		e.preventDefault();
+		pesanKasbon = '';
+		tercatatKasbon = '';
+		const n = parseRupiah(nominalKasbon);
+		const orang = karyawan.find((x) => x.id === karyawanId);
+		if (!orang) return void (pesanKasbon = 'Pilih karyawan.');
+		if (n === null || n < 1) return void (pesanKasbon = 'Isi nominal kasbon, mis. 50.000.');
+		if (memprosesKasbon) return;
+		memprosesKasbon = true;
+		try {
+			await antrekan(buatKejadianKasbon(pos.outlet!.id, { karyawanId: orang.id, jumlah: n, keterangan: ketKasbon }, new Date()));
+			tercatatKasbon = `Kasbon ${orang.nama} Rp${formatAngka(n)} tercatat. Dipotong saat gajian.`;
+			nominalKasbon = '';
+			ketKasbon = '';
+			await muat();
+		} catch (err) {
+			pesanKasbon = `Gagal menyimpan di perangkat: ${(err as Error).message}`;
+		} finally {
+			memprosesKasbon = false;
+		}
+	}
+
 	async function catatSetoran() {
 		pesanSetor = '';
 		tercatatSetor = '';
@@ -163,7 +202,7 @@
 <svelte:head><title>Kas · Kasir D'Kriuk</title></svelte:head>
 
 <h1 class="font-display text-3xl">Kas {pos.outlet?.nama}</h1>
-<p class="mt-1 text-sm text-muted">Pengeluaran kecil dari laci dan setoran ke owner. Bisa dicatat kapan saja, juga tanpa internet.</p>
+<p class="mt-1 text-sm text-muted">Pengeluaran kecil dari laci, kasbon karyawan, dan setoran ke owner. Bisa dicatat kapan saja, juga tanpa internet.</p>
 {#if pesanMuat}<p class="mt-2 text-sm text-danger" role="alert">{pesanMuat}</p>{/if}
 
 <div class="mt-4 grid gap-6 md:grid-cols-2">
@@ -173,7 +212,7 @@
 			<label for="kategori" class="text-sm font-semibold">Jenis</label>
 			<select id="kategori" bind:value={kategoriId} class={kotak}>
 				<option value="">Pilih…</option>
-				{#each kategori as k (k.id)}<option value={k.id}>{k.nama}</option>{/each}
+				{#each kategoriKasir as k (k.id)}<option value={k.id}>{k.nama}</option>{/each}
 			</select>
 		</div>
 		<div class="grid gap-1.5">
@@ -189,11 +228,38 @@
 		<Button type="submit" loading={memprosesKeluar}>Catat pengeluaran</Button>
 	</form>
 
+	<form class="grid content-start gap-3 rounded-2xl border border-line bg-surface p-4" onsubmit={catatKasbon} novalidate>
+		<h2 class="font-display text-xl">Kasbon karyawan (dari laci)</h2>
+		{#if karyawan.length === 0}
+			<p class="text-sm text-muted">Belum ada karyawan untuk outlet ini. Admin menambahkannya di menu Gaji; bila sedang offline, buka halaman ini sekali saat online.</p>
+		{:else}
+			<div class="grid gap-1.5">
+				<label for="karyawan" class="text-sm font-semibold">Karyawan</label>
+				<select id="karyawan" bind:value={karyawanId} class={kotak}>
+					<option value="">Pilih…</option>
+					{#each karyawan as k (k.id)}<option value={k.id}>{k.nama}</option>{/each}
+				</select>
+			</div>
+			<div class="grid gap-1.5">
+				<label for="nominal-kasbon" class="text-sm font-semibold">Nominal</label>
+				<input id="nominal-kasbon" bind:value={nominalKasbon} inputmode="numeric" autocomplete="off" placeholder="mis. 50.000" class="tabular text-right {kotak}" />
+			</div>
+			<div class="grid gap-1.5">
+				<label for="ket-kasbon" class="text-sm font-semibold">Keterangan (opsional)</label>
+				<input id="ket-kasbon" bind:value={ketKasbon} maxlength="200" class={kotak} />
+			</div>
+			{#if pesanKasbon}<p class="text-sm text-danger" role="alert">{pesanKasbon}</p>{/if}
+			{#if tercatatKasbon}<p class="text-sm font-semibold text-ok" role="status">{tercatatKasbon}</p>{/if}
+			<Button type="submit" loading={memprosesKasbon}>Catat kasbon</Button>
+		{/if}
+	</form>
+
 	<section class="grid content-start gap-3 rounded-2xl border border-line bg-surface p-4" aria-label="Setoran">
 		<h2 class="font-display text-xl">Setoran ke owner</h2>
 		{#if laci}
 			<p class="text-sm text-muted">Uang di laci sekarang</p>
 			<p class="tabular font-display text-3xl text-brand">Rp{formatAngka(laci.saldo)}</p>
+			<p class="text-xs text-muted">Sudah dikurangi pembayaran gaji oleh admin dari laci, bila ada.</p>
 		{:else}
 			<p class="text-sm text-muted">Uang di laci belum diketahui di perangkat ini (buka sekali saat online).</p>
 		{/if}

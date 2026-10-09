@@ -14,7 +14,8 @@ export type JenisKejadian =
 	| 'opname'
 	| 'stok_awal'
 	| 'pengeluaran'
-	| 'setoran';
+	| 'setoran'
+	| 'kasbon';
 
 export interface Kejadian {
 	urut?: number;

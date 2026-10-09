@@ -14,7 +14,8 @@ export const LABEL_KEJADIAN: Record<JenisKejadian, string> = {
 	opname: 'Opname',
 	stok_awal: 'Stok awal',
 	pengeluaran: 'Pengeluaran',
-	setoran: 'Setoran'
+	setoran: 'Setoran',
+	kasbon: 'Kasbon'
 };
 
 /** Label untuk jenis yang mungkin tidak dikenal (data dari server). */

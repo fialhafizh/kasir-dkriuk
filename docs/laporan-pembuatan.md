@@ -20,7 +20,7 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 | 4a | Offline: buka toko, jualan + struk, sisa, tutup toko tanpa internet; aplikasi online & bisa dipasang ke layar utama | Selesai — uji owner menunggu |
 | 4b | Offline: batal, rusak, transfer, opname, stok awal; halaman admin Perangkat & kejadian diabaikan | Selesai, di main — uji owner menunggu |
 | 5a | Kas harian: uang laci berjalan, pengeluaran, setoran, kas harian, penjualan admin | Selesai, di main — uji owner menunggu |
-| 5b | Biaya tetap (sewa), gaji, laba-rugi, arus kas per kanal | Sedang dirancang |
+| 5b | Gaji & kasbon, biaya tetap (sewa), laba-rugi sederhana, arus kas | Selesai di cabang (review akhir lulus, database server diperbarui, uji server lulus) — menunggu persetujuan gabung; uji owner menunggu |
 | 6 | Telegram: struk, ringkasan shift & harian, peringatan | Belum |
 | 7 | Dashboard & analisis (termasuk modal tepung, terbuang, susut) | Belum |
 | 8 | Rilis: uji menyeluruh, panduan pengguna | Belum |
@@ -103,6 +103,16 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - Outlet yang dinonaktifkan tidak bisa buka toko; data lama dari HP yang telat sinkron tetap diterima.
 - Shift sebelum Tahap 5a tetap dihitung dengan rumus lama (modal + jual cash).
 
+### Tahap 5b — Gaji, sewa, laba-rugi (keputusan owner 9 Okt 2026)
+- **Gaji bulanan** = hari masuk × upah harian + penyesuaian (bonus/potongan, keterangan wajib) − kasbon. Ada **kasbon**.
+- **Kehadiran dicatat admin** (centang per hari di halaman Gaji). Setelah gaji dibayar, kehadiran bulan itu **terkunci**; batalkan pembayarannya untuk mengubah.
+- **Kasbon** bisa dari **laci** (dicatat kasir di menu Kas → Kasbon, juga tanpa internet; laci berkurang) atau **dari owner** (dicatat admin). Sisa kasbon dipotong saat gajian; yang lebih besar dari gaji dibawa ke bulan berikutnya.
+- Gaji dibayar dari laci atau dari owner (pilih saat bayar) → otomatis tercatat sebagai pengeluaran kategori Gaji.
+- Kasir hanya melihat **nama** karyawan (untuk kasbon), tidak melihat upah maupun gaji yang dibayar. Outlet karyawan tidak bisa dipindah (buat karyawan baru di outlet lain).
+- **Biaya tetap: hanya sewa** (nominal setahun per outlet, berlaku sejak tanggal tertentu; bila naik, tambah baris baru). Di laba-rugi dibagi rata per hari. Pembayaran sewa yang sebenarnya dicatat di Pengeluaran kategori Sewa dan tidak dihitung dua kali.
+- **Laba-rugi cara sederhana** (cara owner): omzet per kanal − belanja bahan − gaji − sewa − pengeluaran lain = laba, per outlet & semua outlet, per bulan atau rentang tanggal. Omzet ojol masih bruto; kasbon bukan biaya. Dilengkapi **arus kas** (uang masuk per kanal, uang keluar laci / luar laci, setoran diterima & selisihnya).
+- **Semua analisis** (untung per menu / harga jual terlalu murah, bahan kebanyakan atau susut, terbuang, proyeksi akhir bulan) dikerjakan di **Tahap 7**.
+
 ## Catatan penting untuk tahap berikutnya
 
 - **Tahap 5 (keuangan)**: pengeluaran laci & setor langsung mengurangi uang laci; tutup toko = modal + jual cash − void − pengeluaran laci − setoran; barang masuk dibayar dari bank, bukan laci; pembelian yang terlambat dicatat di belakang opname perlu jalur pengeluaran tanpa efek stok.
@@ -113,3 +123,4 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - 5 Okt 2026: satu transaksi uji owner (BL-261004-001) dan shift ujinya dihapus atas permintaan owner; server bersih sebelum pemakaian.
 - 9 Okt 2026: database server diperbarui untuk Tahap 4b (migrasi 0020–0021); semua uji server (kasir, stok 3a/3b, offline 4a/4b) lulus memakai outlet & akun sementara yang sudah dihapus; server kembali bersih (3 outlet, 4 akun, 0 transaksi).
 - 10 Okt 2026: database server diperbarui untuk Tahap 5a (migrasi 0022–0023); semua uji server lulus; sisa data uji dari pembersihan yang gagal dihapus; server bersih (3 outlet, 4 akun, 0 transaksi, 7 kategori pengeluaran).
+- 9 Okt 2026 (malam): database server diperbarui untuk Tahap 5b (migrasi 0024–0025); semua uji server (kasir, stok, offline, kas, gaji) lulus; server bersih.
