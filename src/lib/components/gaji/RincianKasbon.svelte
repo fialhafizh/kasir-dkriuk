@@ -9,12 +9,18 @@
 	let galat = $state('');
 	let terbuka = $state(false);
 
+	let nomor = 0;
 	$effect(() => {
 		void segar;
 		if (!terbuka) return;
+		const ini = ++nomor;
 		muatRincianKasbon(karyawanId)
-			.then((d) => ((daftar = d), (galat = '')))
-			.catch((e) => (galat = (e as Error).message));
+			.then((d) => {
+				if (ini === nomor) (daftar = d), (galat = '');
+			})
+			.catch((e) => {
+				if (ini === nomor) (galat = (e as Error).message), (daftar = null);
+			});
 	});
 	const LABEL = { lunas: 'Sudah dipotong', sebagian: 'Sebagian dipotong', belum: 'Belum dipotong' } as const;
 	const WARNA = { lunas: 'text-ok', sebagian: 'text-warn', belum: 'text-muted' } as const;

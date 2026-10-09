@@ -23,7 +23,7 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 | 5b | Gaji & kasbon, biaya tetap (sewa), laba-rugi sederhana, arus kas | Selesai, di main — uji owner menunggu |
 | 6 | Telegram: struk, ringkasan tutup toko & harian, peringatan, kas (grup bertopik) | Selesai, di main & aktif di server — uji owner menunggu |
 | 7a | Dasbor yang bisa dirakit (seperti Kibana): banyak dasbor, panel dari katalog, seret & ubah ukuran, siklus stok, riwayat kejadian | Selesai, di main — uji owner menunggu |
-| 7b | Analisis kebocoran (perkiraan): untung per menu, susut & terbuang rupiah, minyak/tepung, proyeksi; rincian kasbon di Gajian | Selesai di cabang |
+| 7b | Analisis kebocoran (perkiraan): untung per menu, susut & terbuang rupiah, minyak/tepung, proyeksi; rincian kasbon di Gajian | Selesai, di main — uji owner menunggu |
 | 7c | Alat: rekonsiliasi ojol, rencana belanja, ekspor PDF/Excel | Belum |
 | 8 | Rilis: uji menyeluruh, panduan pengguna | Belum |
 
@@ -142,7 +142,7 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - **Untung tipis** bila untung kotor per porsi < batas (awal **30%**, bisa diubah). Menu yang sebagian bahannya belum punya harga ditandai "modal belum lengkap" (tidak dihitung).
 - **Susut** = selisih opname disetujui × modal; **terbuang** = catatan sisa/rusak × modal (rupiah, per alasan).
 - **Minyak & tepung**: di antara dua pembelian, potong ayam + porsi kulit terjual → potong per liter/kg & biaya per potong; rasio tepung D'Kriuk : Tepung A (peringatan di luar 40–60% bila keduanya dibeli).
-- **Proyeksi**: omzet & laba riil bulan berjalan dirata-rata per hari (pecahan hari) × hari sebulan; dibanding bulan lalu.
+- **Proyeksi**: laba riil hari yang sudah selesai (tanggal 1 s.d. kemarin) dirata-rata per hari × hari sebulan (sewa & gaji dihitung per hari penuh); tanggal 1 belum ada proyeksi; dibanding bulan lalu.
 - Dasbor mendapat sumber **Untung per menu**, **Susut opname**, dan nilai rupiah untuk **Sisa / terbuang**.
 - **Kasbon** (contoh owner: Dira 50 rb + 100 rb + 250 rb): setiap pinjaman tercatat langsung (kasir di menu Kas / admin); gajian otomatis memotong seluruh sisa (400 rb), admin boleh mengubah (mis. 200 rb dulu), sisanya otomatis terisi di gajian berikutnya. Gajian kini menampilkan **rincian kasbon** (tanggal, jumlah, dari laci/owner, dicatat oleh, sudah/sebagian/belum dipotong — urut tanggal tertua).
 
@@ -160,3 +160,4 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - 9 Okt 2026: **aplikasi online** di **https://fialhafizh.github.io/kasir-dkriuk/** (akun GitHub baru owner `fialhafizh`, repo publik `fialhafizh/kasir-dkriuk`; akun lama tidak dipakai lagi, Netlify tidak jadi dipakai). Setiap kiriman ke `main` otomatis dipasang ulang. Diperiksa: aplikasi tersambung ke Supabase dan tidak ada kunci rahasia di kode yang terpasang. Kiriman kode (push) dilakukan owner dari Git Bash.
 - 9 Okt 2026 (sore): database server diperbarui untuk Tahap 6 (migrasi 0026–0028), token bot disimpan di Supabase secrets, fungsi `telegram` dipasang, jadwal kirim tiap menit aktif (kuncinya dibuat acak di Vault server). Grup **Backup Dkriuk** terhubung, 4 topik dibuat bot, pesan uji terkirim ke tiap topik. Uji server Telegram + semua uji lama lulus (notifikasi dimatikan sementara selama uji lama agar grup tidak penuh pesan uji, lalu dinyalakan lagi); server bersih (3 outlet, 4 akun, 0 transaksi).
 - 9 Okt 2026 (malam): database server diperbarui untuk Tahap 7a (migrasi 0029–0031: dasbor, indeks waktu); uji server dasbor + semua uji lama lulus (notifikasi Telegram dimatikan sementara lalu dinyalakan lagi); server bersih.
+- 10 Okt 2026: database server diperbarui untuk Tahap 7b (migrasi 0032–0035: analisis modal/untung/susut/minyak-tepung/proyeksi, sumber dasbor baru); uji server analisis + semua uji lama lulus (notifikasi dimatikan sementara); server bersih.

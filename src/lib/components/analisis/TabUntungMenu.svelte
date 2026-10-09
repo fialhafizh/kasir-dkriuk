@@ -8,6 +8,7 @@
 	let menu = $state<UntungMenu[]>([]);
 	let batas = $state(30);
 	let fBatas = $state('30');
+	let fBatasDiubah = false;
 	let galat = $state('');
 	let pesan = $state('');
 	let nomor = 0;
@@ -18,11 +19,12 @@
 			const h = await muatUntungMenu(outlet, rentang);
 			if (ini !== nomor) return;
 			menu = h.menu;
+			// isian batas hanya diisi ulang saat pertama dimuat (tidak menimpa ketikan saat periode diganti)
+			if (batas !== h.batas || !fBatasDiubah) fBatas = String(h.batas).replace('.', ',');
 			batas = h.batas;
-			fBatas = String(h.batas).replace('.', ',');
 			galat = '';
 		} catch (e) {
-			if (ini === nomor) galat = (e as Error).message;
+			if (ini === nomor) (galat = (e as Error).message), (menu = []);
 		}
 	}
 	$effect(() => {
@@ -38,6 +40,7 @@
 		try {
 			await simpanBatasUntung(n);
 			pesan = 'Batas disimpan.';
+			fBatasDiubah = false;
 			await muat();
 		} catch (err) {
 			pesan = (err as Error).message;
@@ -61,7 +64,7 @@
 	<form class="flex flex-wrap items-end gap-2 rounded-2xl bg-surface-2 p-3" onsubmit={simpan}>
 		<label class="grid gap-1 text-xs font-semibold">
 			Tandai "untung tipis" bila di bawah (%)
-			<input class="tabular min-h-11 w-24 rounded-xl border border-line-strong bg-surface px-3 text-right" inputmode="decimal" bind:value={fBatas} />
+			<input class="tabular min-h-11 w-24 rounded-xl border border-line-strong bg-surface px-3 text-right" inputmode="decimal" bind:value={fBatas} oninput={() => (fBatasDiubah = true)} />
 		</label>
 		<button type="submit" class="min-h-11 rounded-xl bg-surface px-4 text-sm font-semibold">Simpan</button>
 		{#if pesan}<p class="w-full text-xs" role="status">{pesan}</p>{/if}
@@ -88,7 +91,7 @@
 				<tr class="border-t border-line">
 					<td class="py-1.5 pr-2">
 						{m.nama}
-						{#if LABEL[t]}<span class="ml-1 rounded-full px-2 py-0.5 text-[10px] font-bold {WARNA[t]}">{LABEL[t]}</span>{/if}
+						{#if LABEL[t]}<span class="ml-1 rounded-full px-2 py-0.5 text-xs font-bold {WARNA[t]}">{LABEL[t]}</span>{/if}
 					</td>
 					{#if !outlet}<td class="py-1.5 pr-2 text-muted">{namaOutlet(m.outlet_id)}</td>{/if}
 					<td class="tabular py-1.5 pr-2 text-right">{rp(m.harga)}</td>

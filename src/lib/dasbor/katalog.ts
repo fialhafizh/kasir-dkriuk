@@ -28,7 +28,7 @@ export const LABEL_SUMBER: Record<Sumber, string> = {
 	tutup_toko: 'Tutup toko',
 	batal: 'Batal transaksi',
 	untung_menu: 'Untung per menu (perkiraan)',
-	susut: 'Susut opname'
+	susut: 'Susut opname (perkiraan)'
 };
 
 const LABEL_UKURAN: Record<string, string> = {

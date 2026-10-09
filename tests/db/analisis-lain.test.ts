@@ -105,13 +105,19 @@ describe('proyeksi', () => {
 	beforeEach(() => {
 		shift = '';
 	});
-	it('dari laba riil bulan berjalan ÷ hari berjalan × hari sebulan', async () => {
+	it('dari laba riil hari yang sudah selesai (1 s.d. kemarin) ÷ hari selesai × hari sebulan; hari ini ikut di angka sejauh ini', async () => {
 		await jual('nasi', 3, 0);
-		const p = await rpc<{ hari_berjalan: number; hari_pecah: number; hari_sebulan: number; omzet: number; proyeksi_omzet: number }>(db, adminId, 'public.proyeksi_bulan($1)', [null]);
-		expect(p.hari_berjalan).toBeGreaterThanOrEqual(1);
+		const p = await rpc<{ hari_berjalan: number; hari_selesai: number; hari_sebulan: number; omzet: number; proyeksi_omzet: number | null }>(
+			db,
+			adminId,
+			'public.proyeksi_bulan($1)',
+			[null]
+		);
+		expect(p.hari_selesai).toBe(p.hari_berjalan - 1);
 		expect(Number(p.omzet)).toBeGreaterThan(0);
-		expect(Number(p.hari_pecah)).toBeLessThanOrEqual(p.hari_berjalan);
-		expect(Math.abs(Number(p.proyeksi_omzet) - (Number(p.omzet) / Number(p.hari_pecah)) * p.hari_sebulan)).toBeLessThan(p.hari_sebulan * 50);
+		// jualan hari ini tidak ikut dasar proyeksi
+		if (p.hari_selesai === 0) expect(p.proyeksi_omzet).toBeNull();
+		else expect(Number(p.proyeksi_omzet)).toBe(0);
 		await expect(rpc(db, kasirBL, 'public.proyeksi_bulan($1)', [null])).rejects.toThrow(/Hanya admin/);
 	});
 });

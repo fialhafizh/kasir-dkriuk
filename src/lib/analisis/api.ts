@@ -46,6 +46,7 @@ export async function simpanBatasUntung(batas: number): Promise<void> {
 
 export interface Susut {
 	outlet_id: string;
+	bahan_id: string;
 	nama: string;
 	satuan: string;
 	jumlah: number;
@@ -107,17 +108,19 @@ export async function muatMinyakTepung(outlet: string | null, r: Rentang): Promi
 export interface Proyeksi {
 	bulan: string;
 	hari_berjalan: number;
+	hari_selesai: number;
 	hari_sebulan: number;
 	omzet: number;
 	laba: number;
-	proyeksi_omzet: number;
-	proyeksi_laba: number;
+	/** null pada tanggal 1 (belum ada hari yang selesai) */
+	proyeksi_omzet: number | null;
+	proyeksi_laba: number | null;
 	bulan_lalu_omzet: number;
 	bulan_lalu_laba: number;
 }
 export async function muatProyeksi(outlet: string | null): Promise<Proyeksi> {
 	const h = periksa(await supabase.rpc('proyeksi_bulan', { p_outlet: outlet })) as Record<string, unknown>;
-	return Object.fromEntries(Object.entries(h).map(([k, v]) => [k, k === 'bulan' ? v : Number(v)])) as unknown as Proyeksi;
+	return Object.fromEntries(Object.entries(h).map(([k, v]) => [k, k === 'bulan' || v === null ? v : Number(v)])) as unknown as Proyeksi;
 }
 
 /** Tanda untung: tipis (di bawah batas), rugi (minus), belum lengkap (ada bahan tanpa harga). */

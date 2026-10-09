@@ -46,6 +46,7 @@ export interface Kasbon {
 	keterangan: string | null;
 	batal_at: string | null;
 	batal_alasan: string | null;
+	dicatat_oleh: string | null;
 }
 
 /** Tanggal-tanggal dalam bulan 'YYYY-MM' (format YYYY-MM-DD). */
@@ -113,7 +114,7 @@ export async function muatKasbon(outletId: string, sejak: string): Promise<Kasbo
 	return periksa(
 		await supabase
 			.from('pengeluaran')
-			.select('id, karyawan_id, sumber, jumlah, waktu, keterangan, batal_at, batal_alasan, kategori_pengeluaran!inner(kode)')
+			.select('id, karyawan_id, sumber, jumlah, waktu, keterangan, batal_at, batal_alasan, dicatat_oleh, kategori_pengeluaran!inner(kode)')
 			.eq('outlet_id', outletId)
 			.eq('kategori_pengeluaran.kode', 'kasbon')
 			.gte('waktu', sejak)
@@ -148,21 +149,28 @@ export function statusKasbon<T extends { waktu: string; jumlah: number }>(kasbon
 		});
 }
 
+/** Nama pencatat: "Nama (kasir)" / "Nama (admin)". */
+export async function muatNamaPencatat(): Promise<Map<string, string>> {
+	const rows = periksa(await supabase.from('profiles').select('id, nama_tampilan, role')) as { id: string; nama_tampilan: string; role: string }[];
+	return new Map(rows.map((p) => [p.id, `${p.nama_tampilan} (${p.role === 'admin' ? 'admin' : 'kasir'})`]));
+}
+
 /** Semua kasbon (tidak batal) seorang karyawan, dari kasir & admin, dengan status pemotongan. */
 export async function muatRincianKasbon(karyawanId: string): Promise<KasbonRinci[]> {
-	const [kb, gaji, orang] = await Promise.all([
+	const [kb, gaji, nama] = await Promise.all([
 		supabase
 			.from('pengeluaran')
 			.select('id, waktu, jumlah, sumber, keterangan, dicatat_oleh, kategori_pengeluaran!inner(kode)')
 			.eq('karyawan_id', karyawanId)
 			.eq('kategori_pengeluaran.kode', 'kasbon')
-			.is('batal_at', null),
+			.is('batal_at', null)
+			.order('waktu')
+			.order('id'),
 		supabase.from('gaji').select('potongan_kasbon').eq('karyawan_id', karyawanId).is('batal_at', null),
-		supabase.from('profiles').select('id, nama_tampilan, role')
+		muatNamaPencatat()
 	]);
 	const rows = periksa(kb) as { id: string; waktu: string; jumlah: number; sumber: 'laci' | 'luar'; keterangan: string | null; dicatat_oleh: string | null }[];
 	const potong = (periksa(gaji) as { potongan_kasbon: number }[]).reduce((t, g) => t + Number(g.potongan_kasbon), 0);
-	const nama = new Map((periksa(orang) as { id: string; nama_tampilan: string; role: string }[]).map((p) => [p.id, `${p.nama_tampilan} (${p.role === 'admin' ? 'admin' : 'kasir'})`]));
 	return statusKasbon(
 		rows.map((r) => ({ id: r.id, waktu: r.waktu, jumlah: Number(r.jumlah), sumber: r.sumber, keterangan: r.keterangan, pencatat: (r.dicatat_oleh && nama.get(r.dicatat_oleh)) || '-' })),
 		potong

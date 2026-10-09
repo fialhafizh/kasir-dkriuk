@@ -18,7 +18,7 @@
 				if (ini === nomor) (data = h), (galat = '');
 			})
 			.catch((e) => {
-				if (ini === nomor) galat = (e as Error).message;
+				if (ini === nomor) (galat = (e as Error).message), (data = []);
 			});
 	});
 	const rp = (n: number | null) => (n === null ? '-' : `Rp${formatAngka(n)}`);
@@ -27,7 +27,7 @@
 
 {#if galat}<p class="text-danger" role="alert">{galat}</p>{/if}
 <p class="text-xs text-muted">
-	Di antara dua pembelian, dihitung potong ayam + porsi kulit yang terjual (yang digoreng). Rata-rata hanya dari pembelian yang sudah disusul pembelian
+	Perkiraan. Di antara dua pembelian, dihitung potong ayam + porsi kulit yang terjual (yang digoreng). Rata-rata hanya dari pembelian yang sudah disusul pembelian
 	berikutnya; pembelian terakhir masih berjalan.
 </p>
 {#each data as o (o.outlet_id)}
@@ -44,7 +44,7 @@
 					<ul class="mt-1 grid gap-0.5 text-xs text-muted">
 						{#each b.pembelian as p (p.waktu)}
 							<li>
-								{formatWaktuWib(p.waktu)} · {angka(p.jumlah)} {b.satuan} · {rp(p.rupiah)} → {p.potong} potong ({angka(p.potong_per_satuan)}/{b.satuan},
+								{formatWaktuWib(p.waktu)} · {angka(p.jumlah)} {b.satuan} · {rp(p.rupiah)} → {angka(p.potong)} potong ({angka(p.potong_per_satuan)}/{b.satuan},
 								{rp(p.biaya_per_potong)}/potong){p.berjalan ? ' · masih berjalan' : ''}
 							</li>
 						{:else}
@@ -60,7 +60,7 @@
 				{#if o.tepung.persen_dkriuk !== null}(D'Kriuk {angka(o.tepung.persen_dkriuk)}%){/if}
 			</p>
 			{#if o.tepung.menyimpang}<p class="font-semibold text-warn">Rasio jauh dari 50:50 — periksa takaran campuran.</p>{/if}
-			<p>Modal tepung per potong: <b class="tabular">{rp(o.tepung.modal_per_potong)}</b> ({o.tepung.potong} potong di periode ini)</p>
+			<p>Modal tepung per potong: <b class="tabular">{rp(o.tepung.modal_per_potong)}</b> ({angka(o.tepung.potong)} potong di periode ini)</p>
 		</div>
 	</section>
 {/each}
