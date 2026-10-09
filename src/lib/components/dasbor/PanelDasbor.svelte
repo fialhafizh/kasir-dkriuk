@@ -8,6 +8,8 @@
 	import { formatAngka } from '#lib/master/rupiah.ts';
 	import type { Outlet } from '#lib/types/db.ts';
 	import { untrack, type Snippet } from 'svelte';
+	import TombolEkspor from '#lib/components/ekspor/TombolEkspor.svelte';
+	import { LABEL_KELOMPOK } from '#lib/dasbor/katalog.ts';
 	import AngkaUtama from './AngkaUtama.svelte';
 	import GrafikBatang from './GrafikBatang.svelte';
 	import GrafikGaris from './GrafikGaris.svelte';
@@ -65,6 +67,22 @@
 	});
 
 	const sumber = $derived(panel.spek.sumber ?? '');
+	/** Data panel sebagai lembar Excel: kolom kelompok + ukuran (+ periode sebelumnya bila dibandingkan). */
+	function lembarPanel() {
+		const h = hasil!;
+		const lalu = new Map((pembanding?.baris ?? []).map((b) => [b.k.join('\u0000'), b.n]));
+		return [
+			{
+				nama: panel.judul,
+				kolom: [
+					...h.kolom.map((k) => LABEL_KELOMPOK[k.kolom] ?? k.kolom),
+					...h.ukuran.map(labelUkuran),
+					...(pembanding ? h.ukuran.map((u) => `${labelUkuran(u)} (periode sebelumnya)`) : [])
+				],
+				baris: h.baris.map((b) => [...b.l, ...b.n, ...(pembanding ? h.ukuran.map((_, i) => lalu.get(b.k.join('\u0000'))?.[i] ?? 0) : [])])
+			}
+		];
+	}
 	const format = (u: string, n: number) =>
 		ukuranRupiah(sumber, u) ? `${n < 0 ? '−' : ''}Rp${formatAngka(Math.abs(Math.round(n)))}` : n.toLocaleString('id-ID', { maximumFractionDigits: 2 });
 	const format0 = (n: number) => format(panel.spek.ukuran?.[0] ?? '', n);
@@ -89,6 +107,9 @@
 				<button type="button" class="min-h-8 rounded-lg px-2 text-xs text-muted hover:bg-surface-2" aria-pressed={sebagaiTabel} onclick={() => (sebagaiTabel = !sebagaiTabel)}>
 					{sebagaiTabel ? 'Grafik' : 'Tabel'}
 				</button>
+			{/if}
+			{#if grafik && hasil?.baris.length}
+				<TombolEkspor kecil judul={panel.judul} lembar={lembarPanel} />
 			{/if}
 			{@render aksi?.()}
 		</div>

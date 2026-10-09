@@ -1,4 +1,6 @@
 <script lang="ts">
+	import TombolEkspor from '#lib/components/ekspor/TombolEkspor.svelte';
+	import { formatWaktuWib as _wkt } from '#lib/kasir/waktu.ts';
 	import { onMount } from 'svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import Konfirmasi from '#lib/components/ui/Konfirmasi.svelte';
@@ -229,6 +231,11 @@
 	{#if daftar.length === 0}
 		<p class="mt-2 rounded-xl bg-surface-2 p-4 text-sm text-muted">Belum ada pengeluaran di rentang ini.</p>
 	{:else}
+		{#if daftar.length}<div class="mb-2"><TombolEkspor judul="Pengeluaran" cetak lembar={() => [{
+			nama: 'Pengeluaran',
+			kolom: ['Outlet', 'Waktu', 'Kategori', 'Sumber', 'Jumlah', 'Keterangan', 'Batal'],
+			baris: daftar.map((x) => [outlets.find((o) => o.id === x.outlet_id)?.nama ?? '', _wkt(x.waktu), x.kategori, x.sumber, Number(x.jumlah), x.keterangan, x.batal])
+		}]} /></div>{/if}
 		<ul class="mt-2 grid gap-2">
 			{#each daftar as b (b.id)}
 				<li class="rounded-2xl border border-line bg-surface p-3 {b.batal ? 'opacity-70' : ''}">

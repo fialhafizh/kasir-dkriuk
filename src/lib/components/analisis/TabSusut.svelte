@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TombolEkspor from '#lib/components/ekspor/TombolEkspor.svelte';
 	import { muatSusutTerbuang, type Buang, type Susut } from '#lib/analisis/api.ts';
 	import type { Rentang } from '#lib/dasbor/periode.ts';
 	import { formatAngka } from '#lib/master/rupiah.ts';
@@ -40,6 +41,10 @@
 		</div>
 	</div>
 
+	<div class="mt-3"><TombolEkspor judul="Susut dan terbuang" cetak lembar={() => [
+		{ nama: 'Susut', kolom: ['Bahan', 'Outlet', 'Jumlah', 'Satuan', 'Nilai (Rp)'], baris: data!.susut.map((s) => [s.nama, namaOutlet(s.outlet_id), s.jumlah, s.satuan, s.nilai]) },
+		{ nama: 'Terbuang', kolom: ['Alasan', 'Bahan', 'Outlet', 'Jumlah', 'Satuan', 'Nilai (Rp)'], baris: data!.terbuang.map((t) => [t.label_alasan, t.nama, namaOutlet(t.outlet_id), t.jumlah, t.satuan, t.nilai]) }
+	]} /></div>
 	<section class="mt-4 grid gap-4 lg:grid-cols-2">
 		<div>
 			<h3 class="font-bold">Susut per bahan</h3>

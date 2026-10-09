@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TombolEkspor from '#lib/components/ekspor/TombolEkspor.svelte';
 	import { muatUntungMenu, simpanBatasUntung, tandaUntung, type UntungMenu } from '#lib/analisis/api.ts';
 	import type { Rentang } from '#lib/dasbor/periode.ts';
 	import { formatAngka } from '#lib/master/rupiah.ts';
@@ -71,6 +72,11 @@
 	</form>
 </div>
 
+<div class="mt-3"><TombolEkspor judul="Untung per menu" cetak lembar={() => [{
+	nama: 'Untung per menu',
+	kolom: ['Menu', 'Outlet', 'Harga', 'Modal', 'Untung/porsi', 'Untung %', 'Tanda', 'Terjual', 'Omzet', 'Untung periode'],
+	baris: menu.map((m) => [m.nama, namaOutlet(m.outlet_id), m.harga, m.modal, m.untung, m.persen, LABEL[tandaUntung(m)], m.terjual, m.omzet, m.untung_periode])
+}]} /></div>
 <div class="mt-3 overflow-x-auto">
 	<table class="w-full min-w-[40rem] text-sm">
 		<thead class="text-left text-xs text-muted">

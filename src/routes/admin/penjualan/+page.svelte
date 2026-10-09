@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TombolEkspor from '#lib/components/ekspor/TombolEkspor.svelte';
 	import { onMount } from 'svelte';
 	import Konfirmasi from '#lib/components/ui/Konfirmasi.svelte';
 	import { muatPenjualanTanggal, type PenjualanAdmin } from '#lib/kas/admin.ts';
@@ -82,6 +83,11 @@
 	{#if tampil.length === 0}
 		<p class="mt-2 rounded-xl bg-surface-2 p-4 text-sm text-muted">Tidak ada transaksi.</p>
 	{:else}
+		{#if tampil.length}<div class="mb-2"><TombolEkspor judul="Penjualan" cetak lembar={() => [{
+			nama: 'Penjualan',
+			kolom: ['Nomor', 'Kode struk', 'Waktu', 'Cara bayar', 'Total', 'Item', 'Batal'],
+			baris: tampil.map((x) => [x.nomor, x.kode_struk, formatWaktuWib(x.waktu), labelMetode(x.metode), Number(x.total), x.item.map((i) => `${i.qty}× ${i.nama}`).join(', '), x.void_alasan])
+		}]} /></div>{/if}
 		<ul class="mt-2 grid gap-2">
 			{#each tampil as p (p.id)}
 				<li class="rounded-2xl border border-line bg-surface p-3 {p.void_at ? 'opacity-70' : ''}">

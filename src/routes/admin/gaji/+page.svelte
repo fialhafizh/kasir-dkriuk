@@ -4,6 +4,7 @@
 	import Gajian from '#lib/components/gaji/Gajian.svelte';
 	import KasbonAdmin from '#lib/components/gaji/KasbonAdmin.svelte';
 	import KehadiranGrid from '#lib/components/gaji/KehadiranGrid.svelte';
+	import RingkasanGaji from '#lib/components/gaji/RingkasanGaji.svelte';
 	import { hitungGaji, muatKaryawan, muatKehadiran, type Karyawan, type RekapGaji } from '#lib/kas/gaji.ts';
 	import { tanggalWib } from '#lib/kasir/waktu.ts';
 	import { muatOutlets } from '#lib/master/api.ts';
@@ -82,5 +83,6 @@
 		{#key `${outletId}|${bulan}`}<Gajian {bulan} {rekap} onubah={muat} />{/key}
 		{#key outletId}<KasbonAdmin {outletId} {rekap} {hariIni} onubah={muat} />{/key}
 		<DaftarKaryawan {outletId} {karyawan} onubah={muat} />
+		<RingkasanGaji {outlets} {outletId} {bulan} {rekap} />
 	</div>
 {/if}

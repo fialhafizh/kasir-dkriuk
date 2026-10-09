@@ -29,7 +29,7 @@
 <div class="min-h-dvh bg-bg">
 	<PitaVersi />
 	<header
-		class="sticky top-0 z-20 flex items-center gap-3 border-b border-line bg-surface/95 px-4 pt-[env(safe-area-inset-top)] backdrop-blur"
+		class="kepala-aplikasi sticky top-0 z-20 flex items-center gap-3 border-b border-line bg-surface/95 px-4 pt-[env(safe-area-inset-top)] backdrop-blur"
 	>
 		<div class="flex min-h-16 min-w-0 flex-1 items-center gap-3">
 			<Logo size="sm" alt="" />

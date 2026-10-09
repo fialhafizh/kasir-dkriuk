@@ -1,4 +1,6 @@
 <script lang="ts">
+	import TombolEkspor from '#lib/components/ekspor/TombolEkspor.svelte';
+	import { lembarKas } from '#lib/ekspor/laporan.ts';
 	import { onMount } from 'svelte';
 	import { kasHarian, mundurHari, ringkasRentang, type HariKas } from '#lib/kas/admin.ts';
 	import { labelMetode, METODE } from '#lib/kasir/bayar.ts';
@@ -67,6 +69,7 @@
 {:else if status === 'gagal'}
 	<p class="mt-4 text-danger" role="alert">{pesan}</p>
 {:else}
+	{#if data.length}<div class="mt-4"><TombolEkspor judul="Kas harian" cetak lembar={() => [lembarKas(data)]} /></div>{/if}
 	{#each data as d (d.outlet.id)}
 		{@const r = ringkasRentang(d.hari)}
 		<section class="mt-6" aria-label="Kas {d.outlet.nama}">

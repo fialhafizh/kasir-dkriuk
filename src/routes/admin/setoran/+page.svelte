@@ -1,4 +1,6 @@
 <script lang="ts">
+	import TombolEkspor from '#lib/components/ekspor/TombolEkspor.svelte';
+	import { formatWaktuWib as _wkt } from '#lib/kasir/waktu.ts';
 	import { onMount } from 'svelte';
 	import Konfirmasi from '#lib/components/ui/Konfirmasi.svelte';
 	import { muatNamaPengguna } from '#lib/admin/perangkat.ts';
@@ -63,6 +65,7 @@
 		}
 	}
 	const kotak = 'min-h-12 rounded-xl border border-line-strong bg-surface px-3 text-fg';
+	const namaOutletEkspor = (id: string) => outlets.find((o) => o.id === id)?.nama ?? '';
 </script>
 
 <svelte:head><title>Setoran · Admin D'Kriuk</title></svelte:head>
@@ -112,6 +115,12 @@
 	{#if riwayat.length === 0}
 		<p class="mt-2 rounded-xl bg-surface-2 p-4 text-sm text-muted">Belum ada.</p>
 	{:else}
+		{#if riwayat.length || menunggu.length}<div class="mb-2"><TombolEkspor judul="Setoran" cetak lembar={() => [{
+			nama: 'Setoran',
+			kolom: ['Outlet', 'Waktu', 'Dicatat', 'Diterima', 'Waktu diterima', 'Selisih', 'Catatan', 'Batal'],
+			baris: [...menunggu, ...riwayat].map((x) => [namaOutletEkspor(x.outlet_id), _wkt(x.waktu), Number(x.jumlah), x.jumlah_diterima === null ? null : Number(x.jumlah_diterima),
+				x.diterima_at ? _wkt(x.diterima_at) : null, x.jumlah_diterima === null ? null : Number(x.jumlah_diterima) - Number(x.jumlah), x.catatan_terima ?? x.catatan, x.batal_alasan])
+		}]} /></div>{/if}
 		<ul class="mt-2 grid gap-2">
 			{#each riwayat as s (s.id)}
 				{@const beda = s.diterima_at && s.jumlah_diterima !== s.jumlah}

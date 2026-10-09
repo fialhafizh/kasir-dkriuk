@@ -24,7 +24,7 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 | 6 | Telegram: struk, ringkasan tutup toko & harian, peringatan, kas (grup bertopik) | Selesai, di main & aktif di server — uji owner menunggu |
 | 7a | Dasbor yang bisa dirakit (seperti Kibana): banyak dasbor, panel dari katalog, seret & ubah ukuran, siklus stok, riwayat kejadian | Selesai, di main — uji owner menunggu |
 | 7b | Analisis kebocoran (perkiraan): untung per menu, susut & terbuang rupiah, minyak/tepung, proyeksi; rincian kasbon di Gajian | Selesai, di main — uji owner menunggu |
-| 7c | Alat: rekonsiliasi ojol, rencana belanja, ekspor PDF/Excel | Belum |
+| 7c | Rencana belanja (salin WA/Telegram), ringkasan gaji, laporan ojol, ekspor Excel di semua data, cetak/PDF | Selesai, di main — uji owner menunggu |
 | 8 | Rilis: uji menyeluruh, panduan pengguna | Belum |
 
 ---
@@ -146,6 +146,12 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - Dasbor mendapat sumber **Untung per menu**, **Susut opname**, dan nilai rupiah untuk **Sisa / terbuang**.
 - **Kasbon** (contoh owner: Dira 50 rb + 100 rb + 250 rb): setiap pinjaman tercatat langsung (kasir di menu Kas / admin); gajian otomatis memotong seluruh sisa (400 rb), admin boleh mengubah (mis. 200 rb dulu), sisanya otomatis terisi di gajian berikutnya. Gajian kini menampilkan **rincian kasbon** (tanggal, jumlah, dari laci/owner, dicatat oleh, sudah/sebagian/belum dipotong — urut tanggal tertua).
 
+### Tahap 7c — Alat (keputusan owner 10 Okt 2026)
+- **Ojol**: kasir mencatat pesanan ojol dengan harga toko; owner sendiri mencocokkan dengan pencairan. Aplikasi memberi **laporan per aplikasi** (pesanan & total harga toko per hari/periode) di **Admin → Ojol**.
+- **Rencana belanja** (Admin → Belanja), seperti tabel belanja stokis owner: saran beli **per outlet** = pemakaian rata-rata 7 hari terakhir × jumlah hari (awal 7) − stok sekarang, dibulatkan ke atas per pack/karung (pack ayam menurut potongan yang paling kurang, mis. dada habis walau sayap banyak); tepung/minyak/plastik merah dari rata-rata pembelian 4 minggu. Contoh owner: Bukit Lama perlu 80 Ori seminggu, sisa 10 → 70. Angka bisa diubah (berlaku hari itu), ada harga satuan, harga total & jumlah. **Salin untuk WA** dan **Kirim ke Telegram** (topik 💰 Kas) agar bisa disalin dari HP.
+- **Ringkasan gaji** (Admin → Gaji) seperti tabel gaji owner: nama, gaji/hari, hari masuk, gaji sebulan, kasbon, total + jumlah; per outlet atau semua; salin WA / Telegram / Excel.
+- **Setiap data yang tampil bisa diekspor ke Excel** (.xlsx, angka tetap angka): panel dasbor, Analisis, Belanja, Gaji, Ojol, Laba-rugi, Kas harian, Setoran, Pengeluaran, Penjualan; tombol **Cetak** untuk PDF.
+
 ## Catatan penting untuk tahap berikutnya
 
 - **Tahap 5 (keuangan)**: pengeluaran laci & setor langsung mengurangi uang laci; tutup toko = modal + jual cash − void − pengeluaran laci − setoran; barang masuk dibayar dari bank, bukan laci; pembelian yang terlambat dicatat di belakang opname perlu jalur pengeluaran tanpa efek stok.
@@ -161,3 +167,4 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - 9 Okt 2026 (sore): database server diperbarui untuk Tahap 6 (migrasi 0026–0028), token bot disimpan di Supabase secrets, fungsi `telegram` dipasang, jadwal kirim tiap menit aktif (kuncinya dibuat acak di Vault server). Grup **Backup Dkriuk** terhubung, 4 topik dibuat bot, pesan uji terkirim ke tiap topik. Uji server Telegram + semua uji lama lulus (notifikasi dimatikan sementara selama uji lama agar grup tidak penuh pesan uji, lalu dinyalakan lagi); server bersih (3 outlet, 4 akun, 0 transaksi).
 - 9 Okt 2026 (malam): database server diperbarui untuk Tahap 7a (migrasi 0029–0031: dasbor, indeks waktu); uji server dasbor + semua uji lama lulus (notifikasi Telegram dimatikan sementara lalu dinyalakan lagi); server bersih.
 - 10 Okt 2026: database server diperbarui untuk Tahap 7b (migrasi 0032–0035: analisis modal/untung/susut/minyak-tepung/proyeksi, sumber dasbor baru); uji server analisis + semua uji lama lulus (notifikasi dimatikan sementara); server bersih.
+- 10 Okt 2026: database server diperbarui untuk Tahap 7c (migrasi 0036: rencana belanja, kirim teks ke Telegram); semua uji server lulus (notifikasi dimatikan sementara); server bersih.
