@@ -1,6 +1,6 @@
 # PR owner — uji Tahap 4a (offline jualan & aplikasi online)
 
-Status: **belum dicoba**. Alamat: https://daffialhafizh.github.io/kasir-dkriuk/
+Status: **belum dicoba**. Alamat: https://fialhafizh.github.io/kasir-dkriuk/
 
 ## Pasang ke HP/tablet
 - [ ] Buka alamat di Chrome Android → menu ⋮ → **Tambahkan ke layar utama / Instal aplikasi** → ikon D'Kriuk muncul

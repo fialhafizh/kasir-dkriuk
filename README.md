@@ -45,4 +45,4 @@ SvelteKit 3 (Svelte 5) + Tailwind CSS 4, di-hosting statis (GitHub Pages, hash r
 
 ## Alamat aplikasi
 
-https://daffialhafizh.github.io/kasir-dkriuk/ — dipasang otomatis oleh GitHub Actions (`.github/workflows/pages.yml`) setiap ada perubahan di `main`. Variabel repo yang dibutuhkan: `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_ANON_KEY`. Build lokal dengan base path di Git Bash Windows: `MSYS_NO_PATHCONV=1 BASE_PATH=/kasir-dkriuk npm run build`.
+https://fialhafizh.github.io/kasir-dkriuk/ — dipasang otomatis oleh GitHub Actions (`.github/workflows/pages.yml`) setiap ada perubahan di `main`. Variabel repo yang dibutuhkan: `PUBLIC_SUPABASE_URL`, `PUBLIC_SUPABASE_ANON_KEY`. Build lokal dengan base path di Git Bash Windows: `MSYS_NO_PATHCONV=1 BASE_PATH=/kasir-dkriuk npm run build`.

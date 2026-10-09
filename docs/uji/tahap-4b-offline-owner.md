@@ -1,6 +1,6 @@
 # PR owner — uji Tahap 4b (batal, stok, transfer, opname tanpa internet; admin Perangkat)
 
-Status: **belum dicoba**. Alamat: sementara di Netlify (lihat laporan), nanti `https://daffialhafizh.github.io/kasir-dkriuk/`.
+Status: **belum dicoba**. Alamat: https://fialhafizh.github.io/kasir-dkriuk/
 
 Siapkan: buka menu **Stok** sekali saat online di setiap HP/tablet kasir (supaya datanya tersimpan di perangkat).
 

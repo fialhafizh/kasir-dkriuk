@@ -30,7 +30,7 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 ## Keputusan owner per tahap
 
 ### Umum
-- Repo kode **publik** di GitHub (`daffialhafizh/kasir-dkriuk`). Harga beli & data bisnis **tidak pernah** dimasukkan ke kode (dijaga tes otomatis). Riwayat lama yang berisi harga beli dibiarkan (harga stokis tidak rahasia).
+- Repo kode **publik** di GitHub (`fialhafizh/kasir-dkriuk`). Harga beli & data bisnis **tidak pernah** dimasukkan ke kode (dijaga tes otomatis). Riwayat lama yang berisi harga beli dibiarkan (harga stokis tidak rahasia).
 - Bahasa aplikasi: Indonesia. Tampilan untuk tablet & HP.
 - Tidak ada outlet yang buka lewat tengah malam: toko wajib ditutup sebelum jualan hari berikutnya (batas 00.00 WIB).
 
@@ -61,7 +61,7 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - Penjualan yang terjadi sebelum tutup toko tapi baru terkirim sesudahnya tetap masuk shift-nya; ringkasan diperbarui dan diberi tanda untuk admin.
 - **Nomor struk**: online nomor resmi; offline nomor sementara `S<kode perangkat>-NNN`; setiap transaksi punya **kode struk** pendek yang tercetak dan bisa dicari; struk offline tetap bisa ditelusuri ke pesanannya (nomor resmi, nomor sementara, jam jual, jam sampai, perangkat, kasir, isi).
 - Kejadian yang ditolak server masuk **Perlu perhatian** (coba lagi / abaikan dengan alasan, dilaporkan ke admin). Admin punya halaman **Perangkat** (jam sinkron terakhir tiap HP/tablet).
-- **Pemasangan online dimajukan ke Tahap 4** supaya bisa diuji di HP/tablet sungguhan (offline, printer Bluetooth, RawBT): alamat `https://daffialhafizh.github.io/kasir-dkriuk/`, bisa dipasang ke layar utama.
+- **Pemasangan online dimajukan ke Tahap 4** supaya bisa diuji di HP/tablet sungguhan (offline, printer Bluetooth, RawBT): alamat `https://fialhafizh.github.io/kasir-dkriuk/`, bisa dipasang ke layar utama.
 - 6 Okt 2026: akun GitHub owner ditandai (flagged) oleh GitHub sehingga push & GitHub Pages terhambat; owner mengajukan pemulihan. **Sementara aplikasi dipasang di Netlify** (unggah folder hasil build, tanpa GitHub). Hanya alamat Supabase & kunci publik yang ikut di hasil build (sudah dicek).
 - Perangkat yang pernah login bisa dibuka offline kapan pun; perangkat baru butuh internet untuk login pertama. Keluar (logout) ditolak selama masih ada data belum terkirim.
 
@@ -124,3 +124,4 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - 9 Okt 2026: database server diperbarui untuk Tahap 4b (migrasi 0020–0021); semua uji server (kasir, stok 3a/3b, offline 4a/4b) lulus memakai outlet & akun sementara yang sudah dihapus; server kembali bersih (3 outlet, 4 akun, 0 transaksi).
 - 10 Okt 2026: database server diperbarui untuk Tahap 5a (migrasi 0022–0023); semua uji server lulus; sisa data uji dari pembersihan yang gagal dihapus; server bersih (3 outlet, 4 akun, 0 transaksi, 7 kategori pengeluaran).
 - 9 Okt 2026 (malam): database server diperbarui untuk Tahap 5b (migrasi 0024–0025); semua uji server (kasir, stok, offline, kas, gaji) lulus; server bersih.
+- 9 Okt 2026: **aplikasi online** di **https://fialhafizh.github.io/kasir-dkriuk/** (akun GitHub baru owner `fialhafizh`, repo publik `fialhafizh/kasir-dkriuk`; akun lama tidak dipakai lagi, Netlify tidak jadi dipakai). Setiap kiriman ke `main` otomatis dipasang ulang. Diperiksa: aplikasi tersambung ke Supabase dan tidak ada kunci rahasia di kode yang terpasang. Kiriman kode (push) dilakukan owner dari Git Bash.
