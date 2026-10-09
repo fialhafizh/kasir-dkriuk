@@ -9,18 +9,21 @@
 	let isi = $state<{ outlet: Outlet; perhatian: BarisStok[]; aman: number }[]>([]);
 	let galat = $state('');
 
+	let nomor = 0;
 	async function muat() {
+		const ini = ++nomor;
 		try {
 			const [data, stok] = await Promise.all([muatDataStok(), muatStok(outlet ?? undefined)]);
+			if (ini !== nomor) return;
 			isi = outlets
 				.filter((o) => o.aktif && (!outlet || o.id === outlet))
 				.map((o) => {
 					const baris = susunStok(data.bahan, data.satuan, data.isi, petaStok(stok, o.id));
 					return { outlet: o, perhatian: baris.filter((b) => b.status !== 'aman'), aman: baris.filter((b) => b.status === 'aman').length };
 				});
-			galat = '';
+			if (ini === nomor) galat = '';
 		} catch (e) {
-			galat = (e as Error).message;
+			if (ini === nomor) galat = (e as Error).message;
 		}
 	}
 	$effect(() => {

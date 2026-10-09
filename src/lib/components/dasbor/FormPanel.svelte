@@ -23,15 +23,17 @@
 	import { muatDataStok } from '#lib/stok/api.ts';
 	import { susunStok } from '#lib/stok/tampil.ts';
 	import type { Outlet } from '#lib/types/db.ts';
+	import { untrack } from 'svelte';
 	import PanelDasbor from './PanelDasbor.svelte';
 
 	let {
 		awal,
+		baru = false,
 		saringan,
 		outlets,
 		onsimpan,
 		onbatal
-	}: { awal: Panel; saringan: SaringanDasbor; outlets: Outlet[]; onsimpan: (p: Panel) => void; onbatal: () => void } = $props();
+	}: { awal: Panel; baru?: boolean; saringan: SaringanDasbor; outlets: Outlet[]; onsimpan: (p: Panel) => void; onbatal: () => void } = $props();
 
 	// svelte-ignore state_referenced_locally
 	let judul = $state(awal.judul);
@@ -50,18 +52,35 @@
 	const galat = $derived(periksaSpek(jenis, spek));
 	const draf = $derived<Panel>({ ...awal, judul: judul || 'Panel', jenis, spek: $state.snapshot(spek) as Spek });
 
+	let stokDimuat = false;
+	const sedangDimuat = new Set<string>();
 	$effect(() => {
-		if (jenis === 'siklus_stok' && !barisStok.length)
-			void muatDataStok().then((d) => (barisStok = susunStok(d.bahan, d.satuan, d.isi, new Map()).map((b) => ({ kunci: b.kunci, label: b.label }))));
+		if (jenis !== 'siklus_stok' || stokDimuat) return;
+		stokDimuat = true;
+		muatDataStok()
+			.then((d) => (barisStok = susunStok(d.bahan, d.satuan, d.isi, new Map()).map((b) => ({ kunci: b.kunci, label: b.label }))))
+			.catch((e) => ((pesan = (e as Error).message), (stokDimuat = false)));
 	});
 	$effect(() => {
-		for (const k of kolomSaring)
-			if (spek.sumber && !pilihanNilai[`${spek.sumber}.${k}`]) {
-				const kunci = `${spek.sumber}.${k}`;
-				void pilihanSaringan(spek.sumber, k).then((p) => (pilihanNilai[kunci] = p));
-			}
+		const sumber = spek.sumber;
+		if (!sumber) return;
+		for (const k of kolomSaring) {
+			const kunci = `${sumber}.${k}`;
+			if (untrack(() => pilihanNilai[kunci]) || sedangDimuat.has(kunci)) continue;
+			sedangDimuat.add(kunci);
+			pilihanSaringan(sumber, k)
+				.then((p) => (pilihanNilai[kunci] = p))
+				.catch((e) => (pesan = (e as Error).message))
+				.finally(() => sedangDimuat.delete(kunci));
+		}
 	});
 
+	function gantiJenis(j: JenisPanel) {
+		jenis = j;
+		// Panel angka tanpa pengelompokan; garis & lingkaran 1 ukuran.
+		if (j === 'angka') spek = { ...spek, kelompok: [], urutan: undefined };
+		if ((j === 'garis' || j === 'lingkaran') && (spek.ukuran?.length ?? 0) > 1) spek.ukuran = spek.ukuran!.slice(0, 1);
+	}
 	function gantiSumber(s: Sumber) {
 		spek = { ...spek, sumber: s, ukuran: [KATALOG[s].ukuran[0]], kelompok: [], saringan: {}, urutan: undefined };
 	}
@@ -100,14 +119,14 @@
 <div class="fixed inset-0 z-20 overflow-y-auto bg-bg/95 p-4 backdrop-blur">
 	<form class="mx-auto grid max-w-5xl gap-4 lg:grid-cols-[1fr_minmax(0,26rem)]" onsubmit={simpan} novalidate>
 		<div class="grid content-start gap-4">
-			<h2 class="font-display text-2xl">{awal.id ? 'Ubah panel' : 'Tambah panel'}</h2>
+			<h2 class="font-display text-2xl">{baru ? 'Tambah panel' : 'Ubah panel'}</h2>
 			<label class="grid gap-1 text-sm font-semibold">Judul<input class={kotak} maxlength="60" bind:value={judul} /></label>
 
 			<fieldset class="grid gap-2">
 				<legend class="text-sm font-semibold">1. Jenis tampilan</legend>
 				<div class="flex flex-wrap gap-2">
 					{#each [...JENIS_GRAFIK, ...JENIS_KHUSUS] as j (j)}
-						<button type="button" class="{pil} {jenis === j ? 'border-brand bg-brand text-on-brand' : 'border-line'}" aria-pressed={jenis === j} onclick={() => (jenis = j)}>{LABEL_JENIS[j]}</button>
+						<button type="button" class="{pil} {jenis === j ? 'border-brand bg-brand text-on-brand' : 'border-line'}" aria-pressed={jenis === j} onclick={() => gantiJenis(j)}>{LABEL_JENIS[j]}</button>
 					{/each}
 				</div>
 			</fieldset>

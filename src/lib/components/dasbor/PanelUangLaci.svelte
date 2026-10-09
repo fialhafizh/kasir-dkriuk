@@ -8,13 +8,17 @@
 	let galat = $state('');
 	const total = $derived(isi.reduce((t, x) => t + x.saldo, 0));
 
+	let nomor = 0;
 	async function muat() {
+		const ini = ++nomor;
 		try {
 			const pilih = outlets.filter((o) => o.aktif && (!outlet || o.id === outlet));
-			isi = await Promise.all(pilih.map(async (o) => ({ nama: o.nama, saldo: Number((await muatSaldoLaci(o.id)).saldo) || 0 })));
+			const hasil = await Promise.all(pilih.map(async (o) => ({ nama: o.nama, saldo: Number((await muatSaldoLaci(o.id)).saldo) || 0 })));
+			if (ini !== nomor) return;
+			isi = hasil;
 			galat = '';
 		} catch (e) {
-			galat = (e as Error).message;
+			if (ini === nomor) galat = (e as Error).message;
 		}
 	}
 	$effect(() => {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { muatRiwayat, type Kejadian } from '#lib/dasbor/api.ts';
 	import { LABEL_RIWAYAT } from '#lib/dasbor/katalog.ts';
 	import type { Rentang } from '#lib/dasbor/periode.ts';
@@ -11,51 +12,52 @@
 	let galat = $state('');
 	let memuat = $state(false);
 	const BATAS = 50;
+	// Permintaan terbaru menang; jawaban lama dibuang.
+	let nomor = 0;
 
 	async function muat(lanjut: boolean) {
-		if (memuat) return;
+		const ini = ++nomor;
 		memuat = true;
 		try {
 			const baru = await muatRiwayat(outlet, rentang, jenis, lanjut ? (daftar.at(-1) ?? null) : null, BATAS);
+			if (ini !== nomor) return;
 			daftar = lanjut ? [...daftar, ...baru] : baru;
 			habis = baru.length < BATAS;
 			galat = '';
 		} catch (e) {
-			galat = (e as Error).message;
+			if (ini === nomor) galat = (e as Error).message;
 		} finally {
-			memuat = false;
+			if (ini === nomor) memuat = false;
 		}
 	}
 	$effect(() => {
 		void segar;
 		void outlet;
 		void rentang;
-		void muat(false);
+		void jenis;
+		untrack(() => muat(false));
 	});
 	const namaOutlet = (id: string) => outlets.find((o) => o.id === id)?.nama ?? '';
 	const WARNA: Record<string, string> = { batal: 'text-danger', diabaikan: 'text-danger', toko: 'text-brand', setoran: 'text-ok' };
 </script>
 
-{#if galat}
-	<p class="text-sm text-danger" role="alert">{galat}</p>
-{:else}
-	<div class="h-full overflow-y-auto">
-		{#if !daftar.length}<p class="text-sm text-muted">Belum ada kejadian di periode ini.</p>{/if}
-		<ol class="grid gap-1.5">
-			{#each daftar as k (k.kunci)}
-				<li class="border-b border-line pb-1.5 text-sm">
-					<p class="flex flex-wrap items-baseline gap-x-2">
-						<span class="tabular text-xs text-muted">{formatWaktuWib(k.waktu)}</span>
-						<span class="text-xs font-bold {WARNA[k.jenis] ?? 'text-muted'}">{LABEL_RIWAYAT[k.jenis as keyof typeof LABEL_RIWAYAT] ?? k.jenis}</span>
-						{#if !outlet}<span class="text-xs text-muted">· {namaOutlet(k.outlet_id)}</span>{/if}
-					</p>
-					<p class="font-semibold">{k.judul}</p>
-					{#if k.rincian}<p class="text-xs text-muted">{k.rincian}</p>{/if}
-				</li>
-			{/each}
-		</ol>
-		{#if !habis && daftar.length}
-			<button type="button" class="mt-2 min-h-10 rounded-lg bg-surface-2 px-3 text-sm font-semibold" disabled={memuat} onclick={() => muat(true)}>Muat lebih</button>
-		{/if}
-	</div>
-{/if}
+<div class="h-full overflow-y-auto">
+	{#if galat}<p class="mb-1 text-xs text-danger" role="alert">{galat}</p>{/if}
+	{#if !daftar.length && !memuat && !galat}<p class="text-sm text-muted">Belum ada kejadian di periode ini.</p>{/if}
+	<ol class="grid gap-1.5">
+		{#each daftar as k (k.kunci)}
+			<li class="border-b border-line pb-1.5 text-sm">
+				<p class="flex flex-wrap items-baseline gap-x-2">
+					<span class="tabular text-xs text-muted">{formatWaktuWib(k.waktu)}</span>
+					<span class="text-xs font-bold {WARNA[k.jenis] ?? 'text-muted'}">{LABEL_RIWAYAT[k.jenis as keyof typeof LABEL_RIWAYAT] ?? k.jenis}</span>
+					{#if !outlet}<span class="text-xs text-muted">· {namaOutlet(k.outlet_id)}</span>{/if}
+				</p>
+				<p class="font-semibold">{k.judul}</p>
+				{#if k.rincian}<p class="text-xs break-words text-muted">{k.rincian}</p>{/if}
+			</li>
+		{/each}
+	</ol>
+	{#if !habis && daftar.length}
+		<button type="button" class="mt-2 min-h-10 rounded-lg bg-surface-2 px-3 text-sm font-semibold" disabled={memuat} onclick={() => muat(true)}>Muat lebih</button>
+	{/if}
+</div>

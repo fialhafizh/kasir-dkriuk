@@ -49,7 +49,7 @@
 	});
 
 	/** Letak awal untuk gridstack (atribut gs-*). */
-	const atributGs = (p: PanelKerja): Record<string, number> => ({ 'gs-x': p.x, 'gs-y': p.y, 'gs-w': p.w, 'gs-h': p.h, 'gs-min-h': 2 });
+	const atributGs = (p: PanelKerja): Record<string, number> => ({ 'gs-x': p.x, 'gs-y': p.y, 'gs-w': p.w, 'gs-h': p.h, 'gs-min-h': 2, 'gs-max-h': 20 });
 
 	/** Panel yang ditambahkan setelah kisi siap didaftarkan ke gridstack; yang dihapus dilepas tanpa menghapus DOM (Svelte yang menghapus). */
 	function widget(node: HTMLElement) {
@@ -62,7 +62,8 @@
 	}
 </script>
 
-<div class="grid-stack mt-4 min-h-40 rounded-2xl bg-surface-2/50 {siap ? '' : 'opacity-70'}" bind:this={wadah}>
+<div class="mt-4 rounded-2xl bg-surface-2/50 {siap ? '' : 'opacity-70'}">
+<div class="grid-stack min-h-40" bind:this={wadah}>
 	{#each panel as p (p._kunci)}
 		<div class="grid-stack-item" data-kunci={p._kunci} {...atributGs(p)} use:widget>
 			<div class="grid-stack-item-content">
@@ -72,6 +73,7 @@
 			</div>
 		</div>
 	{/each}
+</div>
 </div>
 
 {#snippet aksiPanel(p: PanelKerja)}

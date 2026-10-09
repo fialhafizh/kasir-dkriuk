@@ -3,7 +3,7 @@
 	import Legenda from './Legenda.svelte';
 	import { warnaSeri } from './warna.ts';
 
-	let { data, format }: { data: DataSeri; format: (n: number) => string } = $props();
+	let { data, format, formatSeri }: { data: DataSeri; format: (n: number) => string; formatSeri?: (i: number) => (n: number) => string } = $props();
 	let lebar = $state(320);
 	let tinggi = $state(200);
 
@@ -33,7 +33,7 @@
 			{#each data.seri as s, j (j)}
 				<polyline fill="none" stroke={warnaSeri(j)} stroke-width="2" points={s.nilai.map((v, i) => `${x(i)},${y(v)}`).join(' ')} />
 				{#each s.nilai as v, i (i)}
-					<circle cx={x(i)} cy={y(v)} r={n > 40 ? 1.5 : 3} fill={warnaSeri(j)}><title>{data.kategori[i]} · {s.nama}: {format(v)}</title></circle>
+					<circle cx={x(i)} cy={y(v)} r={n > 40 ? 1.5 : 3} fill={warnaSeri(j)}><title>{data.kategori[i]} · {s.nama}: {(formatSeri && data.seri.length > 1 ? formatSeri(j) : format)(v)}</title></circle>
 				{/each}
 			{/each}
 		</svg>

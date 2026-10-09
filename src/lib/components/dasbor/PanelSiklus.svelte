@@ -16,7 +16,10 @@
 	let data = $state<Siklus | null>(null);
 	let galat = $state('');
 
-	const o = $derived(outlet ?? (pilihOutlet || outlets.find((x) => x.aktif)?.id || ''));
+	$effect(() => {
+		if (!pilihOutlet) pilihOutlet = outlets.find((x) => x.aktif)?.id ?? '';
+	});
+	const o = $derived(outlet ?? pilihOutlet);
 	const k = $derived(kunci ?? pilihKunci);
 
 	$effect(() => {
@@ -30,9 +33,17 @@
 	$effect(() => {
 		void segar;
 		if (!o || !k) return;
+		let batal = false;
 		muatSiklus(o, k, rentang)
-			.then((s) => ((data = s), (galat = '')))
-			.catch((e) => (galat = (e as Error).message));
+			.then((s) => {
+				if (!batal) (data = s), (galat = '');
+			})
+			.catch((e) => {
+				if (!batal) galat = (e as Error).message;
+			});
+		return () => {
+			batal = true;
+		};
 	});
 
 	const angka = (n: number | null | undefined) => (n ?? 0).toLocaleString('id-ID', { maximumFractionDigits: 2 });

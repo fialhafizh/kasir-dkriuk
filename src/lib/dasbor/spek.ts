@@ -65,6 +65,8 @@ export function periksaSpek(jenis: JenisPanel, s: Spek): string | null {
 	if (kel.some((x) => x.kolom === 'waktu' && !x.satuan)) return 'Pilih satuan waktu.';
 	if (jenis === 'angka' && kel.length) return 'Panel angka tidak memakai pengelompokan.';
 	if (jenis === 'garis' && kel[0]?.kolom !== 'waktu') return 'Grafik garis dikelompokkan per waktu lebih dulu.';
+	if (jenis === 'garis' && ukuran.length > 1) return 'Grafik garis memakai 1 ukuran (buat panel lain untuk ukuran berikutnya).';
+	if (jenis === 'batang' && kel.length === 2 && ukuran.length > 1) return 'Batang dengan 2 pengelompokan memakai 1 ukuran.';
 	if (jenis === 'peta_panas' && kel.length !== 2) return 'Peta panas butuh 2 pengelompokan (mis. hari × jam).';
 	if (jenis === 'lingkaran' && (kel.length !== 1 || ukuran.length !== 1)) return 'Lingkaran butuh 1 pengelompokan dan 1 ukuran.';
 	if (jenis === 'batang' && !kel.length) return 'Grafik batang butuh pengelompokan.';

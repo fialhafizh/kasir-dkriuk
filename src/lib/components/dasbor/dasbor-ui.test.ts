@@ -32,6 +32,16 @@ describe('grafik dasbor', () => {
 		expect(render(GrafikGaris, { props: { data, format: f } }).body).toContain('<polyline');
 	});
 
+	it('batang beberapa ukuran: berdampingan dengan satuan masing-masing; minus merah', () => {
+		const data = { kategori: ['Tunai'], seri: [{ nama: 'Omzet', nilai: [43210] }, { nama: 'Transaksi', nilai: [-3] }] };
+		const fs = (i: number) => (n: number) => (i === 0 ? `Rp${n}` : `${n} trx`);
+		const { body } = render(GrafikBatang, { props: { data, format: f, formatSeri: fs, banyakUkuran: true } });
+		expect(body).toContain('Rp43210');
+		expect(body).toContain('-3 trx');
+		expect(body).toContain('text-danger');
+		expect(body).not.toContain('<svg');
+	});
+
 	it('lingkaran: persentase', () => {
 		const { body } = render(GrafikLingkaran, { props: { data: { kategori: ['Ori', 'Hot'], seri: [{ nama: 'x', nilai: [3, 1] }] }, format: f } });
 		expect(body).toContain('(75%)');

@@ -10,17 +10,19 @@
 	import SaringanAtas from './SaringanAtas.svelte';
 
 	type PanelKerja = Panel & { _kunci: string };
-	let { dasbor, saringan, outlets, onselesai }: { dasbor: Dasbor; saringan: SaringanDasbor; outlets: Outlet[]; onselesai: (id?: string) => void } =
+	let { dasbor, outlets, onselesai }: { dasbor: Dasbor; outlets: Outlet[]; onselesai: (id?: string) => void } =
 		$props();
 
 	// svelte-ignore state_referenced_locally
 	let nama = $state(dasbor.nama);
 	// svelte-ignore state_referenced_locally
-	let saringanBawaan = $state<SaringanDasbor>({ ...saringan });
+	let saringanBawaan = $state<SaringanDasbor>({ ...dasbor.saringan });
 	// svelte-ignore state_referenced_locally
 	let panel = $state<PanelKerja[]>(dasbor.panel.map((p) => ({ ...structuredClone($state.snapshot(p)), _kunci: p.id ?? crypto.randomUUID() }) as PanelKerja));
 	let form = $state<{ panel: Panel; kunci: string | null } | null>(null);
-	let lebar = $state(false);
+	let lebar = $state(typeof matchMedia === 'function' && matchMedia('(min-width: 64rem)').matches);
+	/** Penyusunan dengan tombol juga di layar lebar (keyboard / tanpa seret). */
+	let pakaiTombol = $state(false);
 	let pesan = $state('');
 	let menyimpan = $state(false);
 	const sekarang = new Date();
@@ -51,7 +53,7 @@
 	}
 	function letak(kunci: string, l: { x: number; y: number; w: number; h: number }) {
 		const i = panel.findIndex((x) => x._kunci === kunci);
-		if (i >= 0) panel[i] = { ...panel[i], ...l };
+		if (i >= 0) Object.assign(panel[i], l);
 	}
 
 	async function simpan() {
@@ -99,16 +101,19 @@
 	<p class="mb-1 text-xs font-semibold text-muted">Saringan bawaan saat dasbor dibuka</p>
 	<SaringanAtas bind:saringan={saringanBawaan} {outlets} />
 	<p class="mt-2 text-xs text-muted">
-		{lebar ? 'Seret panel lewat ⠿ dan tarik sudut kanan bawah untuk mengubah ukuran.' : 'Atur urutan dengan ↑ ↓, lalu lebar & tinggi tiap panel.'}
+		{lebar && !pakaiTombol ? 'Seret panel lewat ⠿ dan tarik sudut kanan bawah untuk mengubah ukuran.' : 'Atur urutan dengan ↑ ↓, lalu lebar & tinggi tiap panel.'}
+		{#if lebar}
+			<button type="button" class="ml-2 underline" onclick={() => (pakaiTombol = !pakaiTombol)}>{pakaiTombol ? 'Susun dengan seret' : 'Susun dengan tombol'}</button>
+		{/if}
 	</p>
 </div>
 
-{#if lebar}
+{#if lebar && !pakaiTombol}
 	<KisiSunting {panel} saringan={saringanBawaan} {outlets} {sekarang} onletak={letak} {aksi} />
 {:else}
 	<DaftarSuntingHp {panel} onubah={(p) => (panel = p)} {aksi} />
 {/if}
 
 {#if form}
-	<FormPanel awal={form.panel} saringan={saringanBawaan} {outlets} onsimpan={pakai} onbatal={() => (form = null)} />
+	<FormPanel awal={form.panel} baru={!form.kunci} saringan={saringanBawaan} {outlets} onsimpan={pakai} onbatal={() => (form = null)} />
 {/if}

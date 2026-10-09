@@ -45,7 +45,7 @@ try {
 	const k = await akun('kasird', 'kasir');
 	const adm = await akun('adind', 'admin');
 	const { data: menu } = await svc.from('menu').select('id').eq('kode', 'nasi').single();
-	await svc.from('harga_jual').upsert({ outlet_id: outletId, menu_id: menu!.id, harga: 5000 });
+	await svc.from('harga_jual').upsert({ outlet_id: outletId, menu_id: menu!.id, harga: 4321 });
 
 	const shift = randomUUID();
 	await k.rpc('buka_shift_offline', { p: { id: shift, outlet_id: outletId, modal: 0, laci_awal: 0, waktu: new Date(Date.now() - 60_000).toISOString() } });
@@ -56,7 +56,7 @@ try {
 				outlet_id: outletId,
 				shift_id: shift,
 				metode,
-				...(metode === 'cash' ? { diterima: qty * 5000 } : {}),
+				...(metode === 'cash' ? { diterima: qty * 4321 } : {}),
 				waktu: new Date().toISOString(),
 				kode_struk: 'UJD001',
 				item: [{ menu_id: menu!.id, qty }]
@@ -75,7 +75,7 @@ try {
 	const baris = (a.data?.baris ?? []) as { l: string[]; n: number[] }[];
 	cek(
 		'omzet per kanal sesuai jualan',
-		baris.length === 2 && baris.some((b) => b.l[0] === 'Tunai' && Number(b.n[0]) === 10000) && baris.some((b) => b.l[0] === 'QRIS' && Number(b.n[0]) === 15000),
+		baris.length === 2 && baris.some((b) => b.l[0] === 'Tunai' && Number(b.n[0]) === 2 * 4321) && baris.some((b) => b.l[0] === 'QRIS' && Number(b.n[0]) === 3 * 4321),
 		JSON.stringify(a.error ?? baris)
 	);
 

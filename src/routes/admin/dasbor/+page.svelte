@@ -23,10 +23,12 @@
 
 	const aktif = $derived(daftar.find((d) => d.id === dipilih));
 
-	function pilih(id: string) {
+	function pilih(id: string, paksa = false) {
+		const ganti = id !== dipilih;
 		dipilih = id;
 		const d = daftar.find((x) => x.id === id);
-		if (d) saringan = { ...d.saringan };
+		// Saringan kembali ke bawaan dasbor hanya saat pindah dasbor (atau setelah disunting), bukan setelah aksi Kelola.
+		if (d && (ganti || paksa)) saringan = { ...d.saringan };
 		try {
 			localStorage.setItem(KUNCI, id);
 		} catch {
@@ -34,7 +36,7 @@
 		}
 	}
 
-	async function muat(buka?: string) {
+	async function muat(buka?: string, paksa = false) {
 		try {
 			[daftar, outlets] = await Promise.all([muatDaftarDasbor(), outlets.length ? Promise.resolve(outlets) : muatOutlets()]);
 			let tersimpan: string | null = null;
@@ -44,7 +46,7 @@
 				// abaikan
 			}
 			const id = [buka, dipilih, tersimpan, daftar.find((d) => d.utama)?.id, daftar[0]?.id].find((x) => x && daftar.some((d) => d.id === x));
-			if (id) pilih(id);
+			if (id) pilih(id, paksa);
 			status = 'siap';
 		} catch (e) {
 			pesan = (e as Error).message;
@@ -53,6 +55,8 @@
 	}
 
 	function muatUlang() {
+		// Offline: angka terakhir tetap tampil (tidak diganti pesan galat).
+		if (!navigator.onLine) return;
 		sekarang = new Date();
 		segar++;
 	}
@@ -81,7 +85,7 @@
 
 	async function selesaiSunting(id?: string) {
 		mode = 'lihat';
-		await muat(id);
+		await muat(id, true);
 		muatUlang();
 	}
 </script>
@@ -94,16 +98,15 @@
 	<p class="text-danger" role="alert">{pesan}</p>
 	<button type="button" class="mt-3 {tombol} bg-surface-2" onclick={() => muat()}>Coba lagi</button>
 {:else if mode === 'sunting' && aktif}
-	<PenyuntingDasbor dasbor={aktif} {saringan} {outlets} onselesai={selesaiSunting} />
+	<PenyuntingDasbor dasbor={aktif} {outlets} onselesai={selesaiSunting} />
 {:else}
 	<div class="flex flex-wrap items-center justify-between gap-2">
-		<div class="flex min-w-0 flex-wrap gap-1" role="tablist" aria-label="Pilih dasbor">
+		<div class="flex min-w-0 flex-wrap gap-1" role="group" aria-label="Pilih dasbor">
 			{#each daftar as d (d.id)}
 				<button
 					type="button"
-					role="tab"
-					aria-selected={d.id === dipilih}
-					class="min-h-11 rounded-xl px-3 text-sm font-semibold aria-selected:bg-brand aria-selected:text-on-brand {d.id === dipilih ? '' : 'bg-surface-2'}"
+					aria-pressed={d.id === dipilih}
+					class="min-h-11 rounded-xl px-3 text-sm font-semibold {d.id === dipilih ? 'bg-brand text-on-brand' : 'bg-surface-2'}"
 					onclick={() => pilih(d.id)}>{d.nama}</button
 				>
 			{/each}

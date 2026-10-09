@@ -7,7 +7,7 @@
 	import type { Panel, SaringanDasbor } from '#lib/dasbor/spek.ts';
 	import { formatAngka } from '#lib/master/rupiah.ts';
 	import type { Outlet } from '#lib/types/db.ts';
-	import type { Snippet } from 'svelte';
+	import { untrack, type Snippet } from 'svelte';
 	import AngkaUtama from './AngkaUtama.svelte';
 	import GrafikBatang from './GrafikBatang.svelte';
 	import GrafikGaris from './GrafikGaris.svelte';
@@ -41,14 +41,13 @@
 	let galat = $state('');
 	let sebagaiTabel = $state(false);
 
+	// Data dimuat ulang hanya bila isi panel, rentang, outlet, atau penanda segar berubah (bukan saat panel digeser/judul diketik).
+	const kunciData = $derived(JSON.stringify([panel.jenis, panel.spek, rentang.dari.getTime(), rentang.sampai.getTime(), outlet, pakaiPembanding]));
 	$effect(() => {
 		void segar;
 		if (!grafik) return;
-		const r = rentang;
-		const jenis = panel.jenis;
-		const spek = $state.snapshot(panel.spek);
-		const o = outlet;
-		const banding = pakaiPembanding;
+		const [jenis, spek, , , o, banding] = JSON.parse(kunciData) as [Panel['jenis'], Panel['spek'], number, number, string | null, boolean];
+		const r = untrack(() => rentang);
 		let batal = false;
 		Promise.all([hitungPanel(jenis, spek, o, r), banding ? hitungPanel(jenis, spek, o, rentangPembanding(periode, r)) : Promise.resolve(null)])
 			.then(([h, p]) => {
@@ -66,8 +65,12 @@
 	});
 
 	const sumber = $derived(panel.spek.sumber ?? '');
-	const format = (u: string, n: number) => (ukuranRupiah(sumber, u) ? `Rp${formatAngka(Math.round(n))}` : n.toLocaleString('id-ID', { maximumFractionDigits: 2 }));
+	const format = (u: string, n: number) =>
+		ukuranRupiah(sumber, u) ? `${n < 0 ? '−' : ''}Rp${formatAngka(Math.abs(Math.round(n)))}` : n.toLocaleString('id-ID', { maximumFractionDigits: 2 });
 	const format0 = (n: number) => format(panel.spek.ukuran?.[0] ?? '', n);
+	/** Beberapa ukuran dengan 1 kelompok: tiap seri punya satuannya sendiri (rupiah / jumlah). */
+	const banyakUkuran = $derived(!!hasil && hasil.kolom.length < 2 && hasil.ukuran.length > 1);
+	const formatSeri = (i: number) => (n: number) => format(hasil?.ukuran[i] ?? '', n);
 	const keterangan = $derived(
 		[panel.spek.periode_kunci ? LABEL_PERIODE[panel.spek.periode_kunci] : '', panel.spek.outlet_kunci ? (outlets.find((x) => x.id === panel.spek.outlet_kunci)?.nama ?? '') : '']
 			.filter(Boolean)
@@ -90,7 +93,8 @@
 			{@render aksi?.()}
 		</div>
 	</header>
-	<div class="min-h-0 flex-1">
+	<div class="min-h-0 flex-1 overflow-auto">
+		{#if galat && hasil && grafik}<p class="mb-1 text-xs text-danger" role="alert">Gagal memperbarui: {galat}</p>{/if}
 		{#if panel.jenis === 'status_stok'}
 			<PanelStatusStok {outlets} {outlet} {segar} />
 		{:else if panel.jenis === 'uang_laci'}
@@ -99,7 +103,7 @@
 			<PanelSiklus {outlets} {outlet} kunci={panel.spek.kunci ?? null} {rentang} {segar} />
 		{:else if panel.jenis === 'riwayat'}
 			<PanelRiwayat {outlets} {outlet} jenis={panel.spek.jenis ?? []} {rentang} {segar} />
-		{:else if galat}
+		{:else if galat && !hasil}
 			<p class="text-sm text-danger" role="alert">{galat}</p>
 		{:else if !hasil}
 			<p class="text-sm text-muted" role="status">Memuat…</p>
@@ -110,9 +114,9 @@
 		{:else if panel.jenis === 'tabel' || sebagaiTabel}
 			<TabelHasil {hasil} pembanding={panel.jenis === 'tabel' ? pembanding : null} {format} />
 		{:else if (panel.jenis as JenisGrafik) === 'garis'}
-			<GrafikGaris data={keSeri(hasil, labelUkuran)} format={format0} />
+			<GrafikGaris data={keSeri(hasil, labelUkuran)} format={format0} formatSeri={banyakUkuran ? formatSeri : undefined} />
 		{:else if panel.jenis === 'batang'}
-			<GrafikBatang data={keSeri(hasil, labelUkuran)} format={format0} tegak={hasil.kolom[0]?.kolom === 'waktu'} />
+			<GrafikBatang data={keSeri(hasil, labelUkuran)} format={format0} {formatSeri} {banyakUkuran} tegak={hasil.kolom[0]?.kolom === 'waktu'} />
 		{:else if panel.jenis === 'lingkaran'}
 			<GrafikLingkaran data={keSeri(hasil, labelUkuran)} format={format0} />
 		{:else if panel.jenis === 'peta_panas'}

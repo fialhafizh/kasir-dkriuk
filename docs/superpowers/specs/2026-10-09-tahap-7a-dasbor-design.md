@@ -24,7 +24,7 @@ Owner bisa memantau dan menganalisis semua data yang masuk (penjualan, item, sto
 - Omzet & transaksi: penjualan tidak batal menurut **jam jual** (WIB), termasuk penjualan offline yang telat sampai. Ojol bruto (potongan aplikasi di 7c).
 - Batal: menurut jam batal. Terbuang: catatan sisa/rusak tidak batal, menurut jamnya. Pemakaian bahan: gerakan stok `jual` + `jual_batal` (dipotong resep, dikembalikan saat batal).
 - Uang laci saat ini: `saldo_laci` per outlet (tidak tergantung periode).
-- Periode pembanding: panjang sama tepat sebelum periode (mis. 1–9 Okt ↔ 22–30 Sep).
+- Periode pembanding: panjang sama tepat sebelum periode (mis. hari ini ↔ kemarin, 7 hari ↔ 7 hari sebelumnya); **bulan ini ↔ tanggal yang sama bulan lalu** (1–9 Okt ↔ 1–9 Sep), bulan lalu ↔ bulan sebelumnya.
 - Tutup toko: shift yang benar-benar ditutup (bukan tertunda), selisih dari ringkasan shift, menurut jam tutup.
 
 ## 4. Katalog (satu-satunya yang diterima server)
@@ -50,8 +50,9 @@ Owner bisa memantau dan menganalisis semua data yang masuk (penjualan, item, sto
 
 - `dasbor (id, nama, urutan, utama, saringan {outlet_id|null, periode, dari, sampai}, diubah_at, diubah_oleh)`; tepat satu `utama`.
 - `dasbor_panel (id, dasbor_id, judul, jenis, spek jsonb, x, y, w, h)` di kisi 12 kolom.
+- Garis 1 ukuran; batang dengan beberapa ukuran ditampilkan berdampingan (tiap ukuran skala & satuannya sendiri), nilai minus berwarna merah. Panel boleh tinggi maks. 20 baris kisi.
 - Jenis tampilan: `angka`, `batang`, `garis`, `lingkaran`, `tabel`, `peta_panas` (dua pengelompokan, mis. hari × jam). Jenis khusus: `status_stok`, `siklus_stok`, `riwayat`, `uang_laci`.
-- Spek panel: sumber, ukuran, kelompok, saringan, urutan, batas, `periode_kunci` (opsional: abaikan periode atas, mis. "30 hari terakhir", "bulan ini"), `bandingkan` (angka & garis), `outlet_kunci` (opsional).
+- Spek panel: sumber, ukuran, kelompok, saringan, urutan, batas, `periode_kunci` (opsional: abaikan periode atas, mis. "30 hari terakhir", "bulan ini"), `bandingkan` (angka & tabel; kolom ± per baris kelompok selain waktu), `outlet_kunci` (opsional).
 - Periode: Hari ini, Kemarin, 7 hari, 30 hari, Bulan ini, Bulan lalu, Kustom (dihitung di perangkat dalam WIB, dikirim sebagai rentang jam).
 - Penyimpanan seluruh dasbor (beserta panelnya) dalam satu fungsi — tersimpan utuh atau tidak sama sekali. Validasi spek di server memakai katalog.
 - Dasbor bawaan **Ringkasan** (dibuat migrasi; bisa dikembalikan lewat tombol **Kembalikan bawaan** yang membuat ulang dasbor itu):

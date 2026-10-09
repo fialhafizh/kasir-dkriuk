@@ -1,25 +1,33 @@
 <script lang="ts">
-	// Batang datar (peringkat, mis. menu terlaris) untuk 1 seri; batang tegak bertumpuk bila lebih dari 1 seri atau sumbu waktu.
+	// Batang tegak bertumpuk: sumbu waktu atau 2 pengelompokan (seri = kelompok kedua, satuan sama).
+	// Batang datar: peringkat & beberapa ukuran berbeda satuan (tiap ukuran skala & formatnya sendiri); nilai minus ditampilkan merah.
 	import { ringkas, skala, type DataSeri } from '#lib/dasbor/olah.ts';
 	import Legenda from './Legenda.svelte';
 	import { warnaSeri } from './warna.ts';
 
-	let { data, format, tegak = false }: { data: DataSeri; format: (n: number) => string; tegak?: boolean } = $props();
+	let {
+		data,
+		format,
+		formatSeri,
+		banyakUkuran = false,
+		tegak = false
+	}: { data: DataSeri; format: (n: number) => string; formatSeri?: (i: number) => (n: number) => string; banyakUkuran?: boolean; tegak?: boolean } = $props();
 	let lebar = $state(320);
 	let tinggi = $state(200);
 
-	const bertumpuk = $derived(tegak || data.seri.length > 1);
+	const bertumpuk = $derived(!banyakUkuran && (tegak || data.seri.length > 1));
 	const total = $derived(data.kategori.map((_, i) => data.seri.reduce((t, s) => t + Math.max(0, s.nilai[i] ?? 0), 0)));
-	const maks = $derived(Math.max(0, ...(bertumpuk ? total : (data.seri[0]?.nilai ?? []))));
-	const garis = $derived(skala(maks));
+	const garis = $derived(skala(Math.max(0, ...total)));
 	const atas = $derived(garis.at(-1) || 1);
+	/** Skala per seri untuk batang datar: nilai mutlak terbesar. */
+	const maksSeri = $derived(data.seri.map((s) => Math.max(0, ...s.nilai.map((v) => Math.abs(v)))));
 
-	// tegak
 	const KIRI = 44;
 	const BAWAH = 22;
 	const lebarKat = $derived(data.kategori.length ? (lebar - KIRI) / data.kategori.length : 0);
 	const tiap = $derived(Math.max(1, Math.ceil(data.kategori.length / Math.max(1, Math.floor((lebar - KIRI) / 46)))));
 	const y = (v: number) => (tinggi - BAWAH) * (1 - v / atas);
+	const fmt = (j: number) => (banyakUkuran && formatSeri ? formatSeri(j) : format);
 </script>
 
 <div class="flex h-full flex-col gap-2">
@@ -51,15 +59,21 @@
 	{:else}
 		<ul class="grid gap-1.5 overflow-y-auto text-sm">
 			{#each data.kategori as k, i (i)}
-				{@const v = data.seri[0]?.nilai[i] ?? 0}
-				<li class="grid grid-cols-[minmax(0,9rem)_1fr_auto] items-center gap-2">
-					<span class="truncate" title={k}>{k}</span>
-					<span class="h-4 rounded-sm bg-surface-2">
-						<span class="block h-4 rounded-sm" style:width="{maks ? Math.max(0, (v / maks) * 100) : 0}%" style:background={warnaSeri(0)}></span>
-					</span>
-					<span class="tabular text-right font-semibold">{format(v)}</span>
+				<li class="grid gap-0.5">
+					{#each data.seri as s, j (j)}
+						{@const v = s.nilai[i] ?? 0}
+						<div class="grid grid-cols-[minmax(0,9rem)_1fr_auto] items-center gap-2">
+							<span class="truncate {j ? 'text-xs text-muted' : ''}" title={k}>{j ? s.nama : k}</span>
+							<span class="h-4 rounded-sm bg-surface-2">
+								<span class="block h-4 rounded-sm" style:width="{maksSeri[j] ? (Math.abs(v) / maksSeri[j]) * 100 : 0}%"
+									style:background={v < 0 ? 'var(--color-danger)' : warnaSeri(j)}></span>
+							</span>
+							<span class="tabular text-right font-semibold {v < 0 ? 'text-danger' : ''}">{fmt(j)(v)}</span>
+						</div>
+					{/each}
 				</li>
 			{/each}
 		</ul>
+		{#if banyakUkuran}<Legenda nama={data.seri.map((s) => s.nama)} />{/if}
 	{/if}
 </div>
