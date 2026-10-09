@@ -21,7 +21,7 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 | 4b | Offline: batal, rusak, transfer, opname, stok awal; halaman admin Perangkat & kejadian diabaikan | Selesai, di main — uji owner menunggu |
 | 5a | Kas harian: uang laci berjalan, pengeluaran, setoran, kas harian, penjualan admin | Selesai, di main — uji owner menunggu |
 | 5b | Gaji & kasbon, biaya tetap (sewa), laba-rugi sederhana, arus kas | Selesai, di main — uji owner menunggu |
-| 6 | Telegram: struk, ringkasan tutup toko & harian, peringatan, kas (grup bertopik) | Selesai, sudah aktif di server (grup Backup Dkriuk) — halaman Admin → Telegram menunggu digabung ke main |
+| 6 | Telegram: struk, ringkasan tutup toko & harian, peringatan, kas (grup bertopik) | Selesai, di main & aktif di server — uji owner menunggu |
 | 7 | Dashboard & analisis (termasuk modal tepung, terbuang, susut) | Belum |
 | 8 | Rilis: uji menyeluruh, panduan pengguna | Belum |
 
