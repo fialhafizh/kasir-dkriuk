@@ -25,7 +25,7 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 | 7a | Dasbor yang bisa dirakit (seperti Kibana): banyak dasbor, panel dari katalog, seret & ubah ukuran, siklus stok, riwayat kejadian | Selesai, di main — uji owner menunggu |
 | 7b | Analisis kebocoran (perkiraan): untung per menu, susut & terbuang rupiah, minyak/tepung, proyeksi; rincian kasbon di Gajian | Selesai, di main — uji owner menunggu |
 | 7c | Rencana belanja (salin WA/Telegram), ringkasan gaji, laporan ojol, ekspor Excel di semua data, cetak/PDF | Selesai, di main — uji owner menunggu |
-| 8 | Rilis: uji menyeluruh, panduan pengguna | Belum |
+| 8 | Rilis: infografis panduan (panduan.html), Bantuan di aplikasi + petunjuk ?, uji keamanan/beban/alur lengkap, cadangan data | Selesai di cabang |
 
 ---
 
@@ -151,6 +151,12 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - **Rencana belanja** (Admin → Belanja), seperti tabel belanja stokis owner: saran beli **per outlet** = pemakaian rata-rata 7 hari terakhir × jumlah hari (awal 7) − stok sekarang, dibulatkan ke atas per pack/karung (pack ayam menurut potongan yang paling kurang, mis. dada habis walau sayap banyak); tepung/minyak/plastik merah dari rata-rata pembelian 4 minggu. Contoh owner: Bukit Lama perlu 80 Ori seminggu, sisa 10 → 70. Angka bisa diubah (berlaku hari itu), ada harga satuan, harga total & jumlah. **Salin untuk WA** dan **Kirim ke Telegram** (topik 💰 Kas) agar bisa disalin dari HP.
 - **Ringkasan gaji** (Admin → Gaji) seperti tabel gaji owner: nama, gaji/hari, hari masuk, gaji sebulan, kasbon, total + jumlah; per outlet atau semua; salin WA / Telegram / Excel.
 - **Setiap data yang tampil bisa diekspor ke Excel** (.xlsx, angka tetap angka): panel dasbor, Analisis, Belanja, Gaji, Ojol, Laba-rugi, Kas harian, Setoran, Pengeluaran, Penjualan; tombol **Cetak** untuk PDF.
+
+### Tahap 8 — Rilis (keputusan owner 10 Okt 2026)
+- **Infografis panduan** satu file HTML interaktif di **fialhafizh.github.io/kasir-dkriuk/panduan.html** (juga bisa dibuka offline): sampul, alur harian, cara kerja, peta fitur, panduan kasir/admin/pemilik, tahapan pembangunan; tab peran, pencarian, buka-tutup, **mode slide**, tema terang/gelap, **Cetak/PDF** (mode slide = satu slide per halaman; PDF bisa diubah ke PPT). Dibuat dari isi yang sama dengan Bantuan (`npm run panduan`).
+- **Bantuan di aplikasi** (kasir & admin, bisa offline, bisa dicetak) dan tombol **?** di layar penting.
+- **Uji menyeluruh**: (1) keamanan semua tabel & fungsi (tamu tidak bisa membaca/menjalankan apa pun; kasir tidak bisa membaca data khusus admin atau mengubah tabel langsung; semua fungsi khusus mengunci search_path); (2) **beban** ±1 tahun data 3 outlet (109.500 transaksi): semua laporan < 0,6 detik di database uji (`npm run uji:beban`); (3) **alur lengkap di server** (`scripts/uji-alur.ts`): buka toko → jual → batal → sisa → pengeluaran → kasbon → tutup → setoran, angka laci/kas harian/laba-rugi/dasbor/analisis/belanja/gaji saling cocok.
+- **Cadangan data**: `npm run cadangan` menyalin semua tabel ke folder lokal `cadangan/` (tidak di-commit; berisi data bisnis).
 
 ## Catatan penting untuk tahap berikutnya
 

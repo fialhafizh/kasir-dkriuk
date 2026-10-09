@@ -12,7 +12,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "sb": "node --env-file=.env.local scripts/sb.ts",
-    "panduan": "node scripts/buat-panduan.ts"
+    "panduan": "node scripts/buat-panduan.ts",
+    "uji:beban": "vitest run --config vitest.beban.config.ts --disableConsoleIntercept",
+    "cadangan": "node --env-file=.env.local scripts/cadangan.ts"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",
