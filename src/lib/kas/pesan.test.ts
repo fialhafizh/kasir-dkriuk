@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { pesanSinkron } from '#lib/offline/pesan.ts';
 import { pesanKas } from './pesan';
 
-const sql = ['20261010000022_kas_skema.sql', '20261010000023_fungsi_kas.sql']
+const sql = ['20261010000022_kas_skema.sql', '20261010000023_fungsi_kas.sql', '20261011000024_gaji_skema.sql', '20261011000025_fungsi_gaji.sql']
 	.map((f) => readFileSync(join(import.meta.dirname, '../../../supabase/migrations', f), 'utf8'))
 	.join('\n');
 const resmi = [...sql.matchAll(/raise exception '([^'%]+)' using errcode = '(\d+)'/g)].map((m) => ({ message: m[1], code: m[2] }));
