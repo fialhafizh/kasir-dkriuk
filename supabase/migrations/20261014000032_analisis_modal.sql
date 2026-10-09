@@ -63,27 +63,33 @@ language sql stable security definer set search_path = '' as $$
   ),
   -- pack campuran: harga pack dibagi sebanding harga jual potongan (menu ayam satu-bahan)
   bobot as (
-    select h.outlet_id, r.bahan_id, avg(h.harga)::numeric as bobot
-    from public.resep r join public.menu m on m.id = r.menu_id and m.kategori = 'ayam'
+    select h.outlet_id, r.bahan_id, avg(h.harga / r.qty)::numeric as bobot
+    from public.resep r join public.menu m on m.id = r.menu_id and m.kategori = 'ayam' and m.aktif
     join public.harga_jual h on h.menu_id = m.id
     where (select count(*) from public.resep r2 where r2.menu_id = r.menu_id) = 1
     group by h.outlet_id, r.bahan_id
   ),
-  pack as (
-    select hs.outlet_id, i.bahan_id, hs.sumber,
-           hs.harga * coalesce(bb.bobot, 1)
-             / nullif(sum(i.qty * coalesce(bb.bobot, 1)) over (partition by hs.outlet_id, hs.satuan_beli_id), 0) as modal
+  pack_bobot as (
+    select hs.outlet_id, hs.satuan_beli_id, hs.harga, hs.sumber, i.bahan_id, i.qty, bb.bobot,
+           -- satu potongan tanpa harga jual → seluruh pack dibagi rata (bobot 1), bukan dicampur
+           bool_and(coalesce(bb.bobot, 0) > 0) over (partition by hs.outlet_id, hs.satuan_beli_id) as bobot_lengkap
     from harga_satuan hs join satuan s on s.id = hs.satuan_beli_id and s.anggota > 1
     join public.satuan_beli_isi i on i.satuan_beli_id = hs.satuan_beli_id
     left join bobot bb on bb.outlet_id = hs.outlet_id and bb.bahan_id = i.bahan_id
     where hs.harga is not null
+  ),
+  pack as (
+    select outlet_id, bahan_id, sumber,
+           harga * case when bobot_lengkap then bobot else 1 end
+             / nullif(sum(qty * case when bobot_lengkap then bobot else 1 end) over (partition by outlet_id, satuan_beli_id), 0) as modal
+    from pack_bobot
   )
   select o.id, b.id,
          coalesce(tb.modal, p.modal, ta.modal),
          case when tb.modal is not null then 'beli' when p.modal is not null then p.sumber when ta.modal is not null then 'acuan' end
   from public.outlets o cross join public.bahan b
   left join tunggal_beli tb on tb.outlet_id = o.id and tb.bahan_id = b.id
-  left join lateral (select * from pack where pack.outlet_id = o.id and pack.bahan_id = b.id order by pack.sumber limit 1) p on true
+  left join lateral (select * from pack where pack.outlet_id = o.id and pack.bahan_id = b.id order by (pack.sumber = 'beli') desc, pack.modal limit 1) p on true
   left join tunggal_acuan ta on ta.outlet_id = o.id and ta.bahan_id = b.id
 $$;
 
@@ -91,7 +97,8 @@ $$;
 create function public._modal_menu_semua(p_dari timestamptz, p_sampai timestamptz)
 returns table (outlet_id uuid, menu_id uuid, modal numeric, lengkap boolean)
 language sql stable security definer set search_path = '' as $$
-  select mb.outlet_id, r.menu_id, sum(r.qty * mb.modal), bool_and(mb.modal is not null)
+  -- modal hanya bila SEMUA bahan resep punya harga (sebagian = belum lengkap, bukan angka yang terlalu kecil)
+  select mb.outlet_id, r.menu_id, case when bool_and(mb.modal is not null) then sum(r.qty * mb.modal) end, bool_and(mb.modal is not null)
   from public.resep r join public._modal_bahan_semua(p_dari, p_sampai) mb on mb.bahan_id = r.bahan_id
   group by mb.outlet_id, r.menu_id
 $$;
@@ -138,7 +145,7 @@ begin
       'tipis', h.harga > 0 and mm.modal is not null and (h.harga - mm.modal) / h.harga * 100 < v_batas,
       'terjual', coalesce(j.qty, 0), 'omzet', coalesce(j.omzet, 0),
       'untung_periode', case when mm.modal is not null then round(coalesce(j.omzet, 0) - coalesce(j.qty, 0) * mm.modal) end
-    ) order by (h.harga - mm.modal) / nullif(h.harga, 0) nulls first, m.urutan)
+    ) order by o.kode, (h.harga - mm.modal) / nullif(h.harga, 0) nulls first, m.urutan)
     from public.harga_jual h
     join public.menu m on m.id = h.menu_id and m.aktif
     join public.outlets o on o.id = h.outlet_id and o.aktif

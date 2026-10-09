@@ -102,10 +102,16 @@ describe('minyak & tepung', () => {
 });
 
 describe('proyeksi', () => {
+	beforeEach(() => {
+		shift = '';
+	});
 	it('dari laba riil bulan berjalan ÷ hari berjalan × hari sebulan', async () => {
-		const p = await rpc<{ hari_berjalan: number; hari_sebulan: number; omzet: number; proyeksi_omzet: number }>(db, adminId, 'public.proyeksi_bulan($1)', [null]);
+		await jual('nasi', 3, 0);
+		const p = await rpc<{ hari_berjalan: number; hari_pecah: number; hari_sebulan: number; omzet: number; proyeksi_omzet: number }>(db, adminId, 'public.proyeksi_bulan($1)', [null]);
 		expect(p.hari_berjalan).toBeGreaterThanOrEqual(1);
-		expect(Number(p.proyeksi_omzet)).toBe(Math.round((Number(p.omzet) / p.hari_berjalan) * p.hari_sebulan));
+		expect(Number(p.omzet)).toBeGreaterThan(0);
+		expect(Number(p.hari_pecah)).toBeLessThanOrEqual(p.hari_berjalan);
+		expect(Math.abs(Number(p.proyeksi_omzet) - (Number(p.omzet) / Number(p.hari_pecah)) * p.hari_sebulan)).toBeLessThan(p.hari_sebulan * 50);
 		await expect(rpc(db, kasirBL, 'public.proyeksi_bulan($1)', [null])).rejects.toThrow(/Hanya admin/);
 	});
 });

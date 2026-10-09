@@ -70,6 +70,30 @@ describe('modal bahan', () => {
 	});
 });
 
+describe('modal: kasus tepi', () => {
+	it('satu potongan tanpa harga jual → pack dibagi rata; menu dengan sebagian bahan berharga = modal belum lengkap', async () => {
+		await acuan('pack_ayam_ori', 77777);
+		await acuan('pack_kulit', 34567);
+		await db.query(`delete from public.harga_jual where outlet_id = $1 and menu_id = (select id from public.menu where kode = 'ori_sayap')`, [await idOutlet(db, 'BL')]);
+		const m = await modal();
+		expect(m.get('Dada Ori')!.modal!).toBeCloseTo(77777 / 9, 1);
+		const [d, s] = await rentang();
+		const r = await rpc<{ menu: { nama: string; modal: number | null; lengkap: boolean; tipis: boolean }[] }>(db, adminId, 'public.untung_menu($1, $2, $3)', [
+			await idOutlet(db, 'BL'),
+			d,
+			s
+		]);
+		expect(r.menu.find((x) => x.nama === 'Kulit Krispy')).toMatchObject({ modal: null, lengkap: false, tipis: false });
+	});
+	it('harga beli periode didahulukan dari acuan untuk pack', async () => {
+		await acuan('pack_ayam_ori', 77777);
+		await beli([['pack_ayam_ori', 2, 88888]]);
+		const m = await modal();
+		expect(m.get('Dada Ori')).toMatchObject({ sumber: 'beli' });
+		expect(m.get('Dada Ori')!.modal!).toBeCloseTo((88888 * 11000) / 91000, 1);
+	});
+});
+
 describe('untung per menu', () => {
 	it('modal resep, untung, persen, tanda tipis & penjualan periode', async () => {
 		await acuan('pack_ayam_ori', 77777);

@@ -41,7 +41,7 @@ const LABEL_UKURAN: Record<string, string> = {
 	diterima: 'Diterima',
 	selisih: 'Selisih',
 	banyak: 'Banyak',
-	untung: 'Untung kotor',
+	untung: 'Untung kotor (menu bermodal lengkap)',
 	modal: 'Modal',
 	nilai: 'Nilai (Rp)'
 };

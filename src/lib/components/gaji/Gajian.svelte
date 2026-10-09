@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RincianKasbon from './RincianKasbon.svelte';
 	import Konfirmasi from '#lib/components/ui/Konfirmasi.svelte';
 	import { batalGaji, bayarGaji, hitungDibayar, saranPotongan, type RekapGaji } from '#lib/kas/gaji.ts';
 	import { formatWaktuWib } from '#lib/kasir/waktu.ts';
@@ -85,6 +86,7 @@
 					<span class="font-semibold">{r.nama}{r.aktif ? '' : ' (nonaktif)'}</span>
 					<span class="tabular text-sm text-muted">{r.hari_masuk} hari × Rp{formatAngka(r.upah_harian)} = Rp{formatAngka(kotor(r))} · sisa kasbon Rp{formatAngka(r.sisa_kasbon)}</span>
 				</p>
+				<RincianKasbon karyawanId={r.karyawan_id} segar={r.sisa_kasbon} />
 				{#if r.gaji}
 					<p class="mt-1 text-sm text-ok">
 						Dibayar Rp{formatAngka(r.gaji.dibayar)} pada {formatWaktuWib(r.gaji.dibayar_at)} ({r.gaji.hari_masuk} hari × Rp{formatAngka(r.gaji.upah_harian)}{r.gaji.penyesuaian ? `, penyesuaian ${rpBertanda(r.gaji.penyesuaian)} (${r.gaji.keterangan})` : ''}{r.gaji.potongan_kasbon ? `, potong kasbon Rp${formatAngka(r.gaji.potongan_kasbon)}` : ''})

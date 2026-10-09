@@ -1,7 +1,7 @@
 -- Tahap 7b: susut & terbuang (rupiah), minyak & tepung, proyeksi bulan berjalan. Semua perkiraan, admin saja.
 
 create function public._cek_rentang_analisis(p_dari timestamptz, p_sampai timestamptz) returns void
-language plpgsql immutable set search_path = '' as $$
+language plpgsql stable set search_path = '' as $$
 begin
   if p_dari is null or p_sampai is null or p_dari >= p_sampai or p_sampai - p_dari > interval '400 days' then
     raise exception 'Rentang tanggal tidak sah' using errcode = '22023';
@@ -63,7 +63,7 @@ begin
       join public.barang_masuk_item bi on bi.barang_masuk_id = bm.id
       join public.satuan_beli_isi i on i.satuan_beli_id = bi.satuan_beli_id
       join bahan bh on bh.id = i.bahan_id
-      where bm.batal_at is null and (p_outlet is null or bm.outlet_id = p_outlet)
+      where bm.batal_at is null and (p_outlet is null or bm.outlet_id = p_outlet) and bm.waktu >= p_dari
       group by bm.outlet_id, bh.id, bm.waktu
     ),
     beli as (
@@ -73,7 +73,7 @@ begin
       -- potong ayam + porsi kulit terjual (yang digoreng)
       select p.outlet_id, p.waktu, i.qty
       from public.penjualan_item i join public.penjualan p on p.id = i.penjualan_id join public.menu m on m.id = i.menu_id
-      where p.void_at is null and m.kategori in ('ayam', 'kulit') and (p_outlet is null or p.outlet_id = p_outlet)
+      where p.void_at is null and m.kategori in ('ayam', 'kulit') and (p_outlet is null or p.outlet_id = p_outlet) and p.waktu >= p_dari
     ),
     interval_beli as (
       select b.outlet_id, b.bahan_id, b.waktu, b.jumlah, b.rupiah, b.berikut is null as berjalan,
@@ -113,7 +113,8 @@ begin
       'tepung', jsonb_build_object(
         'kg_dkriuk', round(kg_dkriuk, 2), 'kg_a', round(kg_a, 2),
         'persen_dkriuk', case when kg_dkriuk + kg_a > 0 then round(kg_dkriuk / (kg_dkriuk + kg_a) * 100, 1) end,
-        'menyimpang', kg_dkriuk + kg_a > 0 and (kg_dkriuk / (kg_dkriuk + kg_a) * 100 not between 40 and 60),
+        -- dinilai hanya bila kedua jenis dibeli di periode ini (satu jenis saja = belum bisa dibandingkan)
+        'menyimpang', kg_dkriuk > 0 and kg_a > 0 and (kg_dkriuk / (kg_dkriuk + kg_a) * 100 not between 40 and 60),
         'biaya', biaya_tepung, 'potong', potong,
         'modal_per_potong', case when potong > 0 then round(biaya_tepung::numeric / potong) end)
     ) order by nama) from per_outlet
@@ -130,6 +131,8 @@ declare
   v_jumlah_hari integer := extract(day from (v_awal + interval '1 month - 1 day'))::integer;
   v_lalu_awal date := (v_awal - interval '1 month')::date;
   v_berjalan integer := extract(day from v_hari)::integer;
+  -- hari berjalan pecahan (mis. tanggal 1 pukul 09.00 = 0,375 hari) agar proyeksi pagi hari tidak melonjak
+  v_hari_pecah numeric := greatest(extract(epoch from (now() - (v_awal::timestamp at time zone 'Asia/Jakarta'))) / 86400, 0.25);
   v_ini jsonb;
   v_lalu jsonb;
 begin
@@ -139,8 +142,9 @@ begin
   return jsonb_build_object(
     'bulan', v_awal, 'hari_berjalan', v_berjalan, 'hari_sebulan', v_jumlah_hari,
     'omzet', v_ini -> 'omzet', 'laba', v_ini -> 'laba',
-    'proyeksi_omzet', round((v_ini ->> 'omzet')::numeric / v_berjalan * v_jumlah_hari),
-    'proyeksi_laba', round((v_ini ->> 'laba')::numeric / v_berjalan * v_jumlah_hari),
+    'proyeksi_omzet', round((v_ini ->> 'omzet')::numeric / v_hari_pecah * v_jumlah_hari),
+    'proyeksi_laba', round((v_ini ->> 'laba')::numeric / v_hari_pecah * v_jumlah_hari),
+    'hari_pecah', round(v_hari_pecah, 2),
     'bulan_lalu_omzet', v_lalu -> 'omzet', 'bulan_lalu_laba', v_lalu -> 'laba');
 end
 $$;
