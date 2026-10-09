@@ -22,7 +22,9 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 | 5a | Kas harian: uang laci berjalan, pengeluaran, setoran, kas harian, penjualan admin | Selesai, di main — uji owner menunggu |
 | 5b | Gaji & kasbon, biaya tetap (sewa), laba-rugi sederhana, arus kas | Selesai, di main — uji owner menunggu |
 | 6 | Telegram: struk, ringkasan tutup toko & harian, peringatan, kas (grup bertopik) | Selesai, di main & aktif di server — uji owner menunggu |
-| 7 | Dashboard & analisis (termasuk modal tepung, terbuang, susut) | Belum |
+| 7a | Dasbor yang bisa dirakit (seperti Kibana): banyak dasbor, panel dari katalog, seret & ubah ukuran, siklus stok, riwayat kejadian | Selesai, di main — uji owner menunggu |
+| 7b | Analisis kebocoran: laba per menu, susut, nilai terbuang, minyak/tepung, proyeksi | Belum |
+| 7c | Alat: rekonsiliasi ojol, rencana belanja, ekspor PDF/Excel | Belum |
 | 8 | Rilis: uji menyeluruh, panduan pengguna | Belum |
 
 ---
@@ -124,6 +126,15 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - Bila topik dihapus di grup, pesannya masuk General sampai admin menekan **Hubungkan ulang** (topik dibuat lagi).
 - **Admin → Telegram**: status grup, Hubungkan grup, Kirim pesan uji, jam ringkasan harian, batas pengeluaran, nyala/mati per jenis pesan, pesan gagal.
 
+### Tahap 7a — Dasbor (keputusan owner 9 Okt 2026)
+- Tahap 7 dipecah: **7a dasbor** → 7b analisis kebocoran → 7c alat (ojol, rencana belanja, ekspor).
+- Dipakai di HP dan laptop; angka diperbarui otomatis ±1 menit + tombol **Muat ulang** (kabar per kejadian tetap lewat Telegram).
+- Dasbor **bisa dirakit sendiri seperti Kibana**: banyak dasbor, tambah/ubah/gandakan/hapus panel, **hanya admin**. Di laptop panel diseret & diubah ukurannya; di HP diatur dengan ↑ ↓ dan lebar/tinggi.
+- Panel dirakit dari pilihan (tanpa rumus): **sumber** (penjualan, item terjual, pemakaian bahan, sisa/terbuang, barang masuk, pengeluaran, setoran, tutup toko, batal) × **ukuran** × **dikelompokkan per** (jam/hari/minggu/bulan, outlet, kanal, kasir, menu, kategori, varian Ori/Hot, bahan, alasan, …) × **saringan** × **tampilan** (angka, batang, garis, lingkaran, tabel, peta panas). Panel bisa mengunci periode/outlet sendiri dan membandingkan dengan periode sebelumnya.
+- Panel khusus: **status stok**, **uang di laci**, **riwayat kejadian** (semua kejadian dengan jamnya), **siklus stok** (lini waktu stok, berapa kali & berapa lama sekali habis, rata-rata bertahan sejak barang masuk, pemakaian per hari, perkiraan habis).
+- Dasbor bawaan **Ringkasan** (bisa dikembalikan ke isi awal): angka utama, omzet per hari per outlet, kanal, menu terlaris, bahan paling terpakai, terbuang per hari per alasan, jam ramai, perbandingan outlet, Ori vs Hot, status stok, riwayat.
+- "Potong ayam" = item kategori ayam; kulit, nasi, box terpisah. Semua tampilan bahasa Indonesia.
+
 ## Catatan penting untuk tahap berikutnya
 
 - **Tahap 5 (keuangan)**: pengeluaran laci & setor langsung mengurangi uang laci; tutup toko = modal + jual cash − void − pengeluaran laci − setoran; barang masuk dibayar dari bank, bukan laci; pembelian yang terlambat dicatat di belakang opname perlu jalur pengeluaran tanpa efek stok.
@@ -137,3 +148,4 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - 9 Okt 2026 (malam): database server diperbarui untuk Tahap 5b (migrasi 0024–0025); semua uji server (kasir, stok, offline, kas, gaji) lulus; server bersih.
 - 9 Okt 2026: **aplikasi online** di **https://fialhafizh.github.io/kasir-dkriuk/** (akun GitHub baru owner `fialhafizh`, repo publik `fialhafizh/kasir-dkriuk`; akun lama tidak dipakai lagi, Netlify tidak jadi dipakai). Setiap kiriman ke `main` otomatis dipasang ulang. Diperiksa: aplikasi tersambung ke Supabase dan tidak ada kunci rahasia di kode yang terpasang. Kiriman kode (push) dilakukan owner dari Git Bash.
 - 9 Okt 2026 (sore): database server diperbarui untuk Tahap 6 (migrasi 0026–0028), token bot disimpan di Supabase secrets, fungsi `telegram` dipasang, jadwal kirim tiap menit aktif (kuncinya dibuat acak di Vault server). Grup **Backup Dkriuk** terhubung, 4 topik dibuat bot, pesan uji terkirim ke tiap topik. Uji server Telegram + semua uji lama lulus (notifikasi dimatikan sementara selama uji lama agar grup tidak penuh pesan uji, lalu dinyalakan lagi); server bersih (3 outlet, 4 akun, 0 transaksi).
+- 9 Okt 2026 (malam): database server diperbarui untuk Tahap 7a (migrasi 0029–0031: dasbor, indeks waktu); uji server dasbor + semua uji lama lulus (notifikasi Telegram dimatikan sementara lalu dinyalakan lagi); server bersih.
