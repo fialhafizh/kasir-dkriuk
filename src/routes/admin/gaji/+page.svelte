@@ -62,7 +62,7 @@
 
 <svelte:head><title>Gaji · Admin D'Kriuk</title></svelte:head>
 
-<h1 class="font-display text-3xl">Gaji <Petunjuk topik="gaji" peran="admin" /></h1>
+<div class="flex items-center gap-2"><h1 class="font-display text-3xl">Gaji</h1><Petunjuk topik="gaji" peran="admin" /></div>
 <div class="mt-4 flex flex-wrap items-end gap-3">
 	<div class="grid gap-1.5">
 		<label for="outlet" class="text-sm font-semibold">Outlet</label>

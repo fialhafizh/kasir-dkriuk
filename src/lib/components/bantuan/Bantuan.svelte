@@ -7,9 +7,16 @@
 	let kata = $state('');
 	const bagian = $derived(bagianUntuk(peran).map((b) => ({ ...b, topik: b.topik.filter((t) => cocok(t, kata)) })).filter((b) => b.topik.length));
 	// ?topik=… di alamat (dari tombol "?") → topik itu terbuka & digulir
-	const tujuan = $derived(page.url.searchParams.get('topik') ?? '');
+	// hash router: query ada di dalam hash (#/admin/bantuan?topik=x)
+	const tujuan = $derived(new URLSearchParams(page.url.hash.split('?')[1] ?? '').get('topik') ?? '');
 	$effect(() => {
-		if (tujuan) requestAnimationFrame(() => document.getElementById(tujuan)?.scrollIntoView({ block: 'start' }));
+		if (tujuan) requestAnimationFrame(() => document.getElementById(`bantuan-${tujuan}`)?.scrollIntoView({ block: 'start' }));
+	});
+	// cetak: semua topik dibuka agar isinya ikut tercetak
+	$effect(() => {
+		const buka = () => document.querySelectorAll<HTMLDetailsElement>('details[data-bantuan]').forEach((d) => (d.open = true));
+		addEventListener('beforeprint', buka);
+		return () => removeEventListener('beforeprint', buka);
 	});
 </script>
 
@@ -48,7 +55,7 @@
 		<p class="text-sm text-muted">{b.pengantar}</p>
 		<div class="mt-2 grid gap-2">
 			{#each b.topik as t (t.id)}
-				<details id={t.id} class="rounded-2xl border border-line bg-surface p-3" open={!!kata || tujuan === t.id}>
+				<details id="bantuan-{t.id}" data-bantuan class="rounded-2xl border border-line bg-surface p-3" open={!!kata || tujuan === t.id}>
 					<summary class="cursor-pointer font-semibold"><span aria-hidden="true">{t.ikon}</span> {t.judul}</summary>
 					{#if t.menu}<p class="mt-1 text-xs text-muted">Di menu: {t.menu}</p>{/if}
 					<p class="mt-2 text-sm">{@html tebal(t.ringkas)}</p>

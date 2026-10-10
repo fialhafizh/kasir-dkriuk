@@ -24,8 +24,12 @@ const ARSITEKTUR = [
 const daftar = (xs: string[] | undefined, tag: 'ol' | 'ul', kelas: string) =>
 	xs?.length ? `<${tag} class="${kelas}">${xs.map((x) => `<li>${tebal(x)}</li>`).join('')}</${tag}>` : '';
 
-function kartu(t: Topik, peran: string): string {
-	return `<article class="slide topik" data-peran="${peran}" id="t-${t.id}" data-cari="${tebal([t.judul, t.ringkas, ...(t.langkah ?? []), ...(t.catatan ?? [])].join(' ').toLowerCase()).replace(/"/g, '&quot;')}">
+const atribut = (t: string) => t.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+const polos = (t: Topik) => [t.judul, t.ringkas, t.menu ?? '', ...(t.langkah ?? []), ...(t.catatan ?? []), ...(t.awas ?? [])].join(' ').replace(/\*\*/g, '').toLowerCase();
+
+function kartu(t: Topik, peran: string, bagian: string): string {
+	return `<article class="slide topik" data-peran="${peran}" id="t-${t.id}" data-cari="${atribut(polos(t))}">
+<p class="label-bagian">${tebal(bagian)}</p>
 <header><span class="ikon">${t.ikon}</span><div><h3>${tebal(t.judul)}</h3>${t.menu ? `<p class="menu">📍 ${tebal(t.menu)}</p>` : ''}</div></header>
 <p class="ringkas">${tebal(t.ringkas)}</p>
 ${t.langkah || t.catatan || t.awas ? `<details open><summary>Rincian</summary>${daftar(t.langkah, 'ol', 'langkah')}${daftar(t.catatan, 'ul', 'catatan')}${daftar(t.awas, 'ul', 'awas')}</details>` : ''}
@@ -66,13 +70,17 @@ ol.langkah li::before{content:counter(l);position:absolute;left:0;top:0;width:24
 ul.catatan{padding-left:20px}ul.awas{list-style:none;padding:8px 10px;border:2px solid #d18a00;border-radius:12px}ul.awas li::before{content:"⚠️ "}
 .waktu{display:grid;gap:8px}.waktu div{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;background:var(--kartu);border:1px solid var(--garis);border-radius:14px;padding:8px 12px}
 .waktu b{font-size:1.3rem;color:var(--merah);text-align:center}
+.label-bagian{display:none;margin:0 0 6px;color:var(--redup);font-size:.85rem;font-weight:700}
 .sembunyi{display:none!important}footer{color:var(--redup);font-size:.85rem;padding:24px 0 48px}
 body.slide-mode .alat .cari{display:none}body.slide-mode .slide{display:none}body.slide-mode .slide.aktif{display:block}
 body.slide-mode main .slide{max-width:1000px;min-height:min(560px,75vh);margin:16px auto;padding:28px;border-radius:24px;background:var(--kartu);border:1px solid var(--garis);font-size:1.15rem}
-body.slide-mode details{pointer-events:none}body.slide-mode details summary{display:none}
+body.slide-mode details{pointer-events:none}body.slide-mode .label-bagian{display:block}
+body.slide-mode section.bab:not(.slide){padding:0}body.slide-mode section.bab:not(.slide)>.wadah>h2,body.slide-mode section.bab:not(.slide)>.wadah>.pengantar{display:none}
+body.slide-mode .kisi{display:block}body.slide-mode details summary{display:none}
 .nav-slide{display:none}body.slide-mode .nav-slide{display:flex;gap:8px;justify-content:center;align-items:center;padding:10px}
 @media print{.alat,.nav-slide{display:none!important}details>*{display:block}body{background:#fff;color:#000}.topik,.slide{break-inside:avoid}
-body.slide-mode .slide{display:block!important;break-after:page;min-height:auto;border:none}@page{size:A4 landscape;margin:12mm}}
+body.slide-mode .slide{display:block!important;break-after:page;min-height:auto;border:none}
+body.slide-mode .slide.sembunyi,body.slide-mode .sembunyi .slide{display:none!important}@page{size:A4 landscape;margin:12mm}}
 `;
 
 const JS = `
@@ -85,11 +93,15 @@ $('[data-tab]').forEach(b=>b.onclick=()=>{peran=b.dataset.tab;$('[data-tab]').fo
 document.getElementById('cari').oninput=saring;
 const terlihat=()=>$('.slide').filter(s=>!s.classList.contains('sembunyi')&&!s.closest('.sembunyi'));
 function tampil(i){const d=terlihat();slide=Math.max(0,Math.min(i,d.length-1));$('.slide').forEach(s=>s.classList.remove('aktif'));if(d[slide])d[slide].classList.add('aktif');
- $('.hitung').forEach(h=>h.textContent=(slide+1)+' / '+d.length);scrollTo(0,0)}
+ $('.hitung').forEach(h=>h.textContent=(d.length?slide+1:0)+' / '+d.length);scrollTo(0,0)}
 document.getElementById('mode').onclick=e=>{const on=document.body.classList.toggle('slide-mode');e.target.setAttribute('aria-pressed',on);if(on)tampil(0)};
 $('[data-geser]').forEach(b=>b.onclick=()=>tampil(slide+Number(b.dataset.geser)));
 addEventListener('keydown',e=>{if(!document.body.classList.contains('slide-mode'))return;if(e.key==='ArrowRight'||e.key==='PageDown')tampil(slide+1);if(e.key==='ArrowLeft'||e.key==='PageUp')tampil(slide-1)});
-document.getElementById('tema').onclick=()=>{const r=document.documentElement;const gelap=r.dataset.tema?r.dataset.tema==='gelap':matchMedia('(prefers-color-scheme: dark)').matches;r.dataset.tema=gelap?'terang':'gelap'};
+const tema=document.getElementById('tema');
+function pasangTema(t){if(t)document.documentElement.dataset.tema=t;tema.setAttribute('aria-pressed',document.documentElement.dataset.tema==='gelap')}
+try{pasangTema(localStorage.getItem('panduan-tema'))}catch(e){}
+tema.onclick=()=>{const r=document.documentElement;const gelap=r.dataset.tema?r.dataset.tema==='gelap':matchMedia('(prefers-color-scheme: dark)').matches;pasangTema(gelap?'terang':'gelap');try{localStorage.setItem('panduan-tema',r.dataset.tema)}catch(e){}};
+addEventListener('beforeprint',()=>$('details').forEach(d=>d.open=true));
 document.getElementById('cetak').onclick=()=>print();
 `;
 
@@ -100,7 +112,7 @@ export function buatInfografis(): string {
 	).join('');
 	const bab = BAGIAN.map(
 		(b) => `<section class="bab" data-peran="${b.peran}" id="b-${b.id}"><div class="wadah"><h2>${b.ikon} ${tebal(b.judul)}</h2><p class="pengantar">${tebal(b.pengantar)}</p>
-<div class="kisi">${b.topik.map((t) => kartu(t, b.peran)).join('\n')}</div></div></section>`
+<div class="kisi">${b.topik.map((t) => kartu(t, b.peran, `${b.ikon} ${b.judul}`)).join('\n')}</div></div></section>`
 	).join('\n');
 	return `<!doctype html>
 <html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -115,9 +127,9 @@ export function buatInfografis(): string {
 <nav class="alat" aria-label="Alat panduan"><div class="wadah">
 <button data-tab="semua" aria-pressed="true">Semua</button><button data-tab="kasir" aria-pressed="false">Kasir</button><button data-tab="admin" aria-pressed="false">Admin</button><button data-tab="pemilik" aria-pressed="false">Pemilik</button>
 <input id="cari" class="cari" type="search" placeholder="Cari: setoran, opname, printer…" aria-label="Cari">
-<button id="mode" aria-pressed="false">Mode slide</button><button id="tema">Terang/gelap</button><button id="cetak">Cetak / PDF</button>
+<button id="mode" aria-pressed="false">Mode slide</button><button id="tema" aria-pressed="false">Tema gelap</button><button id="cetak">Cetak / PDF</button>
 </div></nav>
-<div class="nav-slide"><button data-geser="-1">← Sebelumnya</button><span class="hitung"></span><button data-geser="1">Berikutnya →</button></div>
+<div class="nav-slide"><button data-geser="-1">← Sebelumnya</button><span class="hitung" aria-live="polite"></span><button data-geser="1">Berikutnya →</button></div>
 <main>
 <section class="bab slide" id="alur"><div class="wadah"><h2>🔄 Alur harian</h2><p class="pengantar">Dari buka toko sampai laporan di HP pemilik.</p>
 <ol class="alur">${ALUR_HARIAN.map((a) => `<li><span class="ikon">${a.ikon}</span><b>${a.judul}</b><small>${a.isi}</small></li>`).join('')}</ol></div></section>
@@ -128,7 +140,7 @@ ${bab}
 <section class="bab slide" id="tahap"><div class="wadah"><h2>🏗️ Tahapan pembangunan</h2><p class="pengantar">Aplikasi dibangun bertahap; setiap tahap diuji sebelum dipakai.</p>
 <div class="waktu">${TAHAP.map(([n, j, k]) => `<div><b>${n}</b><span><strong>${j}</strong> — ${k}</span></div>`).join('')}</div></div></section>
 </main>
-<div class="nav-slide"><button data-geser="-1">← Sebelumnya</button><span class="hitung"></span><button data-geser="1">Berikutnya →</button></div>
+<div class="nav-slide"><button data-geser="-1">← Sebelumnya</button><span class="hitung" aria-live="polite"></span><button data-geser="1">Berikutnya →</button></div>
 <footer><div class="wadah">Buka aplikasi: fialhafizh.github.io/kasir-dkriuk · Bantuan yang sama ada di menu <b>Bantuan</b> aplikasi. Mode slide + Cetak = satu slide per halaman (simpan PDF, lalu bisa diubah ke PPT).</div></footer>
 <script>${JS}</script></body></html>
 `;

@@ -11,9 +11,10 @@
 {#if t}
 	<span class="tanpa-cetak relative inline-block">
 		<button type="button" class="grid size-8 place-items-center rounded-full bg-surface-2 text-sm font-bold text-muted hover:text-fg"
-			aria-label="Petunjuk: {t.judul}" aria-expanded={buka} onclick={() => (buka = !buka)}>?</button>
+			aria-label="Petunjuk: {t.judul}" aria-expanded={buka} aria-controls="petunjuk-{t.id}" onclick={() => (buka = !buka)}
+			onkeydown={(e) => e.key === 'Escape' && (buka = false)}>?</button>
 		{#if buka}
-			<div class="absolute right-0 z-30 mt-1 w-72 max-w-[85vw] rounded-2xl border border-line bg-surface p-3 text-left text-sm font-normal shadow-lg" role="dialog" aria-label={t.judul}>
+			<div id="petunjuk-{t.id}" class="fixed inset-x-4 bottom-24 z-30 rounded-2xl border border-line bg-surface p-3 text-left text-sm font-normal shadow-lg sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-0 sm:mt-1 sm:w-80">
 				<p class="font-semibold">{t.ikon} {t.judul}</p>
 				<p class="mt-1">{@html tebal(t.ringkas)}</p>
 				{#if t.langkah}

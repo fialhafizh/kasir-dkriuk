@@ -154,7 +154,7 @@
 	<Selesai data={struk} {peringatan} onbaru={baru} />
 {:else}
 	<div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-		<h1 class="font-display text-2xl">{pos.outlet?.merek} {pos.outlet?.nama} <Petunjuk topik="jualan" peran="kasir" /></h1>
+		<div class="flex items-center gap-2"><h1 class="font-display text-2xl">{pos.outlet?.merek} {pos.outlet?.nama}</h1><Petunjuk topik="jualan" peran="kasir" /></div>
 		<PrinterChip />
 	</div>
 	{#if pos.outlet}<PitaMinus outletId={pos.outlet.id} segar={segarStok} />{/if}

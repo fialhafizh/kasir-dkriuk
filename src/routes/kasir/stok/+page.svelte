@@ -27,7 +27,7 @@
 
 <svelte:head><title>Stok · Kasir D'Kriuk</title></svelte:head>
 
-<h1 class="font-display text-2xl">Stok {pos.outlet?.nama} <Petunjuk topik="stok-kasir" peran="kasir" /></h1>
+<div class="flex items-center gap-2"><h1 class="font-display text-2xl">Stok {pos.outlet?.nama}</h1><Petunjuk topik="stok-kasir" peran="kasir" /></div>
 
 {#if status === 'memuat'}
 	<p class="mt-4 text-muted" role="status">Memuat…</p>

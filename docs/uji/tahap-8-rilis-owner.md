@@ -11,7 +11,7 @@ Status: **belum dimulai**.
 - [ ] Periksa **harga jual** & **resep** (Admin → Menu)
 - [ ] Admin → **Akun**: akun kasir tiap outlet; catat password sementara
 - [ ] Kasir: **stok awal** → admin setujui (Admin → Stok)
-- [ ] Kasir: **buka toko** pertama → isi uang laci awal
+- [ ] Kasir: **Mulai jualan** pertama → isi **Uang di laci sekarang**
 - [ ] Admin → **Gaji**: karyawan & upah harian; Admin → **Biaya tetap**: sewa
 - [ ] Admin → **Telegram**: Kirim pesan uji
 

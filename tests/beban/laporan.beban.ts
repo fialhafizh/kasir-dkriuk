@@ -36,6 +36,8 @@ beforeAll(async () => {
 		from public.penjualan p cross join lateral (
 			select id, nama from public.menu where kategori in ('ayam', 'nasi') order by abs(hashtext(p.id::text || id::text)) limit 2) m`);
 	const n = (await db.query<{ n: number }>('select count(*)::int as n from public.penjualan')).rows[0].n;
+	expect(n).toBeGreaterThan(100_000);
+	expect((await db.query<{ n: number }>('select count(*)::int as n from public.gerakan_stok')).rows[0].n).toBeGreaterThan(100_000);
 	console.log(`data uji: ${n} transaksi, ${(await db.query<{ n: number }>('select count(*)::int as n from public.gerakan_stok')).rows[0].n} gerakan stok, ${((Date.now() - mulai) / 1000).toFixed(0)} dtk`);
 });
 

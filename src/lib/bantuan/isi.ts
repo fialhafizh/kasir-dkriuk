@@ -25,7 +25,7 @@ export interface Bagian {
 }
 
 export const ALUR_HARIAN = [
-	{ ikon: '🔓', judul: 'Buka toko', isi: 'Kasir membuka toko; uang laci awal tampil otomatis.' },
+	{ ikon: '🔓', judul: 'Mulai jualan', isi: 'Kasir memeriksa uang di laci lalu menekan Mulai jualan.' },
 	{ ikon: '🍗', judul: 'Jualan', isi: 'Pilih menu, cara bayar, struk tercetak. Tetap jalan tanpa internet.' },
 	{ ikon: '🗑️', judul: 'Sisa & rusak', isi: 'Catat yang terbuang beserta alasannya.' },
 	{ ikon: '💸', judul: 'Kas', isi: 'Pengeluaran kecil, kasbon karyawan, setoran ke pemilik.' },
@@ -82,7 +82,7 @@ export const BAGIAN: Bagian[] = [
 		judul: 'Panduan kasir',
 		peran: 'kasir',
 		ikon: '🧑‍🍳',
-		pengantar: 'Pekerjaan harian di toko. Semua langkah di bagian ini bisa dilakukan tanpa internet.',
+		pengantar: 'Pekerjaan harian di toko. Hampir semua langkah bisa dilakukan tanpa internet (kecuali mengabaikan data di Perlu perhatian).',
 		topik: [
 			{
 				id: 'masuk',
@@ -100,14 +100,14 @@ export const BAGIAN: Bagian[] = [
 			},
 			{
 				id: 'buka-toko',
-				judul: 'Buka toko',
+				judul: 'Mulai jualan (buka toko)',
 				ikon: '🔓',
 				menu: 'Jualan',
-				ringkas: 'Sebelum jualan pertama hari itu, buka toko. Uang laci tampil otomatis.',
+				ringkas: 'Sebelum jualan pertama hari itu, layar Jualan menampilkan formulir **Mulai jualan**.',
 				langkah: [
-					'Buka menu **Jualan**, tekan **Buka toko**.',
-					'Pertama kali di outlet ini: isi **uang laci awal** (uang yang ada di laci).',
-					'Selanjutnya cukup periksa uang laci yang tampil, tekan **Buka**.'
+					'Buka menu **Jualan**; formulir **Mulai jualan** tampil sendiri.',
+					'Pertama kali di outlet ini: isi **Uang di laci sekarang** (uang yang ada di laci).',
+					'Selanjutnya uang di laci tampil otomatis; periksa lalu tekan **Mulai jualan**.'
 				],
 				catatan: ['Toko kemarin harus ditutup dulu sebelum jualan hari ini.']
 			},
@@ -119,8 +119,8 @@ export const BAGIAN: Bagian[] = [
 				ringkas: 'Pilih menu, jumlah, cara bayar; kembalian dihitung otomatis dan struk tercetak.',
 				langkah: [
 					'Ketuk menu untuk menambah ke keranjang; jumlah bisa diketik (mis. 150 nasi box).',
-					'Pilih cara bayar: **Tunai**, **QRIS**, **GoFood**, **GrabFood**, atau **ShopeeFood** (ojol dicatat dengan harga toko).',
-					'Tunai: isi uang diterima → kembalian tampil.',
+					'Pilih cara bayar: **Cash**, **QRIS**, **GoFood**, **GrabFood**, atau **ShopeeFood** (ojol dicatat dengan harga toko).',
+					'Cash: isi uang diterima → kembalian tampil.',
 					'Tekan **Bayar**. Struk tercetak bila printer Bluetooth tersambung (cadangan: aplikasi RawBT).'
 				],
 				catatan: ['Setiap struk punya **kode struk** 6 huruf/angka untuk dicari.', 'Saat offline nomor struk sementara berawalan S (mis. S3-012); nomor resmi menyusul.']
@@ -151,8 +151,8 @@ export const BAGIAN: Bagian[] = [
 				judul: 'Batal transaksi',
 				ikon: '↩️',
 				menu: 'Riwayat',
-				ringkas: 'Transaksi yang salah dibatalkan dari Riwayat; stok kembali otomatis.',
-				langkah: ['Buka **Riwayat**, cari transaksinya.', 'Tekan **Batal**, isi alasan.'],
+				ringkas: 'Transaksi yang salah dibatalkan dari Riwayat (transaksi shift ini); stok kembali otomatis.',
+				langkah: ['Buka **Riwayat**, cari transaksinya.', 'Tekan **Batalkan**, isi alasan, lalu **Ya, batalkan**.'],
 				catatan: ['Pembatalan dilaporkan ke grup Telegram (⚠️ Peringatan).', 'Setelah toko ditutup, pembatalan hanya oleh admin.']
 			},
 			{
@@ -278,7 +278,7 @@ export const BAGIAN: Bagian[] = [
 					'Tambah karyawan per outlet (nama, upah harian).',
 					'Centang **kehadiran** per hari.',
 					'Kasbon dari kasir (menu Kas) atau admin masuk otomatis; lihat **Rincian kasbon**.',
-					'**Gajian**: potongan terisi seluruh sisa kasbon (boleh diubah/dicicil), pilih dari laci/owner, **Bayar**. Bulan itu terkunci.',
+					'**Gajian**: potongan terisi seluruh sisa kasbon (boleh diubah/dicicil), pilih dari laci/owner, **Bayar gaji** → **Ya, sudah dibayar**. Bulan itu terkunci.',
 					'**Ringkasan gaji**: salin ke WA / kirim Telegram / Excel.'
 				]
 			},
@@ -338,7 +338,7 @@ export const BAGIAN: Bagian[] = [
 					'Periksa **harga jual** & **resep** menu.',
 					'Buat akun kasir tiap outlet.',
 					'Kasir mengisi **stok awal**; admin menyetujui.',
-					'Kasir mengisi **uang laci awal** saat buka toko pertama.',
+					'Kasir mengisi **Uang di laci sekarang** saat **Mulai jualan** pertama kali.',
 					'Isi **karyawan** (upah harian) dan **sewa** (Biaya tetap).',
 					'Hubungkan **Telegram** & kirim pesan uji.'
 				]
@@ -359,7 +359,7 @@ export const BAGIAN: Bagian[] = [
 				judul: 'Keamanan & cadangan data',
 				ikon: '🛡️',
 				ringkas: 'Kasir hanya melihat outletnya sendiri; harga beli, gaji, dan laporan hanya admin.',
-				catatan: ['Ganti/reset password kasir bila HP hilang (Admin → Akun).', 'Cadangan data server dibuat berkala oleh pembuat aplikasi.', 'Token bot & kunci server tidak pernah ada di aplikasi yang terpasang.']
+				catatan: ['Ganti/reset password kasir bila HP hilang (Admin → Akun).', 'Cadangan data server dibuat dengan perintah oleh pembuat aplikasi (minta secara berkala, mis. tiap minggu); hasilnya berisi data bisnis, simpan di tempat aman.', 'Bila data perlu dipulihkan dari cadangan, hubungi pembuat aplikasi — pemulihan dilakukan di server, bukan dari HP.', 'Token bot & kunci server tidak pernah ada di aplikasi yang terpasang.']
 			},
 			{
 				id: 'faq',

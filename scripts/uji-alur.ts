@@ -18,7 +18,13 @@ const tag = randomBytes(3).toString('hex');
 let outletId = '';
 const users: string[] = [];
 const SEMUA_JENIS = ['struk', 'tutup', 'harian', 'batal', 'selisih_kas', 'selisih_setoran', 'stok', 'opname', 'diabaikan', 'ditolak', 'setoran', 'kasbon', 'pengeluaran'];
-const matiAwal = ((await svc.from('telegram_pengaturan').select('jenis_mati').eq('id', true).single()).data?.jenis_mati ?? []) as string[];
+// Notifikasi dimatikan sementara untuk SEMUA outlet selama uji: jalankan saat semua outlet sudah tutup.
+const bacaMati = await svc.from('telegram_pengaturan').select('jenis_mati').eq('id', true).single();
+if (bacaMati.error) {
+	console.error(`Pengaturan Telegram tidak terbaca (${bacaMati.error.message}); uji dibatalkan agar pengaturan owner tidak tertimpa.`);
+	process.exit(1);
+}
+const matiAwal = (bacaMati.data?.jenis_mati ?? []) as string[];
 
 async function akun(nama: string, role: 'kasir' | 'admin'): Promise<SupabaseClient> {
 	const pw = randomBytes(12).toString('base64url');
@@ -149,7 +155,6 @@ try {
 		await hapus('setoran', svc.from('setoran').delete().eq('outlet_id', outletId));
 		await hapus('pengeluaran', svc.from('pengeluaran').delete().eq('outlet_id', outletId));
 		await hapus('karyawan', svc.from('karyawan').delete().eq('outlet_id', outletId));
-		await hapus('harga_beli', svc.from('harga_beli').delete().eq('outlet_id', outletId));
 	}
 	for (const u of users) {
 		const { error } = await svc.auth.admin.deleteUser(u);

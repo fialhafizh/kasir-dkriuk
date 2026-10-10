@@ -202,7 +202,7 @@
 
 <svelte:head><title>Kas · Kasir D'Kriuk</title></svelte:head>
 
-<h1 class="font-display text-3xl">Kas {pos.outlet?.nama} <Petunjuk topik="kas-kasir" peran="kasir" /></h1>
+<div class="flex items-center gap-2"><h1 class="font-display text-3xl">Kas {pos.outlet?.nama}</h1><Petunjuk topik="kas-kasir" peran="kasir" /></div>
 <p class="mt-1 text-sm text-muted">Pengeluaran kecil dari laci, kasbon karyawan, dan setoran ke owner. Bisa dicatat kapan saja, juga tanpa internet.</p>
 {#if pesanMuat}<p class="mt-2 text-sm text-danger" role="alert">{pesanMuat}</p>{/if}
 

@@ -19,21 +19,41 @@ const dir = join(akar, 'cadangan', cap);
 mkdirSync(dir, { recursive: true });
 let gagal = 0;
 for (const t of tabel) {
+	// urutan stabil (kolom pertama baris contoh, biasanya kunci) & jumlah pasti: halaman tidak dobel/terlewat walau batas baris server < 1000
+	const contoh = await svc.from(t).select('*', { count: 'exact' }).limit(1);
+	if (contoh.error) {
+		gagal++;
+		console.error(`GAGAL ${t}: ${contoh.error.message}`);
+		continue;
+	}
+	const jumlah = contoh.count ?? 0;
+	const urut = Object.keys(contoh.data?.[0] ?? {})[0];
 	const semua: unknown[] = [];
-	for (let dari = 0; ; dari += 1000) {
-		const { data, error } = await svc.from(t).select('*').range(dari, dari + 999);
-		if (error) {
+	while (semua.length < jumlah) {
+		let q = svc.from(t).select('*').range(semua.length, semua.length + 999);
+		if (urut) q = q.order(urut, { ascending: true });
+		const { data, error } = await q;
+		if (error || !data?.length) {
 			gagal++;
-			console.error(`GAGAL ${t}: ${error.message}`);
+			console.error(`GAGAL ${t}: ${error?.message ?? 'halaman kosong sebelum semua baris terbaca'}`);
 			break;
 		}
 		semua.push(...data);
-		if (data.length < 1000) break;
 	}
 	writeFileSync(join(dir, `${t}.json`), JSON.stringify(semua));
 	console.log(`${t.padEnd(28)} ${String(semua.length).padStart(7)} baris`);
 }
-const { data: u } = await svc.auth.admin.listUsers({ perPage: 1000 });
-writeFileSync(join(dir, '_akun.json'), JSON.stringify((u?.users ?? []).map((x) => ({ id: x.id, email: x.email, app_metadata: x.app_metadata, created_at: x.created_at }))));
+const akun: unknown[] = [];
+for (let hal = 1; ; hal++) {
+	const { data: u, error } = await svc.auth.admin.listUsers({ page: hal, perPage: 200 });
+	if (error) {
+		gagal++;
+		console.error(`GAGAL akun: ${error.message}`);
+		break;
+	}
+	akun.push(...u.users.map((x) => ({ id: x.id, email: x.email, app_metadata: x.app_metadata, created_at: x.created_at })));
+	if (u.users.length < 200) break;
+}
+writeFileSync(join(dir, '_akun.json'), JSON.stringify(akun));
 console.log(`\nCadangan tersimpan di cadangan/${cap} (${tabel.length} tabel)${gagal ? `, ${gagal} gagal` : ''}.`);
 process.exit(gagal ? 1 : 0);

@@ -34,7 +34,7 @@ describe('keamanan menyeluruh', () => {
 
 	it('kasir tidak bisa membaca data khusus admin (harga beli, gaji, karyawan, pengaturan, dasbor, Telegram, perangkat)', async () => {
 		const khususAdmin = ['harga_beli', 'karyawan', 'kehadiran', 'gaji', 'biaya_tetap', 'dasbor', 'dasbor_panel', 'analisis_pengaturan', 'telegram_pengaturan',
-			'telegram_antrean', 'telegram_status_stok', 'kejadian_diabaikan', 'perangkat', 'shift_perangkat'];
+			'telegram_antrean', 'telegram_status_stok', 'kejadian_diabaikan', 'perangkat'];
 		const ada = await tabel();
 		for (const t of khususAdmin) {
 			expect(ada, t).toContain(t);
@@ -59,14 +59,40 @@ describe('keamanan menyeluruh', () => {
 		}
 	});
 
+	it('semua tabel public memakai aturan baris (RLS)', async () => {
+		const tanpa = (await db.query<{ t: string }>(`select c.relname as t from pg_class c join pg_namespace n on n.oid = c.relnamespace
+			where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity order by 1`)).rows.map((r) => r.t);
+		expect(tanpa).toEqual([]);
+	});
+
+	it('tidak ada aturan akses untuk pengunjung tanpa login', async () => {
+		const p = (await db.query<{ p: string }>(`select tablename || '.' || policyname as p from pg_policies
+			where schemaname = 'public' and (roles && array['anon', 'public']::name[]) order by 1`)).rows.map((r) => r.p);
+		expect(p).toEqual([]);
+	});
+
+	it('setiap aturan tulis langsung (insert/update/delete) hanya untuk admin', async () => {
+		const p = (await db.query<{ p: string; q: string | null; c: string | null }>(`select tablename || '.' || policyname as p, qual as q, with_check as c from pg_policies
+			where schemaname = 'public' and cmd in ('INSERT', 'UPDATE', 'DELETE', 'ALL')`)).rows;
+		for (const x of p) expect([x.p, `${x.q ?? ''} ${x.c ?? ''}`.includes('is_admin')]).toEqual([x.p, true]);
+	});
+
+	it('tabel khusus admin: aturan bacanya hanya untuk admin', async () => {
+		const khususAdmin = ['harga_beli', 'karyawan', 'kehadiran', 'gaji', 'biaya_tetap', 'dasbor', 'dasbor_panel', 'analisis_pengaturan', 'kejadian_diabaikan', 'perangkat'];
+		const p = (await db.query<{ t: string; q: string | null }>(`select tablename as t, qual as q from pg_policies where schemaname = 'public' and cmd in ('SELECT', 'ALL') and tablename = any($1)`, [khususAdmin])).rows;
+		for (const x of p) expect([x.t, (x.q ?? '').includes('is_admin') && !(x.q ?? '').includes('my_outlet_id')]).toEqual([x.t, true]);
+	});
+
 	it('pengunjung tanpa login tidak bisa menjalankan fungsi apa pun di skema public', async () => {
 		const bisa = (
 			await db.query<{ f: string }>(`
 				select p.proname as f from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-				where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute') order by 1`)
+				where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')
+				  -- fungsi pemicu & bantu tanpa security definer berjalan dengan hak pemanggil (tidak bisa membuka data)
+				  and (p.prosecdef or p.proname not like '\_%') order by 1`)
 		).rows.map((r) => r.f);
-		// fungsi pemicu/pembantu tanpa security definer tidak berbahaya bila tidak membuka data; daftar ini harus ditinjau bila berubah
-		expect(bisa.filter((f) => !f.startsWith('_') && !['is_admin', 'my_outlet_id', 'tanggal_wib'].includes(f))).toEqual([]);
+		// hanya fungsi bantu yang tidak membuka data; daftar ini harus ditinjau bila berubah
+		expect(bisa.filter((f) => !['is_admin', 'my_outlet_id', 'tanggal_wib'].includes(f))).toEqual([]);
 	});
 
 	it('semua fungsi security definer di public mengunci search_path', async () => {
