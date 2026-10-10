@@ -7,7 +7,8 @@
 		{ path: '/kasir/riwayat', label: 'Riwayat' },
 		{ path: '/kasir/stok', label: 'Stok' },
 		{ path: '/kasir/kas', label: 'Kas' },
-		{ path: '/kasir/tutup', label: 'Tutup toko' }
+		{ path: '/kasir/tutup', label: 'Tutup toko' },
+		{ path: '/kasir/bantuan', label: 'Bantuan' }
 	] as const;
 
 	const sedang = (p: string) => (p === '/kasir' ? aktif === '/kasir' : aktif === p || aktif.startsWith(`${p}/`));
@@ -23,7 +24,7 @@
 				<a
 					href={href(i.path)}
 					aria-current={sedang(i.path) ? 'page' : undefined}
-					class="flex min-h-14 items-center justify-center border-t-3 border-transparent px-2 text-sm font-semibold text-muted hover:text-fg focus-visible:outline-3 focus-visible:outline-focus aria-[current=page]:border-brand aria-[current=page]:font-extrabold aria-[current=page]:text-brand lg:min-h-12 lg:justify-start lg:rounded-xl lg:border-t-0 lg:px-3 lg:aria-[current=page]:bg-surface-2"
+					class="flex min-h-14 items-center justify-center border-t-3 border-transparent px-1 text-xs font-semibold sm:px-2 sm:text-sm text-muted hover:text-fg focus-visible:outline-3 focus-visible:outline-focus aria-[current=page]:border-brand aria-[current=page]:font-extrabold aria-[current=page]:text-brand lg:min-h-12 lg:justify-start lg:rounded-xl lg:border-t-0 lg:px-3 lg:aria-[current=page]:bg-surface-2"
 				>
 					{i.label}
 				</a>

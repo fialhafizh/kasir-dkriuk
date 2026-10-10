@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Panduan Kasir D'Kriuk</title><meta name="description" content="Panduan lengkap aplikasi kasir, stok, dan keuangan D'Kriuk & D'Krizzpy.">
+<style>
+:root{--merah:#e3191f;--kuning:#ffd60a;--bg:#fffaf0;--kartu:#fff;--teks:#2a1a12;--redup:#6b5a4e;--garis:#ecdccb;color-scheme:light}
+:root[data-tema=gelap]{--merah:#ff4136;--kuning:#ffd23f;--bg:#1a1210;--kartu:#261c18;--teks:#f6eee6;--redup:#c2b2a3;--garis:#3d2d26;color-scheme:dark}
+@media (prefers-color-scheme:dark){:root:not([data-tema=terang]){--merah:#ff4136;--kuning:#ffd23f;--bg:#1a1210;--kartu:#261c18;--teks:#f6eee6;--redup:#c2b2a3;--garis:#3d2d26;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--teks)}
+a{color:inherit}h1,h2,h3{line-height:1.2;margin:0}
+.wadah{max-width:1100px;margin:0 auto;padding:0 16px}
+.sampul{background:linear-gradient(135deg,var(--merah),#b5121a 60%,#7a0b10);color:#fff;padding:48px 0 40px}
+.sampul h1{font-size:clamp(2rem,6vw,3.4rem);letter-spacing:-.02em}.sampul p{max-width:60ch;opacity:.95}
+.angka{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}.angka div{background:rgba(255,255,255,.14);border-radius:16px;padding:10px 14px}
+.angka b{display:block;font-size:1.6rem;color:var(--kuning)}
+.alat{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--garis);padding:10px 0}
+.alat .wadah{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.alat button,.alat input{min-height:40px;border-radius:12px;border:1px solid var(--garis);background:var(--kartu);color:var(--teks);padding:0 12px;font:inherit;font-size:.9rem}
+.alat button[aria-pressed=true]{background:var(--merah);color:#fff;border-color:var(--merah)}.alat input{flex:1;min-width:160px}
+section.bab{padding:28px 0}section.bab>h2{font-size:1.7rem;margin-bottom:6px}.pengantar{color:var(--redup);margin:0 0 14px}
+.alur{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;counter-reset:a}
+.alur li{list-style:none;background:var(--kartu);border:1px solid var(--garis);border-radius:18px;padding:12px;position:relative}
+.alur li::before{counter-increment:a;content:counter(a);position:absolute;top:-10px;left:-6px;background:var(--kuning);color:#000;font-weight:800;border-radius:999px;width:26px;height:26px;display:grid;place-items:center;font-size:.8rem}
+.alur .ikon{font-size:1.8rem}.alur b{display:block}.alur small{color:var(--redup)}
+.arsi{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.arsi div{background:var(--kartu);border:1px solid var(--garis);border-left:6px solid var(--merah);border-radius:16px;padding:12px}
+.peta{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.peta div{background:var(--kartu);border:1px solid var(--garis);border-radius:18px;padding:12px}
+.peta a{display:inline-block;margin:3px 4px 0 0;padding:3px 9px;border-radius:999px;background:var(--bg);border:1px solid var(--garis);font-size:.82rem;text-decoration:none}
+.kisi{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.topik{background:var(--kartu);border:1px solid var(--garis);border-radius:20px;padding:14px}
+.topik header{display:flex;gap:10px;align-items:center}.topik .ikon{font-size:2rem}.menu{margin:2px 0 0;color:var(--redup);font-size:.85rem}
+.ringkas{margin:10px 0}details summary{cursor:pointer;font-weight:700;color:var(--merah)}
+ol.langkah{counter-reset:l;padding:0;margin:8px 0}ol.langkah li{list-style:none;counter-increment:l;padding-left:34px;position:relative;margin:6px 0}
+ol.langkah li::before{content:counter(l);position:absolute;left:0;top:0;width:24px;height:24px;border-radius:999px;background:var(--merah);color:#fff;display:grid;place-items:center;font-size:.8rem;font-weight:700}
+ul.catatan{padding-left:20px}ul.awas{list-style:none;padding:8px 10px;border:2px solid #d18a00;border-radius:12px}ul.awas li::before{content:"⚠️ "}
+.waktu{display:grid;gap:8px}.waktu div{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;background:var(--kartu);border:1px solid var(--garis);border-radius:14px;padding:8px 12px}
+.waktu b{font-size:1.3rem;color:var(--merah);text-align:center}
+.label-bagian{display:none;margin:0 0 6px;color:var(--redup);font-size:.85rem;font-weight:700}
+.sembunyi{display:none!important}footer{color:var(--redup);font-size:.85rem;padding:24px 0 48px}
+body.slide-mode .alat .cari{display:none}body.slide-mode .slide{display:none}body.slide-mode .slide.aktif{display:block}
+body.slide-mode main .slide{max-width:1000px;min-height:min(560px,75vh);margin:16px auto;padding:28px;border-radius:24px;background:var(--kartu);border:1px solid var(--garis);font-size:1.15rem}
+body.slide-mode details{pointer-events:none}body.slide-mode .label-bagian{display:block}
+body.slide-mode section.bab:not(.slide){padding:0}body.slide-mode section.bab:not(.slide)>.wadah>h2,body.slide-mode section.bab:not(.slide)>.wadah>.pengantar{display:none}
+body.slide-mode .kisi{display:block}body.slide-mode details summary{display:none}
+.nav-slide{display:none}body.slide-mode .nav-slide{display:flex;gap:8px;justify-content:center;align-items:center;padding:10px}
+@media print{.alat,.nav-slide{display:none!important}details>*{display:block}body{background:#fff;color:#000}.topik,.slide{break-inside:avoid}
+body.slide-mode .slide{display:block!important;break-after:page;min-height:auto;border:none}
+body.slide-mode .slide.sembunyi,body.slide-mode .sembunyi .slide{display:none!important}@page{size:A4 landscape;margin:12mm}}
+</style></head><body>
+<!-- Dibuat otomatis oleh "npm run panduan" dari src/lib/bantuan/isi.ts — jangan diubah langsung. -->
+<div class="slide sampul" id="sampul"><div class="wadah">
+<p>📘 Panduan lengkap</p><h1>Kasir D'Kriuk</h1>
+<p>Aplikasi kasir, stok, dan keuangan untuk Bukit Lama, Talang Kerangga (D'Kriuk), dan Kertapati (D'Krizzpy) — jualan, stok otomatis, kas & gaji, laporan Telegram, dasbor, dan analisis.</p>
+<div class="angka"><div><b>3</b>outlet</div><div><b>27</b>topik panduan</div><div><b>100%</b>pekerjaan kasir bisa offline</div><div><b>4</b>topik grup Telegram</div></div>
+</div></div>
+<nav class="alat" aria-label="Alat panduan"><div class="wadah">
+<button data-tab="semua" aria-pressed="true">Semua</button><button data-tab="kasir" aria-pressed="false">Kasir</button><button data-tab="admin" aria-pressed="false">Admin</button><button data-tab="pemilik" aria-pressed="false">Pemilik</button>
+<input id="cari" class="cari" type="search" placeholder="Cari: setoran, opname, printer…" aria-label="Cari">
+<button id="mode" aria-pressed="false">Mode slide</button><button id="tema" aria-pressed="false">Tema gelap</button><button id="cetak">Cetak / PDF</button>
+</div></nav>
+<div class="nav-slide"><button data-geser="-1">← Sebelumnya</button><span class="hitung" aria-live="polite"></span><button data-geser="1">Berikutnya →</button></div>
+<main>
+<section class="bab slide" id="alur"><div class="wadah"><h2>🔄 Alur harian</h2><p class="pengantar">Dari buka toko sampai laporan di HP pemilik.</p>
+<ol class="alur"><li><span class="ikon">🔓</span><b>Mulai jualan</b><small>Kasir memeriksa uang di laci lalu menekan Mulai jualan.</small></li><li><span class="ikon">🍗</span><b>Jualan</b><small>Pilih menu, cara bayar, struk tercetak. Tetap jalan tanpa internet.</small></li><li><span class="ikon">🗑️</span><b>Sisa & rusak</b><small>Catat yang terbuang beserta alasannya.</small></li><li><span class="ikon">💸</span><b>Kas</b><small>Pengeluaran kecil, kasbon karyawan, setoran ke pemilik.</small></li><li><span class="ikon">🔒</span><b>Tutup toko</b><small>Hitung uang laci, isi sisa, selisih langsung terlihat.</small></li><li><span class="ikon">📨</span><b>Telegram</b><small>Struk, tutup toko, peringatan, kas, ringkasan harian ke grup.</small></li><li><span class="ikon">📊</span><b>Dasbor & analisis</b><small>Pemilik memantau omzet, stok, untung per menu, belanja.</small></li></ol></div></section>
+<section class="bab slide" id="arsitektur"><div class="wadah"><h2>🧩 Cara kerja</h2><p class="pengantar">Bagian-bagian aplikasi dan bagaimana data mengalir.</p>
+<div class="arsi"><div><b>📱 HP/tablet kasir</b><p>Aplikasi terpasang di layar utama; data disimpan dulu di HP saat offline, lalu dikirim berurutan.</p></div><div><b>🗄️ Server Supabase</b><p>Database + aturan akses: kasir hanya outletnya, admin semua. Semua hitungan laporan di server.</p></div><div><b>🤖 Bot Telegram</b><p>Mengirim struk, tutup toko, peringatan & ringkasan harian ke grup bertopik ±1 menit.</p></div><div><b>💻 Admin & pemilik</b><p>Dasbor, analisis, belanja, gaji, laporan, Excel — dari HP atau laptop.</p></div></div></div></section>
+<section class="bab slide" id="peta"><div class="wadah"><h2>🗺️ Peta fitur</h2><p class="pengantar">Ketuk untuk lompat ke topiknya.</p><div class="peta"><div><h3>🏠 Mengenal aplikasi</h3><a href="#t-tentang">✨ Apa saja yang bisa dilakukan</a><a href="#t-peta-menu">🗺️ Peta menu</a><a href="#t-istilah">📖 Istilah penting</a></div><div><h3>🧑‍🍳 Panduan kasir</h3><a href="#t-masuk">📲 Masuk &amp; pasang di HP</a><a href="#t-buka-toko">🔓 Mulai jualan (buka toko)</a><a href="#t-jualan">🍗 Jualan &amp; struk</a><a href="#t-offline">📴 Internet putus (offline)</a><a href="#t-perlu-perhatian">⚠️ Perlu perhatian</a><a href="#t-batal">↩️ Batal transaksi</a><a href="#t-stok-kasir">📦 Stok: sisa, kiriman, opname</a><a href="#t-kas-kasir">💸 Kas: pengeluaran, kasbon, setoran</a><a href="#t-tutup-toko">🔒 Tutup toko</a></div><div><h3>👑 Panduan admin &amp; pemilik</h3><a href="#t-dasbor">📊 Dasbor</a><a href="#t-analisis">🔎 Analisis kebocoran</a><a href="#t-belanja">🛒 Rencana belanja</a><a href="#t-ojol">🛵 Laporan ojol</a><a href="#t-keuangan">💰 Laba-rugi, kas harian, setoran, pengeluaran</a><a href="#t-gaji">👥 Gaji &amp; kasbon</a><a href="#t-stok-admin">🏬 Stok &amp; barang masuk</a><a href="#t-master">🧾 Data master</a><a href="#t-akun">🔑 Akun &amp; perangkat</a><a href="#t-telegram">📨 Telegram</a><a href="#t-ekspor">📤 Excel &amp; cetak</a></div><div><h3>🗓️ Operasional pemilik</h3><a href="#t-persiapan">🚀 Persiapan data awal</a><a href="#t-rutinitas">🔁 Rutinitas</a><a href="#t-keamanan">🛡️ Keamanan &amp; cadangan data</a><a href="#t-faq">❓ Masalah umum</a></div></div></div></section>
+<section class="bab" data-peran="umum" id="b-umum"><div class="wadah"><h2>🏠 Mengenal aplikasi</h2><p class="pengantar">Kasir D'Kriuk adalah aplikasi kasir, stok, dan keuangan untuk 3 outlet: Bukit Lama, Talang Kerangga (D'Kriuk), dan Kertapati (D'Krizzpy).</p>
+<div class="kisi"><article class="slide topik" data-peran="umum" id="t-tentang" data-cari="apa saja yang bisa dilakukan jualan &amp; struk, stok otomatis dari resep, kas laci &amp; setoran, gaji &amp; kasbon, laba-rugi, dasbor yang bisa dirakit, analisis kebocoran, rencana belanja, laporan telegram, ekspor excel.  dibuka lewat peramban di hp/tablet/laptop: fialhafizh.github.io/kasir-dkriuk — bisa dipasang ke layar utama seperti aplikasi. ada dua peran: kasir (satu outlet, pekerjaan harian toko) dan admin/pemilik (semua outlet, laporan, pengaturan). pekerjaan kasir tetap jalan tanpa internet; data terkirim otomatis begitu online. data disimpan di server supabase; kode aplikasi publik tetapi data &amp; kunci rahasia tidak.">
+<p class="label-bagian">🏠 Mengenal aplikasi</p>
+<header><span class="ikon">✨</span><div><h3>Apa saja yang bisa dilakukan</h3></div></header>
+<p class="ringkas">Jualan &amp; struk, stok otomatis dari resep, kas laci &amp; setoran, gaji &amp; kasbon, laba-rugi, dasbor yang bisa dirakit, analisis kebocoran, rencana belanja, laporan Telegram, ekspor Excel.</p>
+<details open><summary>Rincian</summary><ul class="catatan"><li>Dibuka lewat peramban di HP/tablet/laptop: fialhafizh.github.io/kasir-dkriuk — bisa dipasang ke layar utama seperti aplikasi.</li><li>Ada dua peran: <b>kasir</b> (satu outlet, pekerjaan harian toko) dan <b>admin/pemilik</b> (semua outlet, laporan, pengaturan).</li><li>Pekerjaan kasir tetap jalan <b>tanpa internet</b>; data terkirim otomatis begitu online.</li><li>Data disimpan di server Supabase; kode aplikasi publik tetapi data &amp; kunci rahasia tidak.</li></ul></details>
+</article>
+<article class="slide topik" data-peran="umum" id="t-peta-menu" data-cari="peta menu kasir: jualan · riwayat · stok · kas · tutup toko · bantuan. admin: dasbor · kas · setoran · pengeluaran · penjualan · ojol · laba-rugi · analisis · gaji · biaya tetap · belanja · stok · bahan · menu · harga beli · akun · perangkat · telegram · bantuan. ">
+<p class="label-bagian">🏠 Mengenal aplikasi</p>
+<header><span class="ikon">🗺️</span><div><h3>Peta menu</h3></div></header>
+<p class="ringkas">Kasir: Jualan · Riwayat · Stok · Kas · Tutup toko · Bantuan. Admin: Dasbor · Kas · Setoran · Pengeluaran · Penjualan · Ojol · Laba-rugi · Analisis · Gaji · Biaya tetap · Belanja · Stok · Bahan · Menu · Harga Beli · Akun · Perangkat · Telegram · Bantuan.</p>
+
+</article>
+<article class="slide topik" data-peran="umum" id="t-istilah" data-cari="istilah penting kata-kata yang sering muncul di aplikasi.  uang laci: uang tunai di laci, menumpuk lintas hari sampai disetor ke pemilik. selisih: uang yang dihitung saat tutup toko dikurangi uang yang seharusnya ada. setoran: uang yang diambil dari laci untuk pemilik; pemilik menekan terima. kasbon: pinjaman karyawan; otomatis dipotong saat gajian. opname: menghitung stok fisik (mingguan); selisihnya disebut susut. pack: satuan beli (mis. 1 pack ayam ori = 3 dada, 2 paha atas, 2 paha bawah, 2 sayap). perkiraan: angka analisis (untung per menu, susut, proyeksi). laba riil ada di laba-rugi.">
+<p class="label-bagian">🏠 Mengenal aplikasi</p>
+<header><span class="ikon">📖</span><div><h3>Istilah penting</h3></div></header>
+<p class="ringkas">Kata-kata yang sering muncul di aplikasi.</p>
+<details open><summary>Rincian</summary><ul class="catatan"><li><b>Uang laci</b>: uang tunai di laci, menumpuk lintas hari sampai disetor ke pemilik.</li><li><b>Selisih</b>: uang yang dihitung saat tutup toko dikurangi uang yang seharusnya ada.</li><li><b>Setoran</b>: uang yang diambil dari laci untuk pemilik; pemilik menekan Terima.</li><li><b>Kasbon</b>: pinjaman karyawan; otomatis dipotong saat gajian.</li><li><b>Opname</b>: menghitung stok fisik (mingguan); selisihnya disebut <b>susut</b>.</li><li><b>Pack</b>: satuan beli (mis. 1 pack ayam Ori = 3 dada, 2 paha atas, 2 paha bawah, 2 sayap).</li><li><b>Perkiraan</b>: angka analisis (untung per menu, susut, proyeksi). Laba riil ada di Laba-rugi.</li></ul></details>
+</article></div></div></section>
+<section class="bab" data-peran="kasir" id="b-kasir"><div class="wadah"><h2>🧑‍🍳 Panduan kasir</h2><p class="pengantar">Pekerjaan harian di toko. Hampir semua langkah bisa dilakukan tanpa internet (kecuali mengabaikan data di Perlu perhatian).</p>
+<div class="kisi"><article class="slide topik" data-peran="kasir" id="t-masuk" data-cari="masuk &amp; pasang di hp masuk dengan nama pengguna &amp; password dari pemilik, lalu pasang ke layar utama. halaman masuk buka alamat aplikasi di chrome. isi nama pengguna &amp; password, tekan masuk. menu chrome ⋮ → tambahkan ke layar utama / instal aplikasi. selanjutnya buka dari ikon di layar utama, juga saat tidak ada internet. jangan menekan keluar selama masih ada data yang belum terkirim (aplikasi akan menolak). jangan memberi tahu password ke orang lain.">
+<p class="label-bagian">🧑‍🍳 Panduan kasir</p>
+<header><span class="ikon">📲</span><div><h3>Masuk &amp; pasang di HP</h3><p class="menu">📍 Halaman masuk</p></div></header>
+<p class="ringkas">Masuk dengan nama pengguna &amp; password dari pemilik, lalu pasang ke layar utama.</p>
+<details open><summary>Rincian</summary><ol class="langkah"><li>Buka alamat aplikasi di Chrome.</li><li>Isi nama pengguna &amp; password, tekan <b>Masuk</b>.</li><li>Menu Chrome ⋮ → <b>Tambahkan ke layar utama</b> / <b>Instal aplikasi</b>.</li><li>Selanjutnya buka dari ikon di layar utama, juga saat tidak ada internet.</li></ol><ul class="awas"><li>Jangan menekan <b>Keluar</b> selama masih ada data yang belum terkirim (aplikasi akan menolak).</li><li>Jangan memberi tahu password ke orang lain.</li></ul></details>
+</article>
+<article class="slide topik" data-peran="kasir" id="t-buka-toko" data-cari="mulai jualan (buka toko) sebelum jualan pertama hari itu, layar jualan menampilkan formulir mulai jualan. jualan buka menu jualan; formulir mulai jualan tampil sendiri. pertama kali di outlet ini: isi uang di laci sekarang (uang yang ada di laci). selanjutnya uang di laci tampil otomatis; periksa lalu tekan mulai jualan. toko kemarin harus ditutup dulu sebelum jualan hari ini.">
+<p class="label-bagian">🧑‍🍳 Panduan kasir</p>
+<header><span class="ikon">🔓</span><div><h3>Mulai jualan (buka toko)</h3><p class="menu">📍 Jualan</p></div></header>
+<p class="ringkas">Sebelum jualan pertama hari itu, layar Jualan menampilkan formulir <b>Mulai jualan</b>.</p>
+<details open><summary>Rincian</summary><ol class="langkah"><li>Buka menu <b>Jualan</b>; formulir <b>Mulai jualan</b> tampil sendiri.</li><li>Pertama kali di outlet ini: isi <b>Uang di laci sekarang</b> (uang yang ada di laci).</li><li>Selanjutnya uang di laci tampil otomatis; periksa lalu tekan <b>Mulai jualan</b>.</li></ol><ul class="catatan"><li>Toko kemarin harus ditutup dulu sebelum jualan hari ini.</li></ul></details>
+</article>
+<article class="slide topik" data-peran="kasir" id="t-jualan" data-cari="jualan &amp; struk pilih menu, jumlah, cara bayar; kembalian dihitung otomatis dan struk tercetak. jualan ketuk menu untuk menambah ke keranjang; jumlah bisa diketik (mis. 150 nasi box). pilih cara bayar: cash, qris, gofood, grabfood, atau shopeefood (ojol dicatat dengan harga toko). cash: isi uang diterima → kembalian tampil. tekan bayar. struk tercetak bila printer bluetooth tersambung (cadangan: aplikasi rawbt). setiap struk punya kode struk 6 huruf/angka untuk dicari. saat offline nomor struk sementara berawalan s (mis. s3-012); nomor resmi menyusul.">
+<p class="label-bagian">🧑‍🍳 Panduan kasir</p>
+<header><span class="ikon">🍗</span><div><h3>Jualan &amp; struk</h3><p class="menu">📍 Jualan</p></div></header>
+<p class="ringkas">Pilih menu, jumlah, cara bayar; kembalian dihitung otomatis dan struk tercetak.</p>
+<details open><summary>Rincian</summary><ol class="langkah"><li>Ketuk menu untuk menambah ke keranjang; jumlah bisa diketik (mis. 150 nasi box).</li><li>Pilih cara bayar: <b>Cash</b>, <b>QRIS</b>, <b>GoFood</b>, <b>GrabFood</b>, atau <b>ShopeeFood</b> (ojol dicatat dengan harga toko).</li><li>Cash: isi uang diterima → kembalian tampil.</li><li>Tekan <b>Bayar</b>. Struk tercetak bila printer Bluetooth tersambung (cadangan: aplikasi RawBT).</li></ol><ul class="catatan"><li>Setiap struk punya <b>kode struk</b> 6 huruf/angka untuk dicari.</li><li>Saat offline nomor struk sementara berawalan S (mis. S3-012); nomor resmi menyusul.</li></ul></details>
+</article>
+<article class="slide topik" data-peran="kasir" id="t-offline" data-cari="internet putus (offline) tetap jualan seperti biasa. data tersimpan di hp dan terkirim otomatis saat online. penanda di atas layar penanda offline dan n belum terkirim tampil di atas. tekan sinkron sekarang bila sudah online. angka stok di hp saat offline adalah perkiraan. bila server menolak suatu data, data itu masuk perlu perhatian. jangan hapus data peramban / jangan logout selama masih ada data belum terkirim.">
+<p class="label-bagian">🧑‍🍳 Panduan kasir</p>
+<header><span class="ikon">📴</span><div><h3>Internet putus (offline)</h3><p class="menu">📍 Penanda di atas layar</p></div></header>
+<p class="ringkas">Tetap jualan seperti biasa. Data tersimpan di HP dan terkirim otomatis saat online.</p>
+<details open><summary>Rincian</summary><ul class="catatan"><li>Penanda <b>Offline</b> dan <b>N belum terkirim</b> tampil di atas. Tekan <b>Sinkron sekarang</b> bila sudah online.</li><li>Angka stok di HP saat offline adalah <b>perkiraan</b>.</li><li>Bila server menolak suatu data, data itu masuk <b>Perlu perhatian</b>.</li></ul><ul class="awas"><li>Jangan hapus data peramban / jangan logout selama masih ada data belum terkirim.</li></ul></details>
+</article>
+<article class="slide topik" data-peran="kasir" id="t-perlu-perhatian" data-cari="perlu perhatian data yang ditolak server beserta alasannya. coba lagi atau abaikan dengan alasan. penanda &quot;perlu perhatian&quot; buka perlu perhatian. baca alasannya (mis. &quot;ada perbedaan jumlah&quot; saat terima kiriman). perbaiki lalu coba lagi, atau abaikan dengan alasan (dilaporkan ke pemilik).">
+<p class="label-bagian">🧑‍🍳 Panduan kasir</p>
+<header><span class="ikon">⚠️</span><div><h3>Perlu perhatian</h3><p class="menu">📍 Penanda "Perlu perhatian"</p></div></header>
+<p class="ringkas">Data yang ditolak server beserta alasannya. Coba lagi atau abaikan dengan alasan.</p>
+<details open><summary>Rincian</summary><ol class="langkah"><li>Buka <b>Perlu perhatian</b>.</li><li>Baca alasannya (mis. "Ada perbedaan jumlah" saat terima kiriman).</li><li>Perbaiki lalu <b>Coba lagi</b>, atau <b>Abaikan</b> dengan alasan (dilaporkan ke pemilik).</li></ol></details>
+</article>
+<article class="slide topik" data-peran="kasir" id="t-batal" data-cari="batal transaksi transaksi yang salah dibatalkan dari riwayat (transaksi shift ini); stok kembali otomatis. riwayat buka riwayat, cari transaksinya. tekan batalkan, isi alasan, lalu ya, batalkan. pembatalan dilaporkan ke grup telegram (⚠️ peringatan). setelah toko ditutup, pembatalan hanya oleh admin.">
+<p class="label-bagian">🧑‍🍳 Panduan kasir</p>
+<header><span class="ikon">↩️</span><div><h3>Batal transaksi</h3><p class="menu">📍 Riwayat</p></div></header>
+<p class="ringkas">Transaksi yang salah dibatalkan dari Riwayat (transaksi shift ini); stok kembali otomatis.</p>
+<details open><summary>Rincian</summary><ol class="langkah"><li>Buka <b>Riwayat</b>, cari transaksinya.</li><li>Tekan <b>Batalkan</b>, isi alasan, lalu <b>Ya, batalkan</b>.</li></ol><ul class="catatan"><li>Pembatalan dilaporkan ke grup Telegram (⚠️ Peringatan).</li><li>Setelah toko ditutup, pembatalan hanya oleh admin.</li></ul></details>
+</article>
+<article class="slide topik" data-peran="kasir" id="t-stok-kasir" data-cari="stok: sisa, kiriman, opname stok berkurang otomatis dari jualan. kasir mencatat sisa/rusak, kirim &amp; terima barang, opname, dan stok awal. stok rusak/sisa: pilih bahan, jumlah, alasan (sisa tidak laku, dimakan karyawan, gosong, basi, jatuh, lainnya). kirim ke outlet lain: pilih outlet &amp; jumlah. bisa diubah/dibatalkan selama belum diterima. terima kiriman: ketik jumlah yang benar-benar datang (tanpa melihat angka kiriman). beda jumlah → ditolak, hubungi pengirim. opname mingguan: hitung semua stok fisik, kirim; admin menyetujui. stok awal: dihitung sekali saat mulai memakai aplikasi; admin menyetujui. tanda menipis (kuning) &amp; minus (merah) ikut dilaporkan ke telegram.">
+<p class="label-bagian">🧑‍🍳 Panduan kasir</p>
+<header><span class="ikon">📦</span><div><h3>Stok: sisa, kiriman, opname</h3><p class="menu">📍 Stok</p></div></header>
+<p class="ringkas">Stok berkurang otomatis dari jualan. Kasir mencatat sisa/rusak, kirim &amp; terima barang, opname, dan stok awal.</p>
+<details open><summary>Rincian</summary><ol class="langkah"><li><b>Rusak/sisa</b>: pilih bahan, jumlah, alasan (sisa tidak laku, dimakan karyawan, gosong, basi, jatuh, lainnya).</li><li><b>Kirim ke outlet lain</b>: pilih outlet &amp; jumlah. Bisa diubah/dibatalkan selama belum diterima.</li><li><b>Terima kiriman</b>: ketik jumlah yang benar-benar datang (tanpa melihat angka kiriman). Beda jumlah → ditolak, hubungi pengirim.</li><li><b>Opname mingguan</b>: hitung semua stok fisik, kirim; admin menyetujui.</li><li><b>Stok awal</b>: dihitung sekali saat mulai memakai aplikasi; admin menyetujui.</li></ol><ul class="catatan"><li>Tanda <b>Menipis</b> (kuning) &amp; <b>Minus</b> (merah) ikut dilaporkan ke Telegram.</li></ul></details>
+</article>
+<article class="slide topik" data-peran="kasir" id="t-kas-kasir" data-cari="kas: pengeluaran, kasbon, setoran uang keluar dari laci dicatat di sini dan langsung mengurangi uang laci. kas pengeluaran: pilih kategori (gas, token listrik, air, lain-lain…), isi nominal &amp; keterangan bila diminta. kasbon karyawan: pilih nama karyawan &amp; nominal. otomatis dipotong saat gajian. setoran: isi uang yang diserahkan ke pemilik (sisakan uang kembalian di laci). pemilik menekan terima. bisa dicatat kapan saja, juga saat toko tutup dan tanpa internet.">
+<p class="label-bagian">🧑‍🍳 Panduan kasir</p>
+<header><span class="ikon">💸</span><div><h3>Kas: pengeluaran, kasbon, setoran</h3><p class="menu">📍 Kas</p></div></header>
+<p class="ringkas">Uang keluar dari laci dicatat di sini dan langsung mengurangi uang laci.</p>
+<details open><summary>Rincian</summary><ol class="langkah"><li><b>Pengeluaran</b>: pilih kategori (gas, token listrik, air, lain-lain…), isi nominal &amp; keterangan bila diminta.</li><li><b>Kasbon karyawan</b>: pilih nama karyawan &amp; nominal. Otomatis dipotong saat gajian.</li><li><b>Setoran</b>: isi uang yang diserahkan ke pemilik (sisakan uang kembalian di laci). Pemilik menekan Terima.</li></ol><ul class="catatan"><li>Bisa dicatat kapan saja, juga saat toko tutup dan tanpa internet.</li></ul></details>
+</article>
+<article class="slide topik" data-peran="kasir" id="t-tutup-toko" data-cari="tutup toko di akhir hari: isi sisa yang tidak terjual, hitung uang laci, lihat selisih. tutup toko buka tutup toko. jawab &quot;ada sisa yang tidak terjual?&quot; (nasi diisi porsi). hitung uang di laci, ketik jumlahnya. periksa ringkasan (penjualan per kanal, uang seharusnya, selisih), tekan tutup toko. ringkasan tutup toko &amp; selisih otomatis terkirim ke telegram.">
+<p class="label-bagian">🧑‍🍳 Panduan kasir</p>
+<header><span class="ikon">🔒</span><div><h3>Tutup toko</h3><p class="menu">📍 Tutup toko</p></div></header>
+<p class="ringkas">Di akhir hari: isi sisa yang tidak terjual, hitung uang laci, lihat selisih.</p>
+<details open><summary>Rincian</summary><ol class="langkah"><li>Buka <b>Tutup toko</b>.</li><li>Jawab "Ada sisa yang tidak terjual?" (nasi diisi porsi).</li><li>Hitung uang di laci, ketik jumlahnya.</li><li>Periksa ringkasan (penjualan per kanal, uang seharusnya, selisih), tekan <b>Tutup toko</b>.</li></ol><ul class="catatan"><li>Ringkasan tutup toko &amp; selisih otomatis terkirim ke Telegram.</li></ul></details>
+</article></div></div></section>
+<section class="bab" data-peran="admin" id="b-admin"><div class="wadah"><h2>👑 Panduan admin &amp; pemilik</h2><p class="pengantar">Semua menu admin butuh internet. Pilih outlet &amp; periode di atas halaman bila tersedia.</p>
+<div class="kisi"><article class="slide topik" data-peran="admin" id="t-dasbor" data-cari="dasbor angka &amp; grafik yang bisa dirakit sendiri seperti kibana. diperbarui ±1 menit. admin → dasbor pilih dasbor (mis. ringkasan), outlet, dan periode (hari ini, 7 hari, bulan ini, pilih tanggal…). ubah dasbor → seret panel lewat ⠿, tarik sudut untuk ukuran (di hp: ↑ ↓, lebar, tinggi) → simpan. + tambah panel: pilih tampilan (angka, batang, garis, lingkaran, tabel, peta panas) → sumber data → ukuran → dikelompokkan per → saringan → pratinjau → pakai panel ini. panel khusus: status stok, siklus stok (berapa lama sekali habis, perkiraan habis), riwayat kejadian, uang di laci. kelola dasbor: buat baru/salin, ganti nama, jadikan utama, hapus, kembalikan bawaan. tombol tabel di panel menampilkan angkanya; tombol excel mengunduh datanya.">
+<p class="label-bagian">👑 Panduan admin &amp; pemilik</p>
+<header><span class="ikon">📊</span><div><h3>Dasbor</h3><p class="menu">📍 Admin → Dasbor</p></div></header>
+<p class="ringkas">Angka &amp; grafik yang bisa dirakit sendiri seperti Kibana. Diperbarui ±1 menit.</p>
+<details open><summary>Rincian</summary><ol class="langkah"><li>Pilih dasbor (mis. <b>Ringkasan</b>), outlet, dan periode (hari ini, 7 hari, bulan ini, pilih tanggal…).</li><li><b>Ubah dasbor</b> → seret panel lewat ⠿, tarik sudut untuk ukuran (di HP: ↑ ↓, lebar, tinggi) → <b>Simpan</b>.</li><li><b>+ Tambah panel</b>: pilih tampilan (angka, batang, garis, lingkaran, tabel, peta panas) → sumber data → ukuran → dikelompokkan per → saringan → pratinjau → <b>Pakai panel ini</b>.</li><li>Panel khusus: status stok, siklus stok (berapa lama sekali habis, perkiraan habis), riwayat kejadian, uang di laci.</li><li><b>Kelola dasbor</b>: buat baru/salin, ganti nama, jadikan utama, hapus, kembalikan bawaan.</li></ol><ul class="catatan"><li>Tombol <b>Tabel</b> di panel menampilkan angkanya; tombol <b>Excel</b> mengunduh datanya.</li></ul></details>
+</article>
+<article class="slide topik" data-peran="admin" id="t-analisis" data-cari="analisis kebocoran perkiraan untuk mencari kebocoran: untung per menu, susut &amp; terbuang, minyak &amp; tepung, proyeksi akhir bulan. admin → analisis modal bahan = rata-rata harga barang masuk di periode itu (bila tidak ada: harga beli). pack ayam dibagi ke tiap potongan sebanding harga jual. menu di bawah batas untung (awal 30%) ditandai untung tipis. laba riil tetap di laba-rugi.">
+<p class="label-bagian">👑 Panduan admin &amp; pemilik</p>
+<header><span class="ikon">🔎</span><div><h3>Analisis kebocoran</h3><p class="menu">📍 Admin → Analisis</p></div></header>
+<p class="ringkas">Perkiraan untuk mencari kebocoran: untung per menu, susut &amp; terbuang, minyak &amp; tepung, proyeksi akhir bulan.</p>
+<details open><summary>Rincian</summary><ul class="catatan"><li>Modal bahan = rata-rata harga barang masuk di periode itu (bila tidak ada: Harga Beli).</li><li>Pack ayam dibagi ke tiap potongan sebanding harga jual.</li><li>Menu di bawah batas untung (awal 30%) ditandai <b>Untung tipis</b>.</li><li>Laba riil tetap di <b>Laba-rugi</b>.</li></ul></details>
+</article>
+<article class="slide topik" data-peran="admin" id="t-belanja" data-cari="rencana belanja saran beli tiap outlet untuk n hari dari tren 7 hari terakhir dikurangi stok; siap dibagikan. admin → belanja isi jumlah hari (awal 7), periksa saran tiap outlet. ubah angka bila hitungan kasir berbeda (kosongkan untuk kembali ke saran). salin untuk wa lalu tempel di grup pemesanan, atau kirim ke telegram agar bisa disalin dari hp. excel / cetak untuk arsip. tepung, minyak &amp; plastik merah dihitung dari rata-rata pembelian 4 minggu.">
+<p class="label-bagian">👑 Panduan admin &amp; pemilik</p>
+<header><span class="ikon">🛒</span><div><h3>Rencana belanja</h3><p class="menu">📍 Admin → Belanja</p></div></header>
+<p class="ringkas">Saran beli tiap outlet untuk N hari dari tren 7 hari terakhir dikurangi stok; siap dibagikan.</p>
+<details open><summary>Rincian</summary><ol class="langkah"><li>Isi jumlah hari (awal 7), periksa saran tiap outlet.</li><li>Ubah angka bila hitungan kasir berbeda (kosongkan untuk kembali ke saran).</li><li><b>Salin untuk WA</b> lalu tempel di grup pemesanan, atau <b>Kirim ke Telegram</b> agar bisa disalin dari HP.</li><li><b>Excel</b> / <b>Cetak</b> untuk arsip.</li></ol><ul class="catatan"><li>Tepung, minyak &amp; plastik merah dihitung dari rata-rata pembelian 4 minggu.</li></ul></details>
+</article>
+<article class="slide topik" data-peran="admin" id="t-ojol" data-cari="laporan ojol jumlah pesanan &amp; total harga toko per aplikasi untuk dicocokkan dengan pencairan. admin → ojol">
+<p class="label-bagian">👑 Panduan admin &amp; pemilik</p>
+<header><span class="ikon">🛵</span><div><h3>Laporan ojol</h3><p class="menu">📍 Admin → Ojol</p></div></header>
+<p class="ringkas">Jumlah pesanan &amp; total harga toko per aplikasi untuk dicocokkan dengan pencairan.</p>
+
+</article>
+<article class="slide topik" data-peran="admin" id="t-keuangan" data-cari="laba-rugi, kas harian, setoran, pengeluaran laba riil = omzet − belanja bahan − gaji − sewa − pengeluaran lain. admin → laba-rugi / kas / setoran / pengeluaran / penjualan setoran: tekan terima saat uang sampai; bila jumlahnya beda, isi jumlah sebenarnya + catatan. pengeluaran: catat pengeluaran laci/luar laci, belanja bahan di luar barang masuk; batalkan yang salah. penjualan: cari transaksi per tanggal, batalkan yang dobel (termasuk shift yang sudah ditutup). kas harian: uang laci awal → akhir, selisih per hari.">
+<p class="label-bagian">👑 Panduan admin &amp; pemilik</p>
+<header><span class="ikon">💰</span><div><h3>Laba-rugi, kas harian, setoran, pengeluaran</h3><p class="menu">📍 Admin → Laba-rugi / Kas / Setoran / Pengeluaran / Penjualan</p></div></header>
+<p class="ringkas">Laba riil = omzet − belanja bahan − gaji − sewa − pengeluaran lain.</p>
+<details open><summary>Rincian</summary><ol class="langkah"><li><b>Setoran</b>: tekan <b>Terima</b> saat uang sampai; bila jumlahnya beda, isi jumlah sebenarnya + catatan.</li><li><b>Pengeluaran</b>: catat pengeluaran laci/luar laci, belanja bahan di luar Barang masuk; batalkan yang salah.</li><li><b>Penjualan</b>: cari transaksi per tanggal, batalkan yang dobel (termasuk shift yang sudah ditutup).</li><li><b>Kas harian</b>: uang laci awal → akhir, selisih per hari.</li></ol></details>
+</article>
+<article class="slide topik" data-peran="admin" id="t-gaji" data-cari="gaji &amp; kasbon gaji = hari masuk × upah harian + penyesuaian − kasbon. admin → gaji tambah karyawan per outlet (nama, upah harian). centang kehadiran per hari. kasbon dari kasir (menu kas) atau admin masuk otomatis; lihat rincian kasbon. gajian: potongan terisi seluruh sisa kasbon (boleh diubah/dicicil), pilih dari laci/owner, bayar gaji → ya, sudah dibayar. bulan itu terkunci. ringkasan gaji: salin ke wa / kirim telegram / excel.">
+<p class="label-bagian">👑 Panduan admin &amp; pemilik</p>
+<header><span class="ikon">👥</span><div><h3>Gaji &amp; kasbon</h3><p class="menu">📍 Admin → Gaji</p></div></header>
+<p class="ringkas">Gaji = hari masuk × upah harian + penyesuaian − kasbon.</p>
+<details open><summary>Rincian</summary><ol class="langkah"><li>Tambah karyawan per outlet (nama, upah harian).</li><li>Centang <b>kehadiran</b> per hari.</li><li>Kasbon dari kasir (menu Kas) atau admin masuk otomatis; lihat <b>Rincian kasbon</b>.</li><li><b>Gajian</b>: potongan terisi seluruh sisa kasbon (boleh diubah/dicicil), pilih dari laci/owner, <b>Bayar gaji</b> → <b>Ya, sudah dibayar</b>. Bulan itu terkunci.</li><li><b>Ringkasan gaji</b>: salin ke WA / kirim Telegram / Excel.</li></ol></details>
+</article>
+<article class="slide topik" data-peran="admin" id="t-stok-admin" data-cari="stok &amp; barang masuk catat barang masuk (otomatis jadi belanja bahan), setujui stok awal &amp; opname, pantau transfer. admin → stok barang yang datang sebelum stok dihitung jangan dicatat lagi. selama opname menunggu persetujuan, barang masuk/rusak dari sebelum jam hitung tertahan.">
+<p class="label-bagian">👑 Panduan admin &amp; pemilik</p>
+<header><span class="ikon">🏬</span><div><h3>Stok &amp; barang masuk</h3><p class="menu">📍 Admin → Stok</p></div></header>
+<p class="ringkas">Catat barang masuk (otomatis jadi belanja bahan), setujui stok awal &amp; opname, pantau transfer.</p>
+<details open><summary>Rincian</summary><ul class="catatan"><li>Barang yang datang sebelum stok dihitung jangan dicatat lagi.</li><li>Selama opname menunggu persetujuan, barang masuk/rusak dari sebelum jam hitung tertahan.</li></ul></details>
+</article>
+<article class="slide topik" data-peran="admin" id="t-master" data-cari="data master bahan &amp; isi pack, ambang menipis, menu &amp; resep, harga jual per outlet, harga beli acuan, sewa per tahun. admin → bahan / menu / harga beli / biaya tetap">
+<p class="label-bagian">👑 Panduan admin &amp; pemilik</p>
+<header><span class="ikon">🧾</span><div><h3>Data master</h3><p class="menu">📍 Admin → Bahan / Menu / Harga Beli / Biaya tetap</p></div></header>
+<p class="ringkas">Bahan &amp; isi pack, ambang menipis, menu &amp; resep, harga jual per outlet, harga beli acuan, sewa per tahun.</p>
+
+</article>
+<article class="slide topik" data-peran="admin" id="t-akun" data-cari="akun &amp; perangkat buat akun kasir per outlet, reset password, nonaktifkan. pantau hp kasir yang lama tidak sinkron. admin → akun / perangkat">
+<p class="label-bagian">👑 Panduan admin &amp; pemilik</p>
+<header><span class="ikon">🔑</span><div><h3>Akun &amp; perangkat</h3><p class="menu">📍 Admin → Akun / Perangkat</p></div></header>
+<p class="ringkas">Buat akun kasir per outlet, reset password, nonaktifkan. Pantau HP kasir yang lama tidak sinkron.</p>
+
+</article>
+<article class="slide topik" data-peran="admin" id="t-telegram" data-cari="telegram grup bertopik: 🧾 struk · 🏪 tutup toko &amp; harian · ⚠️ peringatan · 💰 kas. admin → telegram hubungkan grup (sekali). kirim pesan uji untuk memeriksa. atur jam ringkasan harian (awal 22.00), batas pengeluaran yang dilaporkan, nyalakan/matikan jenis pesan. pesan gagal tampil di halaman ini dan bisa dikirim ulang.">
+<p class="label-bagian">👑 Panduan admin &amp; pemilik</p>
+<header><span class="ikon">📨</span><div><h3>Telegram</h3><p class="menu">📍 Admin → Telegram</p></div></header>
+<p class="ringkas">Grup bertopik: 🧾 Struk · 🏪 Tutup toko &amp; harian · ⚠️ Peringatan · 💰 Kas.</p>
+<details open><summary>Rincian</summary><ol class="langkah"><li><b>Hubungkan grup</b> (sekali).</li><li><b>Kirim pesan uji</b> untuk memeriksa.</li><li>Atur jam ringkasan harian (awal 22.00), batas pengeluaran yang dilaporkan, nyalakan/matikan jenis pesan.</li></ol><ul class="catatan"><li>Pesan gagal tampil di halaman ini dan bisa dikirim ulang.</li></ul></details>
+</article>
+<article class="slide topik" data-peran="admin" id="t-ekspor" data-cari="excel &amp; cetak tombol excel di panel dasbor, analisis, belanja, gaji, ojol, laba-rugi, kas, setoran, pengeluaran, penjualan. cetak untuk simpan pdf. ">
+<p class="label-bagian">👑 Panduan admin &amp; pemilik</p>
+<header><span class="ikon">📤</span><div><h3>Excel &amp; cetak</h3></div></header>
+<p class="ringkas">Tombol <b>Excel</b> di panel dasbor, Analisis, Belanja, Gaji, Ojol, Laba-rugi, Kas, Setoran, Pengeluaran, Penjualan. <b>Cetak</b> untuk simpan PDF.</p>
+
+</article></div></div></section>
+<section class="bab" data-peran="pemilik" id="b-pemilik"><div class="wadah"><h2>🗓️ Operasional pemilik</h2><p class="pengantar">Persiapan sebelum dipakai dan kebiasaan rutin agar angka selalu benar.</p>
+<div class="kisi"><article class="slide topik" data-peran="pemilik" id="t-persiapan" data-cari="persiapan data awal sekali di awal, sebelum outlet memakai aplikasi.  isi harga beli acuan tiap outlet. periksa harga jual &amp; resep menu. buat akun kasir tiap outlet. kasir mengisi stok awal; admin menyetujui. kasir mengisi uang di laci sekarang saat mulai jualan pertama kali. isi karyawan (upah harian) dan sewa (biaya tetap). hubungkan telegram &amp; kirim pesan uji.">
+<p class="label-bagian">🗓️ Operasional pemilik</p>
+<header><span class="ikon">🚀</span><div><h3>Persiapan data awal</h3></div></header>
+<p class="ringkas">Sekali di awal, sebelum outlet memakai aplikasi.</p>
+<details open><summary>Rincian</summary><ol class="langkah"><li>Isi <b>Harga Beli</b> acuan tiap outlet.</li><li>Periksa <b>harga jual</b> &amp; <b>resep</b> menu.</li><li>Buat akun kasir tiap outlet.</li><li>Kasir mengisi <b>stok awal</b>; admin menyetujui.</li><li>Kasir mengisi <b>Uang di laci sekarang</b> saat <b>Mulai jualan</b> pertama kali.</li><li>Isi <b>karyawan</b> (upah harian) dan <b>sewa</b> (Biaya tetap).</li><li>Hubungkan <b>Telegram</b> &amp; kirim pesan uji.</li></ol></details>
+</article>
+<article class="slide topik" data-peran="pemilik" id="t-rutinitas" data-cari="rutinitas harian, mingguan, bulanan.  harian: lihat ringkasan harian di telegram (22.00), terima setoran yang masuk, cek peringatan. mingguan: opname, setujui hasilnya; buka belanja untuk pesanan ke stokis. bulanan: centang kehadiran, gajian, lihat laba-rugi &amp; analisis, unduh excel untuk arsip.">
+<p class="label-bagian">🗓️ Operasional pemilik</p>
+<header><span class="ikon">🔁</span><div><h3>Rutinitas</h3></div></header>
+<p class="ringkas">Harian, mingguan, bulanan.</p>
+<details open><summary>Rincian</summary><ul class="catatan"><li><b>Harian</b>: lihat ringkasan harian di Telegram (22.00), terima setoran yang masuk, cek peringatan.</li><li><b>Mingguan</b>: opname, setujui hasilnya; buka Belanja untuk pesanan ke stokis.</li><li><b>Bulanan</b>: centang kehadiran, gajian, lihat Laba-rugi &amp; Analisis, unduh Excel untuk arsip.</li></ul></details>
+</article>
+<article class="slide topik" data-peran="pemilik" id="t-keamanan" data-cari="keamanan &amp; cadangan data kasir hanya melihat outletnya sendiri; harga beli, gaji, dan laporan hanya admin.  ganti/reset password kasir bila hp hilang (admin → akun). cadangan data server dibuat dengan perintah oleh pembuat aplikasi (minta secara berkala, mis. tiap minggu); hasilnya berisi data bisnis, simpan di tempat aman. bila data perlu dipulihkan dari cadangan, hubungi pembuat aplikasi — pemulihan dilakukan di server, bukan dari hp. token bot &amp; kunci server tidak pernah ada di aplikasi yang terpasang.">
+<p class="label-bagian">🗓️ Operasional pemilik</p>
+<header><span class="ikon">🛡️</span><div><h3>Keamanan &amp; cadangan data</h3></div></header>
+<p class="ringkas">Kasir hanya melihat outletnya sendiri; harga beli, gaji, dan laporan hanya admin.</p>
+<details open><summary>Rincian</summary><ul class="catatan"><li>Ganti/reset password kasir bila HP hilang (Admin → Akun).</li><li>Cadangan data server dibuat dengan perintah oleh pembuat aplikasi (minta secara berkala, mis. tiap minggu); hasilnya berisi data bisnis, simpan di tempat aman.</li><li>Bila data perlu dipulihkan dari cadangan, hubungi pembuat aplikasi — pemulihan dilakukan di server, bukan dari HP.</li><li>Token bot &amp; kunci server tidak pernah ada di aplikasi yang terpasang.</li></ul></details>
+</article>
+<article class="slide topik" data-peran="pemilik" id="t-faq" data-cari="masalah umum jawaban cepat untuk hal yang sering terjadi.  struk tidak tercetak → nyalakan bluetooth &amp; printer, sambungkan ulang; atau pakai rawbt. angka di dasbor belum berubah → tunggu ±1 menit atau tekan muat ulang; hp kasir mungkin belum sinkron. selisih kas → cek pengeluaran/kasbon/setoran yang lupa dicatat, transaksi yang belum terkirim, atau batal. &quot;ada perbedaan jumlah&quot; saat terima kiriman → hitung ulang, hubungi outlet pengirim. menu dasbor/belanja tidak muncul di hp → tutup lalu buka lagi aplikasinya.">
+<p class="label-bagian">🗓️ Operasional pemilik</p>
+<header><span class="ikon">❓</span><div><h3>Masalah umum</h3></div></header>
+<p class="ringkas">Jawaban cepat untuk hal yang sering terjadi.</p>
+<details open><summary>Rincian</summary><ul class="catatan"><li><b>Struk tidak tercetak</b> → nyalakan Bluetooth &amp; printer, sambungkan ulang; atau pakai RawBT.</li><li><b>Angka di dasbor belum berubah</b> → tunggu ±1 menit atau tekan Muat ulang; HP kasir mungkin belum sinkron.</li><li><b>Selisih kas</b> → cek pengeluaran/kasbon/setoran yang lupa dicatat, transaksi yang belum terkirim, atau batal.</li><li><b>"Ada perbedaan jumlah" saat terima kiriman</b> → hitung ulang, hubungi outlet pengirim.</li><li><b>Menu Dasbor/Belanja tidak muncul di HP</b> → tutup lalu buka lagi aplikasinya.</li></ul></details>
+</article></div></div></section>
+<section class="bab slide" id="tahap"><div class="wadah"><h2>🏗️ Tahapan pembangunan</h2><p class="pengantar">Aplikasi dibangun bertahap; setiap tahap diuji sebelum dipakai.</p>
+<div class="waktu"><div><b>0</b><span><strong>Fondasi</strong> — Login, tema, database & aturan akses</span></div><div><b>1</b><span><strong>Data master</strong> — Outlet, akun, bahan & isi pack, harga, menu & resep</span></div><div><b>2</b><span><strong>Kasir</strong> — Jualan, 5 cara bayar, struk printer, buka & tutup toko</span></div><div><b>3</b><span><strong>Stok</strong> — Potong otomatis, barang masuk, sisa, transfer, opname</span></div><div><b>4</b><span><strong>Offline</strong> — Semua pekerjaan kasir tanpa internet, PWA</span></div><div><b>5</b><span><strong>Keuangan</strong> — Kas laci, setoran, pengeluaran, gaji & kasbon, laba-rugi</span></div><div><b>6</b><span><strong>Telegram</strong> — Struk, tutup toko, peringatan, kas, ringkasan harian</span></div><div><b>7</b><span><strong>Dasbor & analisis</strong> — Dasbor rakitan, kebocoran, belanja, ojol, Excel</span></div><div><b>8</b><span><strong>Rilis</strong> — Panduan, bantuan di aplikasi, uji menyeluruh</span></div></div></div></section>
+</main>
+<div class="nav-slide"><button data-geser="-1">← Sebelumnya</button><span class="hitung" aria-live="polite"></span><button data-geser="1">Berikutnya →</button></div>
+<footer><div class="wadah">Buka aplikasi: fialhafizh.github.io/kasir-dkriuk · Bantuan yang sama ada di menu <b>Bantuan</b> aplikasi. Mode slide + Cetak = satu slide per halaman (simpan PDF, lalu bisa diubah ke PPT).</div></footer>
+<script>
+const $=(s,e=document)=>[...e.querySelectorAll(s)];
+let peran='semua',slide=0;
+function saring(){const q=document.getElementById('cari').value.toLowerCase().trim();
+ $('main .topik').forEach(t=>{const ok=(peran==='semua'||t.dataset.peran===peran||t.dataset.peran==='umum')&&(!q||t.dataset.cari.includes(q));t.classList.toggle('sembunyi',!ok)});
+ $('main section.bab[data-peran]').forEach(s=>s.classList.toggle('sembunyi',!$('.topik',s).some(t=>!t.classList.contains('sembunyi'))));}
+$('[data-tab]').forEach(b=>b.onclick=()=>{peran=b.dataset.tab;$('[data-tab]').forEach(x=>x.setAttribute('aria-pressed',x===b));saring();if(document.body.classList.contains('slide-mode'))tampil(0)});
+document.getElementById('cari').oninput=saring;
+const terlihat=()=>$('.slide').filter(s=>!s.classList.contains('sembunyi')&&!s.closest('.sembunyi'));
+function tampil(i){const d=terlihat();slide=Math.max(0,Math.min(i,d.length-1));$('.slide').forEach(s=>s.classList.remove('aktif'));if(d[slide])d[slide].classList.add('aktif');
+ $('.hitung').forEach(h=>h.textContent=(d.length?slide+1:0)+' / '+d.length);scrollTo(0,0)}
+document.getElementById('mode').onclick=e=>{const on=document.body.classList.toggle('slide-mode');e.target.setAttribute('aria-pressed',on);if(on)tampil(0)};
+$('[data-geser]').forEach(b=>b.onclick=()=>tampil(slide+Number(b.dataset.geser)));
+addEventListener('keydown',e=>{if(!document.body.classList.contains('slide-mode'))return;if(e.key==='ArrowRight'||e.key==='PageDown')tampil(slide+1);if(e.key==='ArrowLeft'||e.key==='PageUp')tampil(slide-1)});
+const tema=document.getElementById('tema');
+function pasangTema(t){if(t)document.documentElement.dataset.tema=t;tema.setAttribute('aria-pressed',document.documentElement.dataset.tema==='gelap')}
+try{pasangTema(localStorage.getItem('panduan-tema'))}catch(e){}
+tema.onclick=()=>{const r=document.documentElement;const gelap=r.dataset.tema?r.dataset.tema==='gelap':matchMedia('(prefers-color-scheme: dark)').matches;pasangTema(gelap?'terang':'gelap');try{localStorage.setItem('panduan-tema',r.dataset.tema)}catch(e){}};
+addEventListener('beforeprint',()=>$('details').forEach(d=>d.open=true));
+document.getElementById('cetak').onclick=()=>print();
+</script></body></html>

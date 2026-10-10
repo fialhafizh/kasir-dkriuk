@@ -33,7 +33,10 @@ self.addEventListener('fetch', (e) => {
 		const jaringan = fetch(req);
 		const batas = new Promise<Response>((_, tolak) => setTimeout(() => tolak(new Error('lama')), 4000));
 		e.respondWith(
-			Promise.race([jaringan, batas]).catch(async () => (await caches.match(BASE + 'index.html')) ?? jaringan.catch(() => Response.error()))
+			Promise.race([jaringan, batas]).catch(
+				// halaman statis lain (mis. panduan.html) dari salinannya sendiri; selain itu index.html (hash router)
+				async () => (await caches.match(req)) ?? (await caches.match(BASE + 'index.html')) ?? jaringan.catch(() => Response.error())
+			)
 		);
 		return;
 	}

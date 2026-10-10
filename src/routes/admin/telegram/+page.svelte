@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Petunjuk from '#lib/components/bantuan/Petunjuk.svelte';
 	import { onMount } from 'svelte';
 	import { formatWaktuWib } from '#lib/kasir/waktu.ts';
 	import { formatAngka, parseRupiah } from '#lib/master/rupiah.ts';
@@ -110,7 +111,7 @@
 
 <svelte:head><title>Telegram · Admin D'Kriuk</title></svelte:head>
 
-<h1 class="font-display text-3xl">Telegram</h1>
+<div class="flex items-center gap-2"><h1 class="font-display text-3xl">Telegram</h1><Petunjuk topik="telegram" peran="admin" /></div>
 <p class="mt-1 max-w-prose text-sm text-muted">
 	Laporan otomatis ke grup Telegram: struk, tutup toko & ringkasan harian, peringatan, dan kas, masing-masing di topiknya. Pesan dikirim
 	sekitar tiap menit; bila internet atau Telegram gangguan, pesan dicoba lagi otomatis.

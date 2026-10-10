@@ -18,7 +18,13 @@ let outletId = '';
 let dasborId = '';
 const users: string[] = [];
 const SEMUA_JENIS = ['struk', 'tutup', 'harian', 'batal', 'selisih_kas', 'selisih_setoran', 'stok', 'opname', 'diabaikan', 'ditolak', 'setoran', 'kasbon', 'pengeluaran'];
-const matiAwal = ((await svc.from('telegram_pengaturan').select('jenis_mati').eq('id', true).single()).data?.jenis_mati ?? []) as string[];
+// Notifikasi dimatikan sementara untuk SEMUA outlet selama uji: jalankan saat semua outlet sudah tutup.
+const bacaMati = await svc.from('telegram_pengaturan').select('jenis_mati').eq('id', true).single();
+if (bacaMati.error) {
+	console.error(`Pengaturan Telegram tidak terbaca (${bacaMati.error.message}); uji dibatalkan agar pengaturan owner tidak tertimpa.`);
+	process.exit(1);
+}
+const matiAwal = (bacaMati.data?.jenis_mati ?? []) as string[];
 
 async function akun(nama: string, role: 'kasir' | 'admin'): Promise<SupabaseClient> {
 	const pw = randomBytes(12).toString('base64url');

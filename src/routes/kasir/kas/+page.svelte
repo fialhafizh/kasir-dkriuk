@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Petunjuk from '#lib/components/bantuan/Petunjuk.svelte';
 	import Button from '#lib/components/ui/Button.svelte';
 	import Konfirmasi from '#lib/components/ui/Konfirmasi.svelte';
 	import { galatJaringan } from '#lib/auth/cache-profil.ts';
@@ -201,7 +202,7 @@
 
 <svelte:head><title>Kas · Kasir D'Kriuk</title></svelte:head>
 
-<h1 class="font-display text-3xl">Kas {pos.outlet?.nama}</h1>
+<div class="flex items-center gap-2"><h1 class="font-display text-3xl">Kas {pos.outlet?.nama}</h1><Petunjuk topik="kas-kasir" peran="kasir" /></div>
 <p class="mt-1 text-sm text-muted">Pengeluaran kecil dari laci, kasbon karyawan, dan setoran ke owner. Bisa dicatat kapan saja, juga tanpa internet.</p>
 {#if pesanMuat}<p class="mt-2 text-sm text-danger" role="alert">{pesanMuat}</p>{/if}
 

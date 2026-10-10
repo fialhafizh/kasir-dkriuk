@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Petunjuk from '#lib/components/bantuan/Petunjuk.svelte';
 	import RingkasanShift from '#lib/components/kasir/RingkasanShift.svelte';
 	import LangkahSisa, { sudahDijawab } from '#lib/components/stok/LangkahSisa.svelte';
 	import Konfirmasi from '#lib/components/ui/Konfirmasi.svelte';
@@ -111,7 +112,7 @@
 
 <svelte:head><title>Tutup toko · Kasir D'Kriuk</title></svelte:head>
 
-<h1 class="font-display text-3xl">Tutup toko</h1>
+<div class="flex items-center gap-2"><h1 class="font-display text-3xl">Tutup toko</h1><Petunjuk topik="tutup-toko" peran="kasir" /></div>
 
 {#if hasil}
 	<p class="mt-2 font-semibold text-ok" role="status">

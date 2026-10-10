@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Petunjuk from '#lib/components/bantuan/Petunjuk.svelte';
 	import DaftarStok from '#lib/components/stok/DaftarStok.svelte';
 	import PitaSalinan from '#lib/components/stok/PitaSalinan.svelte';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
@@ -26,7 +27,7 @@
 
 <svelte:head><title>Stok · Kasir D'Kriuk</title></svelte:head>
 
-<h1 class="font-display text-2xl">Stok {pos.outlet?.nama}</h1>
+<div class="flex items-center gap-2"><h1 class="font-display text-2xl">Stok {pos.outlet?.nama}</h1><Petunjuk topik="stok-kasir" peran="kasir" /></div>
 
 {#if status === 'memuat'}
 	<p class="mt-4 text-muted" role="status">Memuat…</p>

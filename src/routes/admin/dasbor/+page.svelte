@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Petunjuk from '#lib/components/bantuan/Petunjuk.svelte';
 	import { onMount } from 'svelte';
 	import KelolaDasbor from '#lib/components/dasbor/KelolaDasbor.svelte';
 	import KisiDasbor from '#lib/components/dasbor/KisiDasbor.svelte';
@@ -111,7 +112,8 @@
 				>
 			{/each}
 		</div>
-		<div class="flex flex-wrap gap-2">
+		<div class="flex flex-wrap items-center gap-2">
+			<Petunjuk topik="dasbor" peran="admin" />
 			<button type="button" class="{tombol} bg-surface-2" onclick={() => (mode = mode === 'kelola' ? 'lihat' : 'kelola')} aria-pressed={mode === 'kelola'}>
 				Kelola dasbor
 			</button>
