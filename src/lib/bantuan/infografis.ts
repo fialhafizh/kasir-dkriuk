@@ -141,7 +141,7 @@ ${bab}
 <div class="waktu">${TAHAP.map(([n, j, k]) => `<div><b>${n}</b><span><strong>${j}</strong> — ${k}</span></div>`).join('')}</div></div></section>
 </main>
 <div class="nav-slide"><button data-geser="-1">← Sebelumnya</button><span class="hitung" aria-live="polite"></span><button data-geser="1">Berikutnya →</button></div>
-<footer><div class="wadah">Buka aplikasi: fialhafizh.github.io/kasir-dkriuk · <a href="daftar-uji.html">Daftar uji coba</a> · Bantuan yang sama ada di menu <b>Bantuan</b> aplikasi. Mode slide + Cetak = satu slide per halaman (simpan PDF, lalu bisa diubah ke PPT).</div></footer>
+<footer><div class="wadah">Buka aplikasi: fialhafizh.github.io/kasir-dkriuk · Bantuan yang sama ada di menu <b>Bantuan</b> aplikasi. Mode slide + Cetak = satu slide per halaman (simpan PDF, lalu bisa diubah ke PPT).</div></footer>
 <script>${JS}</script></body></html>
 `;
 }
