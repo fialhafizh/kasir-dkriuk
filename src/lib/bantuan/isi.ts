@@ -340,7 +340,8 @@ export const BAGIAN: Bagian[] = [
 					'Kasir mengisi **stok awal**; admin menyetujui.',
 					'Kasir mengisi **Uang di laci sekarang** saat **Mulai jualan** pertama kali.',
 					'Isi **karyawan** (upah harian) dan **sewa** (Biaya tetap).',
-					'Hubungkan **Telegram** & kirim pesan uji.'
+					'Hubungkan **Telegram** & kirim pesan uji.',
+					'Jalankan **daftar uji coba** (daftar-uji.html) di tiap outlet.'
 				]
 			},
 			{

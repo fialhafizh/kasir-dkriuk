@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Daftar Uji Coba Kasir D'Kriuk</title><meta name="description" content="Daftar uji coba lengkap aplikasi Kasir D'Kriuk per outlet: centang lulus/gagal, catatan, salin hasil.">
+<style>
+:root{--merah:#e3191f;--kuning:#ffd60a;--bg:#fffaf0;--kartu:#fff;--teks:#2a1a12;--redup:#6b5a4e;--garis:#ecdccb;--ok:#1a7a43;--gagal:#c6281f;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--merah:#ff4136;--kuning:#ffd23f;--bg:#1a1210;--kartu:#261c18;--teks:#f6eee6;--redup:#c2b2a3;--garis:#3d2d26;--ok:#4cc97e;--gagal:#ff6a5e;color-scheme:dark}}
+*{box-sizing:border-box}body{margin:0;font:16px/1.5 system-ui,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--teks)}
+.wadah{max-width:900px;margin:0 auto;padding:0 16px}
+header.sampul{background:linear-gradient(135deg,var(--merah),#8a0d12);color:#fff;padding:24px 0}
+header h1{margin:0;font-size:1.8rem}header p{margin:6px 0 0;opacity:.95}
+.alat{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--garis);padding:8px 0}
+.alat .wadah{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,select{min-height:42px;border-radius:12px;border:1px solid var(--garis);background:var(--kartu);color:var(--teks);padding:0 12px;font:inherit;font-size:.9rem}
+button.utama{background:var(--merah);color:#fff;border-color:var(--merah)}
+.progres{flex:1;min-width:150px;font-size:.85rem;color:var(--redup)}.bar{height:8px;background:var(--garis);border-radius:9px;overflow:hidden;margin-top:3px}.bar i{display:block;height:100%;background:var(--ok)}
+section{margin:22px 0}section h2{font-size:1.25rem;margin:0 0 4px}section>p{margin:0 0 10px;color:var(--redup);font-size:.9rem}
+.item{background:var(--kartu);border:1px solid var(--garis);border-radius:16px;padding:10px 12px;margin:8px 0}
+.item.lulus{border-left:6px solid var(--ok)}.item.gagal{border-left:6px solid var(--gagal)}
+.judul{font-weight:700}.harap{font-size:.9rem;color:var(--redup)}.harap b{color:var(--teks)}
+.status{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}.status button{min-height:36px;font-size:.85rem}
+.status button[aria-pressed=true].l{background:var(--ok);color:#fff;border-color:var(--ok)}.status button[aria-pressed=true].g{background:var(--gagal);color:#fff;border-color:var(--gagal)}
+textarea{width:100%;margin-top:6px;min-height:38px;border-radius:10px;border:1px solid var(--garis);background:var(--bg);color:var(--teks);padding:6px 8px;font:inherit;font-size:.9rem;display:none}
+.item.gagal textarea,.item textarea.ada{display:block}
+.hanya{font-size:.75rem;background:var(--kuning);color:#000;border-radius:999px;padding:1px 8px;margin-left:6px;font-weight:700}
+footer{color:var(--redup);font-size:.85rem;padding:20px 0 60px}
+@media print{.alat,.status,footer button{display:none}.item{break-inside:avoid}textarea{display:block;border:none}}
+</style></head><body>
+<header class="sampul"><div class="wadah"><h1>✅ Daftar uji coba</h1>
+<p>Coba satu per satu di tiap outlet. Tandai <b>Lulus</b> atau <b>Gagal</b> (tulis apa yang terjadi). Centangan tersimpan di HP/laptop ini. Selesai? Tekan <b>Salin hasil</b> lalu kirim ke chat.</p></div></header>
+<nav class="alat"><div class="wadah">
+<select id="outlet" aria-label="Outlet yang diuji"><option value="BL">Bukit Lama</option><option value="TK">Talang Kerangga</option><option value="KP">Kertapati</option><option value="ADMIN">Admin / pemilik</option></select>
+<div class="progres"><span id="angka"></span><div class="bar"><i id="isi"></i></div></div>
+<button class="utama" id="salin">Salin hasil</button><button id="cetak">Cetak</button><button id="ulang">Kosongkan</button>
+</div></nav>
+<main class="wadah" id="daftar"></main>
+<footer class="wadah">Panduan lengkap: <a href="panduan.html">panduan.html</a> · Aplikasi: <a href="./">fialhafizh.github.io/kasir-dkriuk</a></footer>
+<script>
+// [bagian, catatan, [[judul, harapan, khusus?]]]  khusus: 'admin' = hanya untuk pilihan Admin, 'kasir' = hanya outlet
+const UJI = [
+ ['1. Persiapan', 'Sekali di awal, sebelum jualan.', [
+  ['Admin mengisi Harga Beli outlet ini', 'Harga tersimpan, tampil di Admin → Harga Beli.', 'admin'],
+  ['Admin memeriksa harga jual & resep menu', 'Harga jual sesuai daftar harga outlet (Kertapati ayam & kulit −Rp1.000).', 'admin'],
+  ['Admin membuat akun kasir outlet', 'Kasir bisa masuk dengan nama pengguna & password sementara.', 'admin'],
+  ['Kasir masuk di HP & pasang ke layar utama', 'Ikon aplikasi muncul di layar utama; terbuka seperti aplikasi.', 'kasir'],
+  ['Kasir mengisi stok awal', 'Terkirim; admin menyetujui di Admin → Stok; angka stok muncul di menu Stok.', 'kasir'],
+  ['Admin isi karyawan (upah harian) & sewa (Biaya tetap)', 'Tersimpan di Admin → Gaji dan Biaya tetap.', 'admin'],
+  ['Admin → Telegram → Kirim pesan uji', 'Satu pesan uji masuk di tiap topik grup.', 'admin']]],
+ ['2. Mulai jualan & jualan', 'Di HP kasir.', [
+  ['Buka Jualan → isi Uang di laci sekarang → Mulai jualan', 'Layar jualan terbuka; berikutnya uang laci terisi otomatis.', 'kasir'],
+  ['Jual 1 menu bayar Cash, uang lebih', 'Kembalian benar; struk muncul.', 'kasir'],
+  ['Jual beberapa menu sekaligus (ketik jumlah, mis. 10 nasi)', 'Total = harga × jumlah; keranjang benar.', 'kasir'],
+  ['Jual dengan QRIS, GoFood, GrabFood, ShopeeFood (masing-masing 1)', 'Tersimpan dengan cara bayar yang benar; muncul di Riwayat.', 'kasir'],
+  ['Cari transaksi dengan kode struk', 'Transaksi ketemu di Riwayat.', 'kasir'],
+  ['Struk masuk ke grup Telegram (🧾 Struk)', '±1 menit setelah jualan; isi item & total benar.', 'kasir']]],
+ ['3. Printer struk', 'Printer Bluetooth OKAY 58B; cadangan aplikasi RawBT.', [
+  ['Sambungkan printer Bluetooth dari aplikasi', 'Printer tersambung; nama printer tampil.', 'kasir'],
+  ['Struk tercetak otomatis setelah bayar', 'Isi struk lengkap: outlet, tanggal/jam, item, total, cara bayar, kode struk.', 'kasir'],
+  ['Cetak ulang struk dari Riwayat', 'Struk yang sama tercetak lagi.', 'kasir'],
+  ['Matikan printer → jualan → nyalakan lagi', 'Jualan tetap tersimpan; ada tanda printer belum tersambung.', 'kasir'],
+  ['Cetak lewat RawBT (bila printer langsung gagal)', 'Struk tercetak lewat RawBT.', 'kasir']]],
+ ['4. Tanpa internet (offline)', 'Matikan data seluler & Wi-Fi HP kasir.', [
+  ['Jualan 3 transaksi saat offline', 'Bisa jual; tanda Offline & "3 belum terkirim"; nomor struk sementara berawalan S.', 'kasir'],
+  ['Struk tetap tercetak saat offline', 'Struk keluar seperti biasa.', 'kasir'],
+  ['Nyalakan internet lagi (atau tekan Sinkron sekarang)', 'Angka "belum terkirim" jadi 0; transaksi muncul di admin TANPA dobel.', 'kasir'],
+  ['Tutup aplikasi saat offline lalu buka lagi', 'Aplikasi tetap terbuka & data belum terkirim tidak hilang.', 'kasir'],
+  ['Coba Keluar saat masih ada data belum terkirim', 'Ditolak dengan peringatan.', 'kasir']]],
+ ['5. Dua HP di satu outlet', 'Pakai dua HP dengan akun kasir outlet yang sama.', [
+  ['Kedua HP Mulai jualan di hari yang sama', 'Bergabung ke satu shift (tidak ada uang laci ganda).', 'kasir'],
+  ['Jualan dari kedua HP', 'Semua transaksi masuk ke shift yang sama di admin.', 'kasir'],
+  ['Tutup toko dari salah satu HP', 'Toko tertutup; HP lain diminta mulai jualan lagi bila mau jual.', 'kasir']]],
+ ['6. Batal transaksi', '', [
+  ['Riwayat → Batalkan → isi alasan → Ya, batalkan', 'Transaksi tercoret; stok kembali; ⚠️ Peringatan di Telegram.', 'kasir'],
+  ['Admin → Penjualan → batalkan transaksi dobel hari lalu', 'Terbatal; selisih shift itu terkoreksi.', 'admin']]],
+ ['7. Stok', 'Menu Stok di HP kasir.', [
+  ['Jual ayam → lihat stok berkurang', 'Pack/potong berkurang sesuai resep.', 'kasir'],
+  ['Catat Rusak/sisa (mis. 2 sayap gosong)', 'Stok berkurang; tercatat dengan alasan.', 'kasir'],
+  ['Kirim barang ke outlet lain', 'Muncul di outlet tujuan sebagai kiriman masuk.', 'kasir'],
+  ['Terima kiriman dengan jumlah BENAR', 'Diterima; stok outlet penerima bertambah.', 'kasir'],
+  ['Terima kiriman dengan jumlah SALAH', 'Ditolak "Ada perbedaan jumlah"; ⚠️ di Telegram.', 'kasir'],
+  ['Opname: hitung semua stok → kirim; admin setujui', 'Selisih tampil di admin; setelah disetujui stok = hitungan.', 'kasir'],
+  ['Stok menipis/minus', 'Tanda kuning/merah; ⚠️ Peringatan sekali di Telegram.', 'kasir'],
+  ['Admin → Stok → catat Barang masuk', 'Stok bertambah; muncul sebagai belanja bahan.', 'admin']]],
+ ['8. Kas', 'Menu Kas di HP kasir.', [
+  ['Catat pengeluaran (mis. Gas)', 'Uang laci berkurang; di admin muncul di Pengeluaran.', 'kasir'],
+  ['Catat pengeluaran ≥ Rp100.000', 'Masuk topik 💰 Kas di Telegram.', 'kasir'],
+  ['Catat kasbon karyawan', 'Uang laci berkurang; muncul di Admin → Gaji → Rincian kasbon dengan nama pencatat.', 'kasir'],
+  ['Catat setoran (sisakan uang kembalian)', 'Uang laci berkurang; 💰 Kas di Telegram.', 'kasir'],
+  ['Admin → Setoran → Terima (jumlah sama)', 'Status diterima.', 'admin'],
+  ['Admin → Terima setoran dengan jumlah berbeda + catatan', 'Selisih setoran tercatat; ⚠️ di Telegram.', 'admin']]],
+ ['9. Tutup toko', '', [
+  ['Isi sisa tidak terjual (nasi dalam porsi)', 'Tersimpan sebagai sisa.', 'kasir'],
+  ['Hitung uang laci & ketik jumlahnya', 'Ringkasan: penjualan per cara bayar, uang seharusnya, selisih.', 'kasir'],
+  ['Tutup toko dengan uang PAS', 'Selisih 0; ringkasan tutup toko di Telegram (🏪).', 'kasir'],
+  ['(Uji sekali) tutup toko dengan uang kurang Rp1.000', 'Selisih −Rp1.000; ⚠️ Selisih kas di Telegram.', 'kasir'],
+  ['Ringkasan harian jam 22.00 di Telegram', 'Omzet per outlet, menu terlaris, stok menipis, setoran belum dikonfirmasi.', 'admin']]],
+ ['10. Laporan admin', 'Di laptop/HP admin.', [
+  ['Admin → Kas harian: cocokkan dengan catatan manual', 'Omzet per cara bayar, uang laci awal → akhir, selisih sama.', 'admin'],
+  ['Admin → Laba-rugi bulan ini', 'Omzet − belanja bahan − gaji − sewa − pengeluaran lain = laba; masuk akal.', 'admin'],
+  ['Admin → Ojol: cocokkan dengan pencairan aplikasi', 'Jumlah pesanan & total harga toko per aplikasi.', 'admin'],
+  ['Admin → Gaji: centang kehadiran, Gajian, Bayar gaji', 'Potongan kasbon terisi otomatis (bisa diubah); bulan terkunci setelah dibayar.', 'admin'],
+  ['Admin → Gaji → Ringkasan gaji → Salin untuk WA', 'Teks rapi bisa ditempel di WA.', 'admin']]],
+ ['11. Dasbor & analisis', '', [
+  ['Admin → Dasbor: ganti outlet & periode', 'Semua panel ikut berubah; angka omzet sama dengan Kas harian.', 'admin'],
+  ['Ubah dasbor (laptop): seret panel lewat ⠿, tarik ukurannya, Simpan', 'Letak tersimpan; dibuka di HP panel berjajar ke bawah.', 'admin'],
+  ['+ Tambah panel (mis. Item terjual × Menu, 10 teratas)', 'Pratinjau muncul; tersimpan sebagai panel baru.', 'admin'],
+  ['Panel Siklus stok (pilih Ayam Ori)', 'Stok sekarang, pemakaian/hari, perkiraan habis tampil.', 'admin'],
+  ['Kelola dasbor: buat baru, jadikan utama, Kembalikan bawaan', 'Berfungsi; Ringkasan kembali seperti awal.', 'admin'],
+  ['Admin → Analisis → Untung per menu', 'Modal & untung per porsi masuk akal; menu tipis bertanda kuning.', 'admin'],
+  ['Analisis → Susut & terbuang, Minyak & tepung, Proyeksi', 'Angka tampil (perlu data opname & pembelian beberapa hari).', 'admin']]],
+ ['12. Belanja & ekspor', '', [
+  ['Admin → Belanja: periksa saran beli tiap outlet', 'Masuk akal dibanding kebutuhan seminggu dikurangi stok.', 'admin'],
+  ['Ubah satu angka → Salin untuk WA → tempel di grup', 'Teks berisi pembagian per outlet & total.', 'admin'],
+  ['Kirim ke Telegram dari Belanja', 'Masuk topik 💰 Kas ±1 menit.', 'admin'],
+  ['Tombol Excel (mis. di Laba-rugi & panel dasbor)', 'File terbuka di Excel/Google Sheets, angka bisa dijumlah.', 'admin'],
+  ['Tombol Cetak → simpan PDF', 'Halaman tercetak tanpa menu.', 'admin']]],
+ ['13. Bantuan & panduan', '', [
+  ['Menu Bantuan: cari "setoran"', 'Topik yang cocok muncul.', ''],
+  ['Tombol ? di layar → Selengkapnya', 'Bantuan terbuka di topik itu.', ''],
+  ['Buka panduan.html → Mode slide → Cetak / PDF', 'Satu slide per halaman.', 'admin']]],
+ ['14. Keamanan', '', [
+  ['Kasir mencoba membuka alamat menu admin', 'Ditolak / dialihkan ke layar kasir.', 'kasir'],
+  ['Kasir hanya melihat data outletnya sendiri', 'Tidak ada data outlet lain di Riwayat/Stok/Kas.', 'kasir'],
+  ['Ganti password admin; reset password kasir dari Admin → Akun', 'Password baru berlaku; yang lama tidak bisa dipakai.', 'admin']]]
+];
+const $=s=>document.querySelector(s);
+const kunci=()=>'daftar-uji:'+$('#outlet').value;
+const baca=()=>{try{return JSON.parse(localStorage.getItem(kunci())||'{}')}catch(e){return{}}};
+const simpan=d=>{try{localStorage.setItem(kunci(),JSON.stringify(d))}catch(e){}};
+try{const o=localStorage.getItem('daftar-uji:outlet');if(o)$('#outlet').value=o}catch(e){}
+const cocok=k=>{const o=$('#outlet').value;return !k||(k==='admin'?o==='ADMIN':o!=='ADMIN')};
+function gambar(){
+ const d=baca();let total=0,lulus=0,gagal=0;const m=$('#daftar');m.innerHTML='';
+ UJI.forEach(([bag,ket,items],bi)=>{
+  const ada=items.map((it,ii)=>[it,`${bi}.${ii}`]).filter(([it])=>cocok(it[2]));if(!ada.length)return;
+  const s=document.createElement('section');s.innerHTML=`<h2>${bag}</h2>${ket?`<p>${ket}</p>`:''}`;
+  ada.forEach(([[j,h],id])=>{total++;const st=d[id]||{};if(st.s==='l')lulus++;if(st.s==='g')gagal++;
+   const el=document.createElement('div');el.className='item'+(st.s==='l'?' lulus':st.s==='g'?' gagal':'');
+   el.innerHTML=`<div class="judul">${j}</div><div class="harap">Harapan: <b>${h}</b></div>
+   <div class="status"><button class="l" aria-pressed="${st.s==='l'}">✓ Lulus</button><button class="g" aria-pressed="${st.s==='g'}">✗ Gagal</button><button class="c">Catatan</button></div>
+   <textarea placeholder="Apa yang terjadi? (jam, layar, angka)" class="${st.c?'ada':''}">${(st.c||'').replace(/</g,'&lt;')}</textarea>`;
+   const ubah=f=>{const x=baca();x[id]={...(x[id]||{}),...f};simpan(x);gambar()};
+   el.querySelector('.l').onclick=()=>ubah({s:st.s==='l'?'':'l'});
+   el.querySelector('.g').onclick=()=>ubah({s:st.s==='g'?'':'g'});
+   const ta=el.querySelector('textarea');el.querySelector('.c').onclick=()=>{ta.classList.add('ada');ta.focus()};
+   ta.onchange=()=>{const x=baca();x[id]={...(x[id]||{}),c:ta.value};simpan(x)};
+   s.appendChild(el)});
+  m.appendChild(s)});
+ $('#angka').textContent=`${lulus} lulus · ${gagal} gagal · ${total-lulus-gagal} belum dari ${total}`;
+ $('#isi').style.width=(total?Math.round((lulus+gagal)/total*100):0)+'%';
+}
+$('#outlet').onchange=()=>{try{localStorage.setItem('daftar-uji:outlet',$('#outlet').value)}catch(e){}gambar()};
+$('#salin').onclick=async()=>{const d=baca();const o=$('#outlet').selectedOptions[0].textContent;const baris=[`Hasil uji — ${o} — ${new Date().toLocaleDateString('id-ID')}`];
+ UJI.forEach(([bag,,items],bi)=>items.forEach(([j],ii)=>{const st=d[`${bi}.${ii}`];if(!st||(!st.s&&!st.c))return;baris.push(`${st.s==='l'?'✅':st.s==='g'?'❌':'📝'} ${j}${st.c?` — ${st.c}`:''}`)}));
+ baris.push($('#angka').textContent);const t=baris.join('\n');
+ try{await navigator.clipboard.writeText(t);alert('Hasil tersalin. Tempel di chat.')}catch(e){prompt('Salin teks ini:',t)}};
+$('#cetak').onclick=()=>print();
+$('#ulang').onclick=()=>{if(confirm('Kosongkan semua centang & catatan untuk pilihan ini?')){simpan({});gambar()}};
+gambar();
+</script></body></html>
