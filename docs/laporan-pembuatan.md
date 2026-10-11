@@ -175,3 +175,16 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 - 9 Okt 2026 (malam): database server diperbarui untuk Tahap 7a (migrasi 0029–0031: dasbor, indeks waktu); uji server dasbor + semua uji lama lulus (notifikasi Telegram dimatikan sementara lalu dinyalakan lagi); server bersih.
 - 10 Okt 2026: database server diperbarui untuk Tahap 7b (migrasi 0032–0035: analisis modal/untung/susut/minyak-tepung/proyeksi, sumber dasbor baru); uji server analisis + semua uji lama lulus (notifikasi dimatikan sementara); server bersih.
 - 10 Okt 2026: database server diperbarui untuk Tahap 7c (migrasi 0036: rencana belanja, kirim teks ke Telegram); semua uji server lulus (notifikasi dimatikan sementara); server bersih.
+
+## Perbaikan 11 Okt 2026 — Satuan beli per outlet (migrasi 0037)
+
+Keputusan owner:
+- Kertapati (D'Krizzpy) memakai pack berbeda: kemasan ayam besar isi 50, plastik kecil isi 50, saus sambal & saus tomat isi 25 (dipisah, harga & jumlah sama). Pack Ayam Ori, plastik besar (isi 50), kertas nasi (isi 100), beras, minyak, tepung sama dengan outlet lain.
+- Kertapati tidak menjual ayam Hot dan kulit: harga jualnya dihapus sehingga tidak tampil di kasir; stok Hot, kulit, dan cup kulit tidak tampil untuk Kertapati.
+- Saus sambal & saus tomat D'Kriuk (Bukit Lama & Talang Kerangga) isi 150 sachet per pack (sebelumnya tebakan 100). Plastik kecil isi 100, plastik besar isi 50, kemasan besar & kecil D'Kriuk sementara isi 100.
+
+Yang dibuat:
+- Tabel `satuan_beli_outlet`: satuan beli tanpa baris = dipakai semua outlet; dengan baris = hanya outlet itu. Admin mengaturnya di **Bahan & Satuan Beli → Dipakai di outlet**.
+- Stok kasir/admin, stok awal, opname, rusak, kirim/terima, barang masuk, harga beli, dasbor, peringatan Telegram, analisis modal, dan rencana belanja memakai satuan beli outlet masing-masing.
+- Harga beli Kertapati untuk pack baru diisi langsung di aplikasi (tidak ditulis di kode).
+- Cadangan sebelum perubahan: `cadangan/2026-10-11-21-39`.
