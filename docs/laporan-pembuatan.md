@@ -188,3 +188,13 @@ Yang dibuat:
 - Stok kasir/admin, stok awal, opname, rusak, kirim/terima, barang masuk, harga beli, dasbor, peringatan Telegram, analisis modal, dan rencana belanja memakai satuan beli outlet masing-masing.
 - Harga beli Kertapati untuk pack baru diisi langsung di aplikasi (tidak ditulis di kode).
 - Cadangan sebelum perubahan: `cadangan/2026-10-11-21-39`.
+
+## Tambahan 11 Okt 2026 — Halaman Hitungan modal per potong
+
+Permintaan owner: satu halaman khusus (dibuka lewat tombol kecil, tidak sebesar menu lain) berisi hitungan modal per potong ayam D'Kriuk & D'Krizzpy.
+- Halaman `/admin/hitungan-modal`; tombol kecil 🧮 di Beranda admin, Analisis, dan Harga Beli.
+- Modal per potong = bagian ayam dari pack (sebanding harga jual, atau rata) + pelengkap (1 saus tomat, 1 saus sambal, 1 kemasan besar, 1 plastik kecil) + tepung campuran + minyak.
+- Tepung memakai rumus campuran 50:50 menurut berat dengan harga per kg tiap jenis; pemakaian awal 1,3 kg per 3 pack ayam. Minyak awal 2 liter per 10 pack ayam (angka pemakaian dari tabel analisis yang diberikan owner).
+- Semua harga diambil dari Harga Beli, isi pack dari Bahan, harga jual dari Menu (tidak ada harga di kode). Pengaturan (cara bagi, pelengkap, kg tepung, persen campuran, liter minyak) bisa diubah di halaman dan tersimpan di perangkat itu saja.
+- Data: harga acuan minyak per liter diisi untuk 3 outlet; harga tepung Kertapati disamakan dengan Bukit Lama (keputusan owner: tepung sama).
+- Gas, sarung tangan, gaji, sewa tidak termasuk (ada di Laba-rugi).

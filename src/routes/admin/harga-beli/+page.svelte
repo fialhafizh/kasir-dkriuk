@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TombolHitungan from '#lib/components/hitungan/TombolHitungan.svelte';
 	import { onMount } from 'svelte';
 	import HargaInput from '#lib/components/ui/HargaInput.svelte';
 	import { muatHargaBeli, muatOutlets, muatSatuanBeli, muatSatuanOutlet, simpanHargaBeli } from '#lib/master/api.ts';
@@ -44,6 +45,8 @@
 	Harga beli per satuan beli di tiap outlet. Untuk barang yang harganya berubah-ubah, angka ini hanya acuan; harga sebenarnya
 	diisi saat barang masuk. Kolom kosong berarti harga belum diisi.
 </p>
+
+<div class="mt-2"><TombolHitungan /></div>
 
 {#if status === 'memuat'}
 	<p class="mt-6 text-muted" role="status">Memuat…</p>

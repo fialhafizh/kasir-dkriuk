@@ -235,6 +235,23 @@ export const BAGIAN: Bagian[] = [
 				]
 			},
 			{
+				id: 'hitungan-modal',
+				judul: 'Hitungan modal per potong',
+				ikon: '🧮',
+				menu: 'Tombol kecil 🧮 di Beranda admin, Analisis, dan Harga Beli',
+				ringkas: 'Modal tiap potong ayam per outlet: bagian ayam dari pack + pelengkap + tepung campuran + minyak, dibandingkan dengan harga jual.',
+				langkah: [
+					'Pilih outlet untuk melihat rincian tiap potongan, pelengkap, tepung campuran, dan minyak.',
+					'Tabel **Perbandingan outlet** menunjukkan modal, hasil jual, dan untung per pack tiap outlet.',
+					'**Pengaturan hitungan**: cara membagi pack ayam (sebanding harga jual / rata), pelengkap yang ikut, kg tepung & liter minyak per pack, persen Tepung D\'Kriuk dalam campuran.'
+				],
+				catatan: [
+					'Semua harga diambil dari **Harga Beli**; isi pack dari **Bahan**; harga jual dari **Menu**. Ubah di sana bila harga berubah.',
+					'Tepung dihitung per kg: campuran Tepung D\'Kriuk & Tepung A menurut berat, bukan per karung.',
+					'Gas, sarung tangan, gaji, dan sewa belum termasuk; laba riil ada di **Laba-rugi**.'
+				]
+			},
+			{
 				id: 'belanja',
 				judul: 'Rencana belanja',
 				ikon: '🛒',

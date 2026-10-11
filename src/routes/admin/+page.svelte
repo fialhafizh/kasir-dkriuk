@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TombolHitungan from '#lib/components/hitungan/TombolHitungan.svelte';
 	import { onMount } from 'svelte';
 	import RingkasanStok from '#lib/components/stok/RingkasanStok.svelte';
 	import { auth } from '#lib/auth/session.svelte.ts';
@@ -36,7 +37,7 @@
 <svelte:head><title>Admin · Kasir D'Kriuk</title></svelte:head>
 
 <h1 class="font-display text-3xl">Halo, {auth.profile?.nama_tampilan}</h1>
-<p class="mt-1 text-muted">Dashboard lengkap dibangun di Tahap 7.</p>
+<div class="mt-2"><TombolHitungan /></div>
 
 <ul class="mt-6 grid gap-3 sm:grid-cols-2">
 	{#each pintasan as p (p.path)}

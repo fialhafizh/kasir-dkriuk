@@ -1,4 +1,5 @@
 <script lang="ts">
+	import TombolHitungan from '#lib/components/hitungan/TombolHitungan.svelte';
 	import Petunjuk from '#lib/components/bantuan/Petunjuk.svelte';
 	import { onMount } from 'svelte';
 	import TabMinyakTepung from '#lib/components/analisis/TabMinyakTepung.svelte';
@@ -39,6 +40,7 @@
 <p class="mt-1 max-w-prose rounded-xl bg-accent/30 p-2 text-sm">
 	Semua angka di halaman ini <b>perkiraan</b> untuk mencari kebocoran. Laba riil ada di <a class="underline" href={href('/admin/laba-rugi')}>Laba-rugi</a>.
 </p>
+<div class="mt-2"><TombolHitungan /></div>
 {#if galat}<p class="mt-2 text-danger" role="alert">{galat}</p>{/if}
 
 <div class="mt-3 flex flex-wrap gap-1" role="group" aria-label="Bagian analisis">
