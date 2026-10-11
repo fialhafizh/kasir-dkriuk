@@ -181,7 +181,7 @@ Catatan ringkas semua tahap, keputusan owner, dan hal penting yang perlu diketah
 Keputusan owner:
 - Kertapati (D'Krizzpy) memakai pack berbeda: kemasan ayam besar isi 50, plastik kecil isi 50, saus sambal & saus tomat isi 25 (dipisah, harga & jumlah sama). Pack Ayam Ori, plastik besar (isi 50), kertas nasi (isi 100), beras, minyak, tepung sama dengan outlet lain.
 - Kertapati tidak menjual ayam Hot dan kulit: harga jualnya dihapus sehingga tidak tampil di kasir; stok Hot, kulit, dan cup kulit tidak tampil untuk Kertapati.
-- Saus sambal & saus tomat D'Kriuk (Bukit Lama & Talang Kerangga) isi 150 sachet per pack (sebelumnya tebakan 100). Plastik kecil isi 100, plastik besar isi 50, kemasan besar & kecil D'Kriuk sementara isi 100.
+- Saus sambal & saus tomat D'Kriuk (Bukit Lama & Talang Kerangga) isi 125 sachet per pack (sebelumnya tebakan 100, sempat 150; diralat owner lewat migrasi 0038). Plastik kecil isi 100, plastik besar isi 50, kemasan besar & kecil D'Kriuk sementara isi 100.
 
 Yang dibuat:
 - Tabel `satuan_beli_outlet`: satuan beli tanpa baris = dipakai semua outlet; dengan baris = hanya outlet itu. Admin mengaturnya di **Bahan & Satuan Beli → Dipakai di outlet**.

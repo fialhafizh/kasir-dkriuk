@@ -33,8 +33,8 @@ describe('satuan beli per outlet (Kertapati)', () => {
 	it('isi pack: saus D\'Kriuk 150, saus Kertapati 25, kemasan besar & plastik kecil Kertapati 50', async () => {
 		const isi = async (kode: string) =>
 			Number(await nilai(`select i.qty as v from public.satuan_beli_isi i join public.satuan_beli s on s.id = i.satuan_beli_id where s.kode = $1`, [kode]));
-		expect(await isi('pack_saus_sambal')).toBe(150);
-		expect(await isi('pack_saus_tomat')).toBe(150);
+		expect(await isi('pack_saus_sambal')).toBe(125);
+		expect(await isi('pack_saus_tomat')).toBe(125);
 		expect(await isi('pack_saus_sambal_25')).toBe(25);
 		expect(await isi('pack_kemasan_besar_50')).toBe(50);
 		expect(await isi('pack_plastik_kecil_50')).toBe(50);
