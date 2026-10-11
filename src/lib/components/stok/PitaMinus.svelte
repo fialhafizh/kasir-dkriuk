@@ -1,6 +1,6 @@
 <script lang="ts">
+	import { saringOutlet, susunStokOutlet } from '#lib/stok/per-outlet.ts';
 	import { muatDataStok, muatStok, muatStokAwal, petaStok, type DataStok } from '#lib/stok/api.ts';
-	import { susunStok } from '#lib/stok/tampil.ts';
 
 	let { outletId, segar = 0 }: { outletId: string; segar?: number } = $props();
 
@@ -29,7 +29,7 @@
 				}
 				const s = await muatStok(id);
 				if (batal) return;
-				minus = susunStok(data.bahan, data.satuan, data.isi, petaStok(s, id))
+				minus = susunStokOutlet(saringOutlet(data, id), petaStok(s, id))
 					.filter((b) => b.status === 'minus')
 					.map((b) => b.label);
 			} catch {

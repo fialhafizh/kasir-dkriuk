@@ -3,7 +3,8 @@
 	import FormBarangMasuk from '#lib/components/stok/FormBarangMasuk.svelte';
 	import Konfirmasi from '#lib/components/ui/Konfirmasi.svelte';
 	import { formatWaktuWib } from '#lib/kasir/waktu.ts';
-	import { muatHargaBeli, muatOutlets, muatSatuanBeli } from '#lib/master/api.ts';
+	import { muatHargaBeli, muatOutlets, muatSatuanBeli, muatSatuanOutlet } from '#lib/master/api.ts';
+	import { satuanDiOutlet, type SatuanOutlet } from '#lib/stok/per-outlet.ts';
 	import { formatAngka, formatQty } from '#lib/master/rupiah.ts';
 	import type { HargaBeli, SatuanBeli } from '#lib/master/types.ts';
 	import { href } from '#lib/nav.ts';
@@ -24,12 +25,14 @@
 	// Galat memuat daftar ditampilkan di dekat daftar: daftar kosong karena galat ≠ belum ada barang masuk.
 	let pesanDaftar = $state('');
 
+	let pemakai = $state<SatuanOutlet[]>([]);
 	const outlet = $derived(outlets.find((o) => o.id === outletId) ?? null);
+	const satuanOutlet = $derived(outlet ? satuan.filter((s) => satuanDiOutlet(s.id, outlet.id, pemakai)) : []);
 
 	async function muatSemua() {
 		status = 'memuat';
 		try {
-			[outlets, satuan, hargaBeli] = await Promise.all([muatOutlets(), muatSatuanBeli(), muatHargaBeli()]);
+			[outlets, satuan, hargaBeli, pemakai] = await Promise.all([muatOutlets(), muatSatuanBeli(), muatHargaBeli(), muatSatuanOutlet()]);
 			outletId ??= outlets.find((o) => o.aktif)?.id ?? null;
 			await muatDaftar();
 			status = 'siap';
@@ -100,7 +103,7 @@
 	<button type="button" class="mt-3 min-h-12 rounded-xl bg-surface-2 px-4 font-semibold" onclick={muatSemua}>Coba lagi</button>
 {:else if outlet}
 	<div class="mt-4 grid gap-6 lg:grid-cols-2">
-		{#key outlet.id}<FormBarangMasuk {outlet} {satuan} {hargaBeli} {dihitungAt} onsimpan={simpan} />{/key}
+		{#key outlet.id}<FormBarangMasuk {outlet} satuan={satuanOutlet} {hargaBeli} {dihitungAt} onsimpan={simpan} />{/key}
 		<section aria-label="Barang masuk terakhir">
 			<h2 class="font-display text-xl">Terakhir di {outlet.nama}</h2>
 			{#if pesanDaftar}

@@ -1,8 +1,8 @@
 <script lang="ts">
+	import { saringOutlet, susunStokOutlet } from '#lib/stok/per-outlet.ts';
 	import TombolEkspor from '#lib/components/ekspor/TombolEkspor.svelte';
 	import DaftarStok from '#lib/components/stok/DaftarStok.svelte';
 	import { muatDataStok, muatStok, petaStok } from '#lib/stok/api.ts';
-	import { susunStok } from '#lib/stok/tampil.ts';
 	import type { BarisStok } from '#lib/stok/types.ts';
 	import type { Outlet } from '#lib/types/db.ts';
 
@@ -19,7 +19,7 @@
 			isi = outlets
 				.filter((o) => o.aktif && (!outlet || o.id === outlet))
 				.map((o) => {
-					const baris = susunStok(data.bahan, data.satuan, data.isi, petaStok(stok, o.id));
+					const baris = susunStokOutlet(saringOutlet(data, o.id), petaStok(stok, o.id));
 					return { outlet: o, perhatian: baris.filter((b) => b.status !== 'aman'), aman: baris.filter((b) => b.status === 'aman').length };
 				});
 			if (ini === nomor) galat = '';

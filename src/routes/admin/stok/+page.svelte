@@ -1,11 +1,11 @@
 <script lang="ts">
+	import { susunStokOutlet, saringOutlet } from '#lib/stok/per-outlet.ts';
 	import { onMount } from 'svelte';
 	import DaftarStok from '#lib/components/stok/DaftarStok.svelte';
 	import RiwayatGerakan from '#lib/components/stok/RiwayatGerakan.svelte';
 	import { muatOutlets } from '#lib/master/api.ts';
 	import { href } from '#lib/nav.ts';
 	import { muatDataStok, muatGerakan, muatStok, muatStokAwal, petaStok, type DataStok } from '#lib/stok/api.ts';
-	import { susunStok } from '#lib/stok/tampil.ts';
 	import type { BarisStok, Gerakan, StokAwal } from '#lib/stok/types.ts';
 	import type { Outlet } from '#lib/types/db.ts';
 
@@ -75,7 +75,7 @@
 		}
 	}
 
-	const baris = $derived(data ? susunStok(data.bahan, data.satuan, data.isi, stok) : []);
+	const baris = $derived(data ? susunStokOutlet(saringOutlet(data, outletId), stok) : []);
 	const disetujui = $derived(awal.some((a) => a.status === 'disetujui'));
 	const menunggu = $derived(awal.some((a) => a.status === 'diajukan'));
 	const namaBahan = $derived(new Map((data?.bahan ?? []).map((b) => [b.id, b.nama])));

@@ -1,11 +1,11 @@
 <script lang="ts">
+	import { bentukIsianOutlet, saringOutlet } from '#lib/stok/per-outlet.ts';
 	import FormStokAwal from '#lib/components/stok/FormStokAwal.svelte';
 	import PitaSalinan from '#lib/components/stok/PitaSalinan.svelte';
 	import { antrekan } from '#lib/kasir/antre.ts';
 	import { buatKejadianRusak } from '#lib/kasir/offline-kasir.ts';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
 	import { href } from '#lib/nav.ts';
-	import { bentukIsian } from '#lib/stok/isian.ts';
 	import { stokKasir } from '#lib/stok/stok-kasir.svelte.ts';
 	import { ALASAN_RUSAK, LABEL_ALASAN } from '#lib/stok/tampil.ts';
 	import type { AlasanRusak, ItemHitung } from '#lib/stok/types.ts';
@@ -17,7 +17,7 @@
 	// Formulir baru setelah tersimpan (simpan dua kali dari formulir yang sama tidak menggandakan).
 	let formulir = $state(0);
 
-	const isian = $derived(st.nilai ? bentukIsian(st.nilai.data.bahan, st.nilai.data.satuan, st.nilai.data.isi) : []);
+	const isian = $derived(st.nilai ? bentukIsianOutlet(saringOutlet(st.nilai.data, pos.outlet?.id)) : []);
 
 	async function kirim(item: ItemHitung[]) {
 		const c = catatan.trim();

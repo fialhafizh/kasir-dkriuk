@@ -1,11 +1,11 @@
 <script lang="ts">
+	import { bentukIsianOutlet, saringOutlet } from '#lib/stok/per-outlet.ts';
 	import FormStokAwal from '#lib/components/stok/FormStokAwal.svelte';
 	import PitaSalinan from '#lib/components/stok/PitaSalinan.svelte';
 	import { antrekan } from '#lib/kasir/antre.ts';
 	import { buatKejadianHitung } from '#lib/kasir/offline-kasir.ts';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
 	import { href } from '#lib/nav.ts';
-	import { bentukIsian } from '#lib/stok/isian.ts';
 	import { stokKasir } from '#lib/stok/stok-kasir.svelte.ts';
 	import type { ItemHitung } from '#lib/stok/types.ts';
 
@@ -15,7 +15,7 @@
 	const idOpname = crypto.randomUUID();
 
 	const v = $derived(st.nilai);
-	const isian = $derived(v ? bentukIsian(v.data.bahan, v.data.satuan, v.data.isi) : []);
+	const isian = $derived(v ? bentukIsianOutlet(saringOutlet(v.data, pos.outlet?.id)) : []);
 	const halanganKini = $derived(
 		!v
 			? ''

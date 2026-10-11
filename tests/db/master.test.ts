@@ -12,13 +12,13 @@ async function satu<T>(sql: string, params: unknown[] = []): Promise<T> {
 async function jumlah(sql: string): Promise<number> {
 	return (await satu<{ n: number }>(`select count(*)::int as n from ${sql}`)).n;
 }
-async function harga(outlet: string, menu: string): Promise<number> {
+async function harga(outlet: string, menu: string): Promise<number | undefined> {
 	return (
-		await satu<{ harga: number }>(
+		await satu<{ harga: number } | undefined>(
 			`select h.harga from public.harga_jual h join public.outlets o on o.id = h.outlet_id join public.menu m on m.id = h.menu_id where o.kode = $1 and m.kode = $2`,
 			[outlet, menu]
 		)
-	).harga;
+	)?.harga;
 }
 async function idDari(tabel: string, kode: string): Promise<string> {
 	return (await satu<{ id: string }>(`select id from public.${tabel} where kode = $1`, [kode])).id;
@@ -33,10 +33,12 @@ beforeEach(async () => {
 describe('seed master', () => {
 	it('jumlah data awal', async () => {
 		expect(await jumlah('public.bahan')).toBe(23);
-		expect(await jumlah('public.satuan_beli')).toBe(18);
+		// 18 awal + 4 pack khusus Kertapati (migrasi 0037)
+		expect(await jumlah('public.satuan_beli')).toBe(22);
 		expect(await jumlah('public.menu')).toBe(17);
 		expect(await jumlah('public.resep')).toBe(19);
-		expect(await jumlah('public.harga_jual')).toBe(51);
+		// 51 awal − 5 menu yang tidak dijual Kertapati (ayam Hot & kulit, migrasi 0037)
+		expect(await jumlah('public.harga_jual')).toBe(46);
 		expect(await jumlah('public.harga_beli')).toBe(0);
 	});
 
@@ -53,12 +55,13 @@ describe('seed master', () => {
 		]);
 	});
 
-	it('harga jual: Kertapati −Rp1.000 untuk ayam & kulit, sama untuk nasi/box/pelengkap', async () => {
+	it('harga jual: Kertapati −Rp1.000 untuk ayam, sama untuk nasi/box/pelengkap; tanpa ayam Hot & kulit', async () => {
 		expect(await harga('BL', 'ori_dada')).toBe(11000);
 		expect(await harga('TK', 'hot_sayap')).toBe(9000);
 		expect(await harga('KP', 'ori_dada')).toBe(10000);
-		expect(await harga('KP', 'hot_paha_bawah')).toBe(8000);
-		expect(await harga('KP', 'kulit')).toBe(8000);
+		expect(await harga('KP', 'ori_sayap')).toBe(8000);
+		expect(await harga('KP', 'hot_paha_bawah')).toBeUndefined();
+		expect(await harga('KP', 'kulit')).toBeUndefined();
 		expect(await harga('KP', 'nasi')).toBe(5000);
 		expect(await harga('KP', 'box')).toBe(1000);
 		expect(await harga('BL', 'saus_sambal')).toBe(0);
@@ -110,7 +113,7 @@ describe('RLS master', () => {
 			(await db.query('select 1 from public.resep')).rows.length,
 			(await db.query('select 1 from public.satuan_beli_isi')).rows.length
 		]);
-		expect(n).toEqual([17, 23, 19, 24]);
+		expect(n).toEqual([17, 23, 19, 28]);
 	});
 
 	it('kasir hanya melihat harga jual outletnya sendiri', async () => {

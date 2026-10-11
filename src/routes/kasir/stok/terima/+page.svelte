@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { bentukIsianOutlet, saringOutlet } from '#lib/stok/per-outlet.ts';
 	import FormStokAwal from '#lib/components/stok/FormStokAwal.svelte';
 	import PitaSalinan from '#lib/components/stok/PitaSalinan.svelte';
 	import { antrekan } from '#lib/kasir/antre.ts';
@@ -6,7 +7,6 @@
 	import { formatWaktuWib } from '#lib/kasir/waktu.ts';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
 	import { href } from '#lib/nav.ts';
-	import { bentukIsian } from '#lib/stok/isian.ts';
 	import { stokKasir } from '#lib/stok/stok-kasir.svelte.ts';
 	import type { ItemHitung, Transfer } from '#lib/stok/types.ts';
 
@@ -17,7 +17,7 @@
 	const data = $derived(st.nilai?.data ?? null);
 	const outlets = $derived(st.nilai?.outlets ?? []);
 	const masuk = $derived((st.nilai?.transfer ?? []).filter((x) => x.ke_outlet_id === pos.outlet?.id && x.status === 'dikirim'));
-	const isian = $derived(data ? bentukIsian(data.bahan, data.satuan, data.isi) : []);
+	const isian = $derived(data ? bentukIsianOutlet(saringOutlet(data, pos.outlet?.id)) : []);
 	const namaOutlet = (oid: string) => outlets.find((o) => o.id === oid)?.nama ?? '';
 
 	// Dicocokkan dengan kiriman di server saat sinkron; bila beda → Perlu perhatian ("Ada perbedaan jumlah…").

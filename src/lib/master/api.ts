@@ -23,6 +23,13 @@ export async function muatSatuanBeli(): Promise<SatuanBeli[]> {
 	const rows = periksa(await supabase.from('satuan_beli').select('id, kode, nama, ambang, harga_tetap, urutan, aktif').order('urutan'));
 	return (rows as SatuanBeli[]).map((r) => ({ ...r, ambang: r.ambang == null ? null : keAngka(r.ambang) }));
 }
+/** Outlet pemakai satuan beli; satuan tanpa baris dipakai semua outlet. */
+export async function muatSatuanOutlet(): Promise<{ satuan_beli_id: string; outlet_id: string }[]> {
+	return periksa(await supabase.from('satuan_beli_outlet').select('satuan_beli_id, outlet_id'));
+}
+export async function simpanOutletSatuan(satuanId: string, outletIds: string[]): Promise<void> {
+	periksa(await supabase.rpc('simpan_outlet_satuan', { p_satuan: satuanId, p_outlet: outletIds }));
+}
 export async function muatIsiSatuanBeli(): Promise<IsiSatuanBeli[]> {
 	const rows = periksa(await supabase.from('satuan_beli_isi').select('satuan_beli_id, bahan_id, qty'));
 	return (rows as IsiSatuanBeli[]).map((r) => ({ ...r, qty: keAngka(r.qty) }));

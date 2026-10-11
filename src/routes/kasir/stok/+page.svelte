@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { susunStokOutlet, saringOutlet } from '#lib/stok/per-outlet.ts';
 	import Petunjuk from '#lib/components/bantuan/Petunjuk.svelte';
 	import DaftarStok from '#lib/components/stok/DaftarStok.svelte';
 	import PitaSalinan from '#lib/components/stok/PitaSalinan.svelte';
@@ -6,7 +7,6 @@
 	import { href } from '#lib/nav.ts';
 	import { perluOpname } from '#lib/stok/opname.ts';
 	import { stokKasir } from '#lib/stok/stok-kasir.svelte.ts';
-	import { susunStok } from '#lib/stok/tampil.ts';
 
 	const st = stokKasir();
 	const status = $derived(st.status);
@@ -15,7 +15,7 @@
 	const awal = $derived(v?.awal ?? []);
 	const transfer = $derived(v?.transfer ?? []);
 	const opname = $derived(v?.opname ?? []);
-	const baris = $derived(v ? susunStok(v.data.bahan, v.data.satuan, v.data.isi, v.stok) : []);
+	const baris = $derived(v ? susunStokOutlet(saringOutlet(v.data, pos.outlet?.id), v.stok) : []);
 	const disetujui = $derived(awal.some((a) => a.status === 'disetujui'));
 	const menunggu = $derived(awal.some((a) => a.status === 'diajukan'));
 	const masukMenunggu = $derived(transfer.filter((t) => t.ke_outlet_id === pos.outlet?.id && t.status === 'dikirim').length);

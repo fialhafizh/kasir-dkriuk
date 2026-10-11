@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { bentukIsianOutlet, saringOutlet } from '#lib/stok/per-outlet.ts';
 	import FormStokAwal from '#lib/components/stok/FormStokAwal.svelte';
 	import PitaSalinan from '#lib/components/stok/PitaSalinan.svelte';
 	import Konfirmasi from '#lib/components/ui/Konfirmasi.svelte';
@@ -7,7 +8,6 @@
 	import { formatWaktuWib } from '#lib/kasir/waktu.ts';
 	import { pos } from '#lib/kasir/pos.svelte.ts';
 	import { href } from '#lib/nav.ts';
-	import { bentukIsian } from '#lib/stok/isian.ts';
 	import { stokKasir } from '#lib/stok/stok-kasir.svelte.ts';
 	import { angkaStok } from '#lib/stok/tampil.ts';
 	import type { ItemHitung, Transfer } from '#lib/stok/types.ts';
@@ -25,7 +25,7 @@
 	const data = $derived(st.nilai?.data ?? null);
 	const outlets = $derived(st.nilai?.outlets ?? []);
 	const keluar = $derived((st.nilai?.transfer ?? []).filter((x) => x.dari_outlet_id === pos.outlet?.id && x.status === 'dikirim'));
-	const isian = $derived(data ? bentukIsian(data.bahan, data.satuan, data.isi) : []);
+	const isian = $derived(data ? bentukIsianOutlet(saringOutlet(data, pos.outlet?.id)) : []);
 	const lain = $derived(outlets.filter((o) => o.aktif && o.id !== pos.outlet?.id));
 	const namaOutlet = (oid: string) => outlets.find((o) => o.id === oid)?.nama ?? '';
 	const namaBahan = (bid: string) => data?.bahan.find((b) => b.id === bid)?.nama ?? '';

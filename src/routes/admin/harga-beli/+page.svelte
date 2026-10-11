@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import HargaInput from '#lib/components/ui/HargaInput.svelte';
-	import { muatHargaBeli, muatOutlets, muatSatuanBeli, simpanHargaBeli } from '#lib/master/api.ts';
+	import { muatHargaBeli, muatOutlets, muatSatuanBeli, muatSatuanOutlet, simpanHargaBeli } from '#lib/master/api.ts';
+	import { satuanDiOutlet, type SatuanOutlet } from '#lib/stok/per-outlet.ts';
 	import { kunciHarga, petaHarga } from '#lib/master/susun.ts';
 	import type { HargaBeli, SatuanBeli } from '#lib/master/types.ts';
 	import type { Outlet } from '#lib/types/db.ts';
@@ -9,13 +10,14 @@
 	let outlets = $state<Outlet[]>([]);
 	let satuan = $state<SatuanBeli[]>([]);
 	let harga = $state<HargaBeli[]>([]);
+	let pemakai = $state<SatuanOutlet[]>([]);
 	let status = $state<'memuat' | 'siap' | 'gagal'>('memuat');
 	let pesan = $state('');
 
 	async function muat() {
 		status = 'memuat';
 		try {
-			[outlets, satuan, harga] = await Promise.all([muatOutlets(), muatSatuanBeli(), muatHargaBeli()]);
+			[outlets, satuan, harga, pemakai] = await Promise.all([muatOutlets(), muatSatuanBeli(), muatHargaBeli(), muatSatuanOutlet()]);
 			status = 'siap';
 		} catch (e) {
 			pesan = (e as Error).message;
@@ -61,12 +63,16 @@
 					{#each outlets as o (o.id)}
 						<div>
 							<p class="mb-1 text-xs font-semibold text-muted">{o.nama}</p>
-							<HargaInput
-								id="beli-{o.id}-{s.id}"
-								label="Harga beli {s.nama} di {o.nama}"
-								nilai={peta.get(kunciHarga(o.id, s.id)) ?? null}
-								onsimpan={(n) => ubah(o, s, n)}
-							/>
+							{#if satuanDiOutlet(s.id, o.id, pemakai)}
+								<HargaInput
+									id="beli-{o.id}-{s.id}"
+									label="Harga beli {s.nama} di {o.nama}"
+									nilai={peta.get(kunciHarga(o.id, s.id)) ?? null}
+									onsimpan={(n) => ubah(o, s, n)}
+								/>
+							{:else}
+								<p class="text-sm text-muted">Tidak dipakai outlet ini</p>
+							{/if}
 						</div>
 					{/each}
 				</div>

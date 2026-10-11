@@ -2,6 +2,7 @@ import { muatBahan, muatIsiSatuanBeli, muatSatuanBeli } from '#lib/master/api.ts
 import type { Bahan, IsiSatuanBeli, SatuanBeli } from '#lib/master/types.ts';
 import { supabase } from '#lib/supabase/client.ts';
 import { pesanStok } from './pesan.ts';
+import type { SatuanOutlet } from './per-outlet.ts';
 import type { BarangMasuk, Gerakan, ItemHitung, KirimBarangMasuk, StokAwal } from './types.ts';
 
 type Galat = Parameters<typeof pesanStok>[0];
@@ -17,6 +18,8 @@ export interface DataStok {
 	bahan: Bahan[];
 	satuan: SatuanBeli[];
 	isi: IsiSatuanBeli[];
+	/** Outlet pemakai satuan beli; kosong untuk satuan yang dipakai semua outlet. */
+	outletSatuan?: SatuanOutlet[];
 }
 export interface StokRow {
 	outlet_id: string;
@@ -25,8 +28,13 @@ export interface StokRow {
 }
 
 export async function muatDataStok(): Promise<DataStok> {
-	const [bahan, satuan, isi] = await Promise.all([muatBahan(), muatSatuanBeli(), muatIsiSatuanBeli()]);
-	return { bahan, satuan, isi };
+	const [bahan, satuan, isi, outletSatuan] = await Promise.all([
+		muatBahan(),
+		muatSatuanBeli(),
+		muatIsiSatuanBeli(),
+		supabase.from('satuan_beli_outlet').select('satuan_beli_id, outlet_id').then((r) => periksa(r) as SatuanOutlet[])
+	]);
+	return { bahan, satuan, isi, outletSatuan };
 }
 
 export async function muatStok(outletId?: string): Promise<StokRow[]> {

@@ -1,10 +1,11 @@
 <script lang="ts">
+	import { saringOutlet, susunStokOutlet } from '#lib/stok/per-outlet.ts';
 	import { onMount } from 'svelte';
 	import { muatOutlets } from '#lib/master/api.ts';
 	import { href } from '#lib/nav.ts';
 	import { muatOpname, muatTransfer } from '#lib/stok/api-lanjut.ts';
 	import { muatDataStok, muatStok, muatStokAwal, petaStok } from '#lib/stok/api.ts';
-	import { hitungRingkasan, susunStok } from '#lib/stok/tampil.ts';
+	import { hitungRingkasan } from '#lib/stok/tampil.ts';
 
 	interface Baris {
 		id: string;
@@ -31,7 +32,7 @@
 					const sah = awal.some((a) => a.outlet_id === o.id && a.status === 'disetujui');
 					const menunggu = awal.some((a) => a.outlet_id === o.id && a.status === 'diajukan');
 					if (!sah) return { id: o.id, nama: o.nama, teks: menunggu ? 'Stok awal menunggu persetujuan' : 'Belum ada stok awal', bahaya: menunggu };
-					const r = hitungRingkasan(susunStok(data.bahan, data.satuan, data.isi, petaStok(stok, o.id)));
+					const r = hitungRingkasan(susunStokOutlet(saringOutlet(data, o.id), petaStok(stok, o.id)));
 					const tambahan = [
 						opname.some((x) => x.outlet_id === o.id && x.status === 'diajukan') ? 'opname menunggu persetujuan' : '',
 						transfer.some((x) => x.ke_outlet_id === o.id && x.status === 'dikirim') ? 'kiriman belum diterima' : ''

@@ -1,25 +1,32 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import OutletSatuan from '#lib/components/master/OutletSatuan.svelte';
 	import QtyInput from '#lib/components/ui/QtyInput.svelte';
 	import { rantai } from '#lib/master/antrian.ts';
 	import {
 		muatBahan,
 		muatIsiSatuanBeli,
 		muatMenu,
+		muatOutlets,
 		muatResep,
 		muatSatuanBeli,
+		muatSatuanOutlet,
 		simpanAktifBahan,
 		simpanAmbang,
 		simpanIsiSatuanBeli
 	} from '#lib/master/api.ts';
 	import { menuPemakai } from '#lib/master/susun.ts';
 	import type { Bahan, IsiSatuanBeli, Menu, ModeStok, Resep, SatuanBeli } from '#lib/master/types.ts';
+	import type { SatuanOutlet } from '#lib/stok/per-outlet.ts';
+	import type { Outlet } from '#lib/types/db.ts';
 
 	let bahan = $state<Bahan[]>([]);
 	let satuan = $state<SatuanBeli[]>([]);
 	let isi = $state<IsiSatuanBeli[]>([]);
 	let menu = $state<Menu[]>([]);
 	let resep = $state<Resep[]>([]);
+	let outlets = $state<Outlet[]>([]);
+	let pemakai = $state<SatuanOutlet[]>([]);
 	let status = $state<'memuat' | 'siap' | 'gagal'>('memuat');
 	let pesanMuat = $state('');
 	// Pesan ditampilkan di dekat baris yang bermasalah, bukan di atas halaman.
@@ -36,7 +43,15 @@
 	async function muat() {
 		status = 'memuat';
 		try {
-			[bahan, satuan, isi, menu, resep] = await Promise.all([muatBahan(), muatSatuanBeli(), muatIsiSatuanBeli(), muatMenu(), muatResep()]);
+			[bahan, satuan, isi, menu, resep, outlets, pemakai] = await Promise.all([
+				muatBahan(),
+				muatSatuanBeli(),
+				muatIsiSatuanBeli(),
+				muatMenu(),
+				muatResep(),
+				muatOutlets(),
+				muatSatuanOutlet()
+			]);
 			status = 'siap';
 		} catch (e) {
 			pesanMuat = (e as Error).message;
@@ -172,6 +187,7 @@
 						</li>
 					{/each}
 				</ul>
+				<OutletSatuan satuanId={s.id} nama={s.nama} outlets={outlets.filter((o) => o.aktif)} bind:pemakai />
 			</li>
 		{/each}
 	</ul>
