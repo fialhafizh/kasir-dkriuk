@@ -221,3 +221,10 @@ Koreksi owner: Belanja riil harus berbentuk seperti Rencana belanja (barang × o
 - **Simpan ke stok** membuat satu Barang masuk per outlet yang diisi (memakai `catat_barang_masuk` yang sudah ada → stok bertambah, belanja bahan & Laba-rugi ikut). id per outlet dipertahankan sampai berhasil supaya kirim ulang tidak dobel; isian tersimpan di perangkat sampai hari berganti.
 - Rekap belanja, pengeluaran dibagi rata, Excel tetap di bawahnya. Tanpa perubahan database.
 - Format lima berkas Belanja sempat berubah oleh perapian kode bawaan (proyek tidak punya berkas pengaturan perapian); dikembalikan ke gaya proyek.
+
+## Koreksi data 13 Okt 2026 — Barang masuk pertama tanpa tambahan stok
+
+Owner mencatat belanja pertama lewat Belanja riil (13 Okt 10.13: BL, TK, KP). Barangnya sudah ikut terhitung di opname 12 Okt, jadi atas permintaan owner hanya uangnya yang dipertahankan.
+- Cadangan dulu (`cadangan/2026-10-13-10-21`), lalu 17 baris gerakan stok jenis `masuk` dari tiga barang masuk itu dihapus; catatan & total barang masuk tetap (uang keluar & Laba-rugi tidak berubah). Ketiganya diberi catatan "Stok tidak ditambahkan: sudah termasuk opname 12 Okt".
+- Bila barang masuk itu kelak dibatalkan, `batal_barang_masuk` hanya membalik gerakan `masuk` yang ada → tidak ada pengurangan stok.
+- Fitur tidak diubah: simpan dari tabel Belanja riil tetap menambah stok.
