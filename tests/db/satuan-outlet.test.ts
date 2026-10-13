@@ -25,7 +25,9 @@ describe('satuan beli per outlet (Kertapati)', () => {
 		expect(kp).not.toContain('Ayam Hot');
 		expect(kp).not.toContain('Kulit Mentah');
 		expect(kp).not.toContain('Cup Kulit');
+		for (const x of ['Plastik Besar', 'Kemasan Kecil', 'Kertas Nasi', "Box D'Kriuk", 'Plastik Merah']) expect(kp).not.toContain(x);
 		const bl = await status('BL');
+		expect(bl).toContain('Kertas Nasi');
 		expect(bl).toContain('Ayam Hot');
 		expect(bl).toContain('Kulit Mentah');
 	});
