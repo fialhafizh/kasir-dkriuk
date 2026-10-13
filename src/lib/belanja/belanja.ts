@@ -44,7 +44,9 @@ export const namaBarang = (nama: string) => labelGrup(nama);
 /** Isian (angka yang diubah admin) per "satuan|outlet"; tanpa isian = saran. */
 export type Isian = Record<string, number>;
 export const kunciSel = (satuan: string, outlet: string) => `${satuan}|${outlet}`;
-export const jumlahSel = (b: BarisBelanja, outlet: string, isian: Isian) => isian[kunciSel(b.satuan_beli_id, outlet)] ?? b.per_outlet[outlet]?.saran ?? 0;
+/** Outlet yang tidak memakai barang ini (tidak ada di per_outlet) selalu 0, walau ada isian lama tersimpan. */
+export const jumlahSel = (b: BarisBelanja, outlet: string, isian: Isian) =>
+	b.per_outlet[outlet] ? (isian[kunciSel(b.satuan_beli_id, outlet)] ?? b.per_outlet[outlet].saran) : 0;
 
 /** Harga satuan barang: harga outlet pertama yang punya harga. */
 export function hargaBarang(b: BarisBelanja, outlet: string[]): number | null {

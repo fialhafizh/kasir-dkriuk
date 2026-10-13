@@ -5,7 +5,7 @@
 	import PengeluaranBagi from '#lib/components/belanja/PengeluaranBagi.svelte';
 	import PindahBelanja from '#lib/components/belanja/PindahBelanja.svelte';
 	import TabelCatatBelanja from '#lib/components/belanja/TabelCatatBelanja.svelte';
-	import { urutBelanja } from '#lib/belanja/catat.ts';
+	import { urutBelanja } from '#lib/belanja/urutan.ts';
 	import SaringanAtas from '#lib/components/dasbor/SaringanAtas.svelte';
 	import TombolEkspor from '#lib/components/ekspor/TombolEkspor.svelte';
 	import { rentangPeriode } from '#lib/dasbor/periode.ts';

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { kunciSel, lembarBelanja, namaBarang, ringkas, teksBelanja, type Rencana } from './belanja';
+import { jumlahSel, kunciSel, lembarBelanja, namaBarang, ringkas, teksBelanja, type Rencana } from './belanja';
 
 const r: Rencana = {
 	hari: 7,
@@ -40,5 +40,12 @@ describe('rencana belanja', () => {
 		expect(l.kolom).toEqual(['Barang', 'Total pesanan', 'Bukit Lama', 'Talang Kerangga', 'Harga satuan', 'Harga total']);
 		expect(l.baris[0]).toEqual(['Ayam Ori', 82, 70, 12, 4321, 82 * 4321]);
 		expect(l.baris.at(-1)).toEqual(['Jumlah', null, null, null, null, 82 * 4321]);
+	});
+
+	it('outlet yang tidak memakai barang selalu 0, walau ada isian lama tersimpan', () => {
+		const b = { satuan_beli_id: 's', nama: 'Pack Saus Sambal', per_outlet: { BL: { stok: 1, pakai_hari: 1, dari_beli: false, harga: null, saran: 3 } } };
+		expect(jumlahSel(b, 'KP', { [kunciSel('s', 'KP')]: 9 })).toBe(0);
+		expect(jumlahSel(b, 'BL', {})).toBe(3);
+		expect(jumlahSel(b, 'BL', { [kunciSel('s', 'BL')]: 5 })).toBe(5);
 	});
 });

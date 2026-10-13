@@ -5,7 +5,9 @@
 	import TombolBagikan from '#lib/components/ekspor/TombolBagikan.svelte';
 	import TombolEkspor from '#lib/components/ekspor/TombolEkspor.svelte';
 	import { kunciSel, lembarBelanja, muatRencana, ringkas, teksBelanja, type Isian, type Rencana } from '#lib/belanja/belanja.ts';
+	import { urutBelanja } from '#lib/belanja/urutan.ts';
 	import { tanggalWib } from '#lib/kasir/waktu.ts';
+	import { muatSatuanBeli } from '#lib/master/api.ts';
 	import { formatAngka } from '#lib/master/rupiah.ts';
 
 	const KUNCI = 'belanja:isian';
@@ -38,7 +40,11 @@
 		const ini = ++nomor;
 		memuat = true;
 		try {
-			const r = await muatRencana(hari);
+			const [r, satuan] = await Promise.all([muatRencana(hari), muatSatuanBeli()]);
+			// urutan sama dengan Belanja riil: kebutuhan D'Kriuk, Tepung A, pack khusus Kertapati, lalu sisanya
+			const per = new Map(satuan.map((x) => [x.id, x]));
+			const urut = (id: string) => per.get(id) ?? { kode: '', urutan: 9999 };
+			r.barang.sort((a, b) => urutBelanja(urut(a.satuan_beli_id), urut(b.satuan_beli_id)));
 			if (ini === nomor) (rencana = r), (galat = '');
 		} catch (e) {
 			if (ini === nomor) galat = (e as Error).message;
@@ -112,14 +118,16 @@
 						{#each rencana.outlet as o (o.id)}
 							{@const p = x.b.per_outlet[o.id]}
 							<td class="py-1 pr-2 text-right">
-								<input
-									aria-label="{x.nama} {o.nama}"
-									inputmode="numeric"
-									class="tabular min-h-10 w-16 rounded-lg border px-2 text-right {isian[kunciSel(x.b.satuan_beli_id, o.id)] !== undefined ? 'border-brand' : 'border-line-strong'} bg-surface"
-									value={isian[kunciSel(x.b.satuan_beli_id, o.id)] ?? p?.saran ?? 0}
-									onchange={(e) => ubah(x.b.satuan_beli_id, o.id, e.currentTarget)}
-								/>
-								{#if p}
+								{#if !p}
+									<span class="text-xs text-muted">tidak dipakai</span>
+								{:else}
+									<input
+										aria-label="{x.nama} {o.nama}"
+										inputmode="numeric"
+										class="tabular min-h-10 w-16 rounded-lg border px-2 text-right {isian[kunciSel(x.b.satuan_beli_id, o.id)] !== undefined ? 'border-brand' : 'border-line-strong'} bg-surface"
+										value={isian[kunciSel(x.b.satuan_beli_id, o.id)] ?? p?.saran ?? 0}
+										onchange={(e) => ubah(x.b.satuan_beli_id, o.id, e.currentTarget)}
+									/>
 									<span class="block text-[11px] text-muted">
 										{p.dari_beli ? `beli ±${angka(p.pakai_hari * 7)}/mgg` : `stok ${angka(p.stok)} · ${angka(p.pakai_hari)}/hr`}
 									</span>
