@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Petunjuk from '#lib/components/bantuan/Petunjuk.svelte';
 	import { onMount } from 'svelte';
+	import PindahBelanja from '#lib/components/belanja/PindahBelanja.svelte';
 	import TombolBagikan from '#lib/components/ekspor/TombolBagikan.svelte';
 	import TombolEkspor from '#lib/components/ekspor/TombolEkspor.svelte';
 	import { kunciSel, lembarBelanja, muatRencana, ringkas, teksBelanja, type Isian, type Rencana } from '#lib/belanja/belanja.ts';
@@ -72,6 +73,7 @@
 
 <svelte:head><title>Belanja · Admin D'Kriuk</title></svelte:head>
 
+<PindahBelanja aktif="rencana" />
 <div class="flex items-center gap-2"><h1 class="font-display text-3xl">Rencana belanja</h1><Petunjuk topik="belanja" peran="admin" /></div>
 <p class="mt-1 max-w-prose text-sm text-muted">
 	Saran beli tiap outlet = pemakaian rata-rata 7 hari terakhir × jumlah hari − stok sekarang, dibulatkan ke atas per pack/karung. Tepung, minyak & plastik

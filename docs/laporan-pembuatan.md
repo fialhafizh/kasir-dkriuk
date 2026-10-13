@@ -198,3 +198,11 @@ Permintaan owner: satu halaman khusus (dibuka lewat tombol kecil, tidak sebesar 
 - Semua harga diambil dari Harga Beli, isi pack dari Bahan, harga jual dari Menu (tidak ada harga di kode). Pengaturan (cara bagi, pelengkap, kg tepung, persen campuran, liter minyak) bisa diubah di halaman dan tersimpan di perangkat itu saja.
 - Data: harga acuan minyak per liter diisi untuk 3 outlet; harga tepung Kertapati disamakan dengan Bukit Lama (keputusan owner: tepung sama).
 - Gas, sarung tangan, gaji, sewa tidak termasuk (ada di Laba-rugi).
+
+## Tambahan 13 Okt 2026 — Belanja riil
+
+Permintaan owner: di fitur Belanja ada halaman kedua berisi belanja yang benar-benar terjadi, per outlet, sesuai barang masuk ("misal beli 10 ayam Ori untuk Kertapati, uang keluar Kertapati langsung terhitung").
+- Halaman `/admin/belanja/riil`; tombol pindah **Rencana belanja / Belanja riil** di atas kedua halaman.
+- Sumber: Barang masuk yang tidak dibatalkan (menurut tanggal barang masuk) + pengeluaran kategori belanja bahan (tidak dibatalkan) — angka yang sama dengan belanja bahan di Laba-rugi.
+- Tampilan: uang keluar per outlet, tabel barang × outlet (jumlah & rupiah), harga rata-rata, total; rincian per nota; Excel & Cetak; saringan outlet & periode.
+- Tanpa perubahan database.

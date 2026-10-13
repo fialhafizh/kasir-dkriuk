@@ -266,6 +266,23 @@ export const BAGIAN: Bagian[] = [
 				catatan: ['Tepung, minyak & plastik merah dihitung dari rata-rata pembelian 4 minggu.']
 			},
 			{
+				id: 'belanja-riil',
+				judul: 'Belanja riil',
+				ikon: '🧾',
+				menu: 'Admin → Belanja → Belanja riil',
+				ringkas: 'Barang yang benar-benar dibeli tiap outlet dan uang keluarnya, dari Barang masuk ditambah belanja bahan di Pengeluaran.',
+				langkah: [
+					'Catat pembelian di **Admin → Stok → Barang masuk** dengan memilih outlet tujuan (mis. 10 pack ayam Ori untuk Kertapati).',
+					'Buka **Belanja → Belanja riil**, pilih periode (dan outlet bila perlu).',
+					'Kotak atas: uang keluar tiap outlet. Tabel: jumlah & rupiah per barang per outlet, harga rata-rata, total.',
+					'**Rincian per nota** menampilkan setiap barang masuk; **Excel** / **Cetak** untuk arsip.'
+				],
+				catatan: [
+					'Angka yang sama dipakai Laba-rugi sebagai belanja bahan outlet itu.',
+					'Barang masuk yang dibatalkan tidak dihitung.'
+				]
+			},
+			{
 				id: 'ojol',
 				judul: 'Laporan ojol',
 				ikon: '🛵',
