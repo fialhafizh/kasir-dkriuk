@@ -37,8 +37,8 @@ describe('seed master', () => {
 		expect(await jumlah('public.satuan_beli')).toBe(22);
 		expect(await jumlah('public.menu')).toBe(17);
 		expect(await jumlah('public.resep')).toBe(19);
-		// 51 awal − 5 menu yang tidak dijual Kertapati (ayam Hot & kulit, migrasi 0037)
-		expect(await jumlah('public.harga_jual')).toBe(46);
+		// 51 awal − 5 menu yang tidak dijual Kertapati (ayam Hot & kulit, migrasi 0037) − box, kemasan kecil, plastik besar (0041)
+		expect(await jumlah('public.harga_jual')).toBe(43);
 		expect(await jumlah('public.harga_beli')).toBe(0);
 	});
 
@@ -63,7 +63,10 @@ describe('seed master', () => {
 		expect(await harga('KP', 'hot_paha_bawah')).toBeUndefined();
 		expect(await harga('KP', 'kulit')).toBeUndefined();
 		expect(await harga('KP', 'nasi')).toBe(5000);
-		expect(await harga('KP', 'box')).toBe(1000);
+		expect(await harga('BL', 'box')).toBe(1000);
+		expect(await harga('KP', 'box')).toBeUndefined();
+		expect(await harga('KP', 'kemasan_kecil')).toBeUndefined();
+		expect(await harga('KP', 'plastik_besar')).toBeUndefined();
 		expect(await harga('BL', 'saus_sambal')).toBe(0);
 	});
 
