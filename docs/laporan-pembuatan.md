@@ -206,3 +206,10 @@ Permintaan owner: di fitur Belanja ada halaman kedua berisi belanja yang benar-b
 - Sumber: Barang masuk yang tidak dibatalkan (menurut tanggal barang masuk) + pengeluaran kategori belanja bahan (tidak dibatalkan) — angka yang sama dengan belanja bahan di Laba-rugi.
 - Tampilan: uang keluar per outlet, tabel barang × outlet (jumlah & rupiah), harga rata-rata, total; rincian per nota; Excel & Cetak; saringan outlet & periode.
 - Tanpa perubahan database.
+
+## Tambahan 13 Okt 2026 — Pengeluaran lainnya dibagi tiga (migrasi 0039)
+
+Permintaan owner: pengeluaran lainnya yang dibagi tiga outlet, cukup isi nominal & keterangan.
+- Kolom `pengeluaran.bagi_id`; fungsi `catat_pengeluaran_bagi` (admin) membuat satu baris pengeluaran per outlet aktif (dibayar di luar laci, sisa pembagian rupiah ke outlet pertama menurut kode) dan `batal_pengeluaran_bagi` membatalkan semuanya sekaligus. `batal_pengeluaran` menolak membatalkan satu bagian saja.
+- Formulir & daftar di **Belanja → Belanja riil** (nominal, keterangan wajib, tanggal, kategori; awal "Lain-lain admin"). Baris "Pengeluaran lainnya (dibagi rata)" ikut di uang keluar tiap outlet, tabel, dan Excel; otomatis masuk Laba-rugi sebagai pengeluaran lain.
+- Cadangan sebelum perubahan: `cadangan/2026-10-13-09-48`.
