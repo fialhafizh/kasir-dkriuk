@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { lembarRiil, muatBelanjaRiil, susunRiil, type LainRiil, type MasukRiil } from '#lib/belanja/riil.ts';
+	import { lembarRiil, muatBelanjaRiil, susunRiil, type BagiRiil, type LainRiil, type MasukRiil } from '#lib/belanja/riil.ts';
 	import Petunjuk from '#lib/components/bantuan/Petunjuk.svelte';
+	import PengeluaranBagi from '#lib/components/belanja/PengeluaranBagi.svelte';
 	import PindahBelanja from '#lib/components/belanja/PindahBelanja.svelte';
 	import SaringanAtas from '#lib/components/dasbor/SaringanAtas.svelte';
 	import TombolEkspor from '#lib/components/ekspor/TombolEkspor.svelte';
@@ -16,6 +17,7 @@
 	let outlets = $state<Outlet[]>([]);
 	let masuk = $state<MasukRiil[]>([]);
 	let lain = $state<LainRiil[]>([]);
+	let bagi = $state<BagiRiil[]>([]);
 	let saringan = $state<SaringanDasbor>({ outlet_id: null, periode: 'bulan_ini' });
 	let galat = $state('');
 	let memuat = $state(true);
@@ -37,6 +39,7 @@
 			if (ini !== nomor) return;
 			masuk = h.masuk;
 			lain = h.lain;
+			bagi = h.bagi;
 			galat = '';
 		} catch (e) {
 			if (ini === nomor) galat = (e as Error).message;
@@ -50,7 +53,7 @@
 	});
 
 	const tampil = $derived(saringan.outlet_id ? outlets.filter((o) => o.id === saringan.outlet_id) : outlets);
-	const s = $derived(susunRiil(masuk, lain, tampil.map((o) => o.id)));
+	const s = $derived(susunRiil(masuk, lain, tampil.map((o) => o.id), bagi));
 	const nota = $derived(masuk.filter((m) => tampil.some((o) => o.id === m.outlet_id)));
 	const namaOutlet = (id: string) => outlets.find((o) => o.id === id)?.nama ?? '';
 	const rp = (n: number) => `Rp${formatAngka(n)}`;
@@ -63,7 +66,7 @@
 <div class="flex items-center gap-2"><h1 class="font-display text-3xl">Belanja riil</h1><Petunjuk topik="belanja-riil" peran="admin" /></div>
 <p class="mt-1 max-w-prose text-sm text-muted">
 	Barang yang benar-benar dibeli tiap outlet, dari <a class="underline" href={href('/admin/stok/masuk')}>Barang masuk</a>, ditambah belanja bahan yang
-	dicatat di Pengeluaran. Begitu barang masuk dicatat untuk satu outlet, uang keluarnya langsung terhitung di outlet itu (juga di Laba-rugi). Barang masuk
+	dicatat di Pengeluaran, ditambah pengeluaran lainnya yang dibagi rata ke semua outlet. Begitu barang masuk dicatat untuk satu outlet, uang keluarnya langsung terhitung di outlet itu (juga di Laba-rugi). Barang masuk
 	yang dibatalkan tidak dihitung.
 </p>
 
@@ -76,7 +79,7 @@
 			<p class="text-xs text-muted">Uang keluar {o.nama}</p>
 			<p class="tabular font-display text-2xl">{rp(s.totalOutlet[o.id] ?? 0)}</p>
 			<p class="text-xs text-muted">
-				{s.jumlahNota[o.id] ?? 0} barang masuk {rp(s.masukOutlet[o.id] ?? 0)}{#if s.lainOutlet[o.id]} · lain {rp(s.lainOutlet[o.id])}{/if}
+				{s.jumlahNota[o.id] ?? 0} barang masuk {rp(s.masukOutlet[o.id] ?? 0)}{#if s.lainOutlet[o.id]} · bahan lain {rp(s.lainOutlet[o.id])}{/if}{#if s.bagiOutlet[o.id]} · dibagi {rp(s.bagiOutlet[o.id])}{/if}
 			</p>
 		</div>
 	{/each}
@@ -87,6 +90,8 @@
 		</div>
 	{/if}
 </div>
+
+<div class="mt-4"><PengeluaranBagi {outlets} daftar={bagi} onubah={muat} /></div>
 
 {#if memuat && !masuk.length}
 	<p class="mt-4 text-muted" role="status">Memuat…</p>
@@ -126,6 +131,15 @@
 						{#each tampil as o (o.id)}<td class="tabular py-1.5 pr-2 text-right">{s.lainOutlet[o.id] ? rp(s.lainOutlet[o.id]) : '-'}</td>{/each}
 						<td></td>
 						<td class="tabular py-1.5 text-right">{rp(tampil.reduce((t, o) => t + s.lainOutlet[o.id], 0))}</td>
+					</tr>
+				{/if}
+				{#if tampil.some((o) => s.bagiOutlet[o.id])}
+					<tr class="border-t border-line">
+						<td class="py-1.5 pr-2 font-semibold">Pengeluaran lainnya (dibagi rata)</td>
+						<td></td>
+						{#each tampil as o (o.id)}<td class="tabular py-1.5 pr-2 text-right">{s.bagiOutlet[o.id] ? rp(s.bagiOutlet[o.id]) : '-'}</td>{/each}
+						<td></td>
+						<td class="tabular py-1.5 text-right">{rp(tampil.reduce((t, o) => t + s.bagiOutlet[o.id], 0))}</td>
 					</tr>
 				{/if}
 				<tr class="border-t-2 border-line-strong font-bold">

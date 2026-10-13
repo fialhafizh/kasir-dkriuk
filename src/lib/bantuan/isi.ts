@@ -275,11 +275,13 @@ export const BAGIAN: Bagian[] = [
 					'Catat pembelian di **Admin → Stok → Barang masuk** dengan memilih outlet tujuan (mis. 10 pack ayam Ori untuk Kertapati).',
 					'Buka **Belanja → Belanja riil**, pilih periode (dan outlet bila perlu).',
 					'Kotak atas: uang keluar tiap outlet. Tabel: jumlah & rupiah per barang per outlet, harga rata-rata, total.',
-					'**Rincian per nota** menampilkan setiap barang masuk; **Excel** / **Cetak** untuk arsip.'
+					'**Rincian per nota** menampilkan setiap barang masuk; **Excel** / **Cetak** untuk arsip.',
+					'**Pengeluaran lainnya (dibagi rata)**: isi nominal, keterangan, tanggal, kategori → **Catat & bagi**. Nominal dibagi rata ke semua outlet aktif (dibayar di luar laci) dan ikut terhitung di uang keluar tiap outlet & Laba-rugi.'
 				],
 				catatan: [
 					'Angka yang sama dipakai Laba-rugi sebagai belanja bahan outlet itu.',
-					'Barang masuk yang dibatalkan tidak dihitung.'
+					'Barang masuk yang dibatalkan tidak dihitung.',
+					'Pengeluaran yang dibagi rata dibatalkan sekaligus untuk semua outlet, dari halaman Belanja riil.'
 				]
 			},
 			{

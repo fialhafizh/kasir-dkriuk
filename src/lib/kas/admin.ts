@@ -86,6 +86,13 @@ export async function catatPengeluaranAdmin(p: { id: string; outlet_id: string; 
 export async function batalPengeluaran(id: string, alasan: string): Promise<void> {
 	periksa(await supabase.rpc('batal_pengeluaran', { p_id: id, p_alasan: alasan }));
 }
+/** Pengeluaran lainnya dibagi rata ke semua outlet aktif (dibayar di luar laci). */
+export async function catatPengeluaranBagi(p: { id: string; kategori_id: string; jumlah: number; keterangan: string; tanggal?: string }): Promise<void> {
+	periksa(await supabase.rpc('catat_pengeluaran_bagi', { p }));
+}
+export async function batalPengeluaranBagi(bagiId: string, alasan: string): Promise<void> {
+	periksa(await supabase.rpc('batal_pengeluaran_bagi', { p_bagi: bagiId, p_alasan: alasan }));
+}
 export async function simpanKategori(p: { id?: string; nama: string; untuk_kasir?: boolean; wajib_keterangan?: boolean; aktif?: boolean }): Promise<void> {
 	periksa(await supabase.rpc('simpan_kategori', { p }));
 }
