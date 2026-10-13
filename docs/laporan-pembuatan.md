@@ -228,3 +228,4 @@ Owner mencatat belanja pertama lewat Belanja riil (13 Okt 10.13: BL, TK, KP). Ba
 - Cadangan dulu (`cadangan/2026-10-13-10-21`), lalu 17 baris gerakan stok jenis `masuk` dari tiga barang masuk itu dihapus; catatan & total barang masuk tetap (uang keluar & Laba-rugi tidak berubah). Ketiganya diberi catatan "Stok tidak ditambahkan: sudah termasuk opname 12 Okt".
 - Bila barang masuk itu kelak dibatalkan, `batal_barang_masuk` hanya membalik gerakan `masuk` yang ada → tidak ada pengurangan stok.
 - Fitur tidak diubah: simpan dari tabel Belanja riil tetap menambah stok.
+- 13 Okt: urutan baris Belanja riil (tabel catat & rekap) mengikuti daftar owner — Ayam Ori, Ayam Hot, Kulit, Tepung D'Kriuk, saus sambal ("Hot branding"), saus tomat ("Tomat branding"), plastik besar, plastik kecil, kemasan besar, kemasan kecil, kertas nasi, cup kulit, box, plastik merah; lalu Tepung A; lalu pack khusus Kertapati; beras & minyak paling bawah. Urutan di halaman lain tidak berubah.

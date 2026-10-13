@@ -5,6 +5,7 @@
 	import PengeluaranBagi from '#lib/components/belanja/PengeluaranBagi.svelte';
 	import PindahBelanja from '#lib/components/belanja/PindahBelanja.svelte';
 	import TabelCatatBelanja from '#lib/components/belanja/TabelCatatBelanja.svelte';
+	import { urutBelanja } from '#lib/belanja/catat.ts';
 	import SaringanAtas from '#lib/components/dasbor/SaringanAtas.svelte';
 	import TombolEkspor from '#lib/components/ekspor/TombolEkspor.svelte';
 	import { rentangPeriode } from '#lib/dasbor/periode.ts';
@@ -70,7 +71,13 @@
 	});
 
 	const tampil = $derived(saringan.outlet_id ? outlets.filter((o) => o.id === saringan.outlet_id) : outlets);
-	const s = $derived(susunRiil(masuk, lain, tampil.map((o) => o.id), bagi));
+	const s = $derived.by(() => {
+		const r = susunRiil(masuk, lain, tampil.map((o) => o.id), bagi);
+		// rekap mengikuti urutan tabel catat (barang yang tidak dikenal lagi di bawah)
+		const per = new Map(satuan.map((x) => [x.id, x]));
+		const urut = (id: string) => per.get(id) ?? { kode: '', urutan: 9999 };
+		return { ...r, barang: [...r.barang].sort((a, b) => urutBelanja(urut(a.satuan_beli_id), urut(b.satuan_beli_id))) };
+	});
 	const nota = $derived(masuk.filter((m) => tampil.some((o) => o.id === m.outlet_id)));
 	const namaOutlet = (id: string) => outlets.find((o) => o.id === id)?.nama ?? '';
 	const rp = (n: number) => `Rp${formatAngka(n)}`;

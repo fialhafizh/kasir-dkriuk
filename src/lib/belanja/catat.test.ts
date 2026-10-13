@@ -55,4 +55,11 @@ describe('catat belanja riil (tabel barang × outlet)', () => {
 		};
 		expect(dariRencana(r, { [kunci('ori', 'KP')]: 4 })).toEqual({ [kunci('ori', 'BL')]: 7, [kunci('ori', 'KP')]: 4 });
 	});
+
+	it("urutan owner: kebutuhan D'Kriuk dulu, lalu Tepung A, lalu pack khusus Kertapati, lalu sisanya", () => {
+		const kode = ['minyak_liter', 'pack_kemasan_besar_50', 'karung_tepung_a', 'pack_saus_sambal', 'pack_ayam_hot', 'pack_plastik_merah', 'pack_ayam_ori', 'beras_kg'];
+		const acak = kode.map((k, i) => satuan(k, true, k === 'beras_kg' ? 30 : 70 + i));
+		const hasil = barisCatat(acak, [], ['BL']).map((x) => x.s.kode);
+		expect(hasil).toEqual(['pack_ayam_ori', 'pack_ayam_hot', 'pack_saus_sambal', 'pack_plastik_merah', 'karung_tepung_a', 'pack_kemasan_besar_50', 'beras_kg', 'minyak_liter']);
+	});
 });
