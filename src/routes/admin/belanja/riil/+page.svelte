@@ -4,12 +4,16 @@
 	import Petunjuk from '#lib/components/bantuan/Petunjuk.svelte';
 	import PengeluaranBagi from '#lib/components/belanja/PengeluaranBagi.svelte';
 	import PindahBelanja from '#lib/components/belanja/PindahBelanja.svelte';
+	import TabelCatatBelanja from '#lib/components/belanja/TabelCatatBelanja.svelte';
 	import SaringanAtas from '#lib/components/dasbor/SaringanAtas.svelte';
 	import TombolEkspor from '#lib/components/ekspor/TombolEkspor.svelte';
 	import { rentangPeriode } from '#lib/dasbor/periode.ts';
 	import type { SaringanDasbor } from '#lib/dasbor/spek.ts';
 	import { formatWaktuWib } from '#lib/kasir/waktu.ts';
-	import { muatOutlets } from '#lib/master/api.ts';
+	import { muatHargaBeli, muatOutlets, muatSatuanBeli, muatSatuanOutlet } from '#lib/master/api.ts';
+	import type { HargaBeli, SatuanBeli } from '#lib/master/types.ts';
+	import { muatStokAwal } from '#lib/stok/api.ts';
+	import type { SatuanOutlet } from '#lib/stok/per-outlet.ts';
 	import { formatAngka } from '#lib/master/rupiah.ts';
 	import { href } from '#lib/nav.ts';
 	import type { Outlet } from '#lib/types/db.ts';
@@ -18,6 +22,11 @@
 	let masuk = $state<MasukRiil[]>([]);
 	let lain = $state<LainRiil[]>([]);
 	let bagi = $state<BagiRiil[]>([]);
+	let satuan = $state<SatuanBeli[]>([]);
+	let pemakai = $state<SatuanOutlet[]>([]);
+	let hargaBeli = $state<HargaBeli[]>([]);
+	let dihitungAt = $state<Record<string, string | null>>({});
+	let siap = $state(false);
 	let saringan = $state<SaringanDasbor>({ outlet_id: null, periode: 'bulan_ini' });
 	let galat = $state('');
 	let memuat = $state(true);
@@ -26,10 +35,18 @@
 	const rentang = $derived(
 		rentangPeriode(saringan.periode, new Date(), saringan.periode === 'kustom' && saringan.dari && saringan.sampai ? { dari: saringan.dari, sampai: saringan.sampai } : undefined)
 	);
-	onMount(() => {
-		muatOutlets()
-			.then((o) => (outlets = o.filter((x) => x.aktif)))
-			.catch((e) => (galat = (e as Error).message));
+	onMount(async () => {
+		try {
+			const [o, sb, p, h, awal] = await Promise.all([muatOutlets(), muatSatuanBeli(), muatSatuanOutlet(), muatHargaBeli(), muatStokAwal()]);
+			outlets = o.filter((x) => x.aktif);
+			satuan = sb;
+			pemakai = p;
+			hargaBeli = h;
+			dihitungAt = Object.fromEntries(outlets.map((x) => [x.id, awal.find((a) => a.outlet_id === x.id && a.status === 'disetujui')?.dihitung_at ?? null]));
+			siap = true;
+		} catch (e) {
+			galat = (e as Error).message;
+		}
 	});
 	async function muat() {
 		const ini = ++nomor;
@@ -65,13 +82,25 @@
 <PindahBelanja aktif="riil" />
 <div class="flex items-center gap-2"><h1 class="font-display text-3xl">Belanja riil</h1><Petunjuk topik="belanja-riil" peran="admin" /></div>
 <p class="mt-1 max-w-prose text-sm text-muted">
-	Barang yang benar-benar dibeli tiap outlet, dari <a class="underline" href={href('/admin/stok/masuk')}>Barang masuk</a>, ditambah belanja bahan yang
-	dicatat di Pengeluaran, ditambah pengeluaran lainnya yang dibagi rata ke semua outlet. Begitu barang masuk dicatat untuk satu outlet, uang keluarnya langsung terhitung di outlet itu (juga di Laba-rugi). Barang masuk
-	yang dibatalkan tidak dihitung.
+	Catat barang yang benar-benar dibeli dalam satu tabel seperti Rencana belanja. Begitu disimpan, stok tiap outlet bertambah dan uang keluarnya langsung
+	terhitung di outlet itu (juga di Laba-rugi). Hasilnya juga tampil di <a class="underline" href={href('/admin/stok/masuk')}>Barang masuk</a>.
 </p>
-
-<div class="mt-3"><SaringanAtas bind:saringan {outlets} /></div>
 {#if galat}<p class="mt-3 text-danger" role="alert">{galat}</p>{/if}
+
+{#if siap}
+	<div class="mt-4"><TabelCatatBelanja {outlets} {satuan} {pemakai} {hargaBeli} {dihitungAt} onsimpan={muat} /></div>
+{:else if !galat}
+	<p class="mt-4 text-muted" role="status">Memuat…</p>
+{/if}
+
+<div class="mt-4"><PengeluaranBagi {outlets} daftar={bagi} onubah={muat} /></div>
+
+<h2 class="mt-6 font-display text-2xl">Rekap belanja</h2>
+<p class="max-w-prose text-sm text-muted">
+	Semua barang masuk (dari tabel di atas maupun dari Stok → Barang masuk), belanja bahan yang dicatat di Pengeluaran, dan pengeluaran yang dibagi rata.
+	Barang masuk yang dibatalkan tidak dihitung.
+</p>
+<div class="mt-3"><SaringanAtas bind:saringan {outlets} /></div>
 
 <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
 	{#each tampil as o (o.id)}
@@ -91,12 +120,10 @@
 	{/if}
 </div>
 
-<div class="mt-4"><PengeluaranBagi {outlets} daftar={bagi} onubah={muat} /></div>
-
 {#if memuat && !masuk.length}
 	<p class="mt-4 text-muted" role="status">Memuat…</p>
 {:else if !s.barang.length && !s.total}
-	<p class="mt-4 text-muted">Belum ada barang masuk di periode ini. Catat lewat Admin → Stok → Barang masuk.</p>
+	<p class="mt-4 text-muted">Belum ada belanja di periode ini.</p>
 {:else}
 	<div class="mt-4 overflow-x-auto">
 		<table class="w-full min-w-[42rem] text-sm">

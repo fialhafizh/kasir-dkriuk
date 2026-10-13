@@ -270,17 +270,19 @@ export const BAGIAN: Bagian[] = [
 				judul: 'Belanja riil',
 				ikon: '🧾',
 				menu: 'Admin → Belanja → Belanja riil',
-				ringkas: 'Barang yang benar-benar dibeli tiap outlet dan uang keluarnya, dari Barang masuk ditambah belanja bahan di Pengeluaran.',
+				ringkas: 'Catat belanja yang benar-benar terjadi dalam tabel barang × outlet seperti Rencana belanja; begitu disimpan, stok tiap outlet bertambah dan uangnya terhitung di outlet itu.',
 				langkah: [
-					'Catat pembelian di **Admin → Stok → Barang masuk** dengan memilih outlet tujuan (mis. 10 pack ayam Ori untuk Kertapati).',
-					'Buka **Belanja → Belanja riil**, pilih periode (dan outlet bila perlu).',
-					'Kotak atas: uang keluar tiap outlet. Tabel: jumlah & rupiah per barang per outlet, harga rata-rata, total.',
-					'**Rincian per nota** menampilkan setiap barang masuk; **Excel** / **Cetak** untuk arsip.',
-					'**Pengeluaran lainnya (dibagi rata)**: isi nominal, keterangan, tanggal, kategori → **Catat & bagi**. Nominal dibagi rata ke semua outlet aktif (dibayar di luar laci) dan ikut terhitung di uang keluar tiap outlet & Laba-rugi.'
+					'Buka **Belanja → Belanja riil**. Pilih **Tanggal datang** (paling lama 7 hari ke belakang).',
+					'Isi jumlah tiap barang di kolom outlet tujuan (mis. 10 pack ayam Ori di kolom Kertapati) dan periksa harga per satuannya; harga tetap terisi dari Harga Beli, harga berubah-ubah wajib diketik.',
+					'Bisa juga tekan **Isi jumlah dari Rencana belanja** lalu sesuaikan dengan yang benar-benar dibeli.',
+					'Tekan **Simpan ke stok → Ya, simpan sebagai barang masuk**. Tiap outlet menjadi satu Barang masuk; stok bertambah dan uang keluar outlet itu langsung terhitung.',
+					'**Pengeluaran lainnya (dibagi rata)**: isi nominal, keterangan, tanggal, kategori → **Catat & bagi**. Nominal dibagi rata ke semua outlet aktif (dibayar di luar laci).',
+					'**Rekap belanja** di bawah: uang keluar tiap outlet, tabel barang × outlet, rincian per nota, Excel & Cetak.'
 				],
 				catatan: [
 					'Angka yang sama dipakai Laba-rugi sebagai belanja bahan outlet itu.',
-					'Barang masuk yang dibatalkan tidak dihitung.',
+					'Barang masuk yang dibatalkan tidak dihitung. Belanja yang salah catat dibatalkan di **Stok → Barang masuk** (stok & uang keluar ikut kembali).',
+					'Isian tabel tersimpan di perangkat ini sampai hari berganti; outlet yang berhasil disimpan langsung dikosongkan.',
 					'Pengeluaran yang dibagi rata dibatalkan sekaligus untuk semua outlet, dari halaman Belanja riil.'
 				]
 			},

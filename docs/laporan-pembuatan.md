@@ -213,3 +213,11 @@ Permintaan owner: pengeluaran lainnya yang dibagi tiga outlet, cukup isi nominal
 - Kolom `pengeluaran.bagi_id`; fungsi `catat_pengeluaran_bagi` (admin) membuat satu baris pengeluaran per outlet aktif (dibayar di luar laci, sisa pembagian rupiah ke outlet pertama menurut kode) dan `batal_pengeluaran_bagi` membatalkan semuanya sekaligus. `batal_pengeluaran` menolak membatalkan satu bagian saja.
 - Formulir & daftar di **Belanja → Belanja riil** (nominal, keterangan wajib, tanggal, kategori; awal "Lain-lain admin"). Baris "Pengeluaran lainnya (dibagi rata)" ikut di uang keluar tiap outlet, tabel, dan Excel; otomatis masuk Laba-rugi sebagai pengeluaran lain.
 - Cadangan sebelum perubahan: `cadangan/2026-10-13-09-48`.
+
+## Ralat 13 Okt 2026 — Belanja riil jadi tempat mencatat belanja
+
+Koreksi owner: Belanja riil harus berbentuk seperti Rencana belanja (barang × outlet + harga), dan saat ditambah otomatis menambah stok outlet.
+- Komponen **Catat belanja** di atas halaman Belanja riil: tabel semua satuan beli aktif × outlet (sel dikunci bila satuan tidak dipakai outlet itu), tiap sel berisi jumlah & harga per satuan (harga tetap terisi dari Harga Beli outlet itu). Tanggal datang (maks. 7 hari mundur), tombol **Isi jumlah dari Rencana belanja**, jumlah per outlet & total.
+- **Simpan ke stok** membuat satu Barang masuk per outlet yang diisi (memakai `catat_barang_masuk` yang sudah ada → stok bertambah, belanja bahan & Laba-rugi ikut). id per outlet dipertahankan sampai berhasil supaya kirim ulang tidak dobel; isian tersimpan di perangkat sampai hari berganti.
+- Rekap belanja, pengeluaran dibagi rata, Excel tetap di bawahnya. Tanpa perubahan database.
+- Format lima berkas Belanja sempat berubah oleh perapian kode bawaan (proyek tidak punya berkas pengaturan perapian); dikembalikan ke gaya proyek.
